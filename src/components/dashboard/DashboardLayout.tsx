@@ -1,12 +1,23 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Clock, Calendar, FileText, Clock4 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Clock } from "lucide-react";
+import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const now = new Date();
+  const formattedDate = format(now, "EEEE d MMMM yyyy", { locale: fr });
+  const formattedTime = format(now, "HH:mm");
+
+  const handleClockIn = () => {
+    toast.success(`Présence enregistrée le ${formattedDate} à ${formattedTime}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
@@ -17,51 +28,24 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 HR Management System
               </h1>
             </div>
-            <div className="flex items-center">
-              <Button variant="outline" className="mr-2">
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">{formattedDate}</p>
+                <p className="text-lg font-semibold">{formattedTime}</p>
+              </div>
+              <Button onClick={handleClockIn} className="bg-green-600 hover:bg-green-700">
                 <Clock className="mr-2 h-4 w-4" />
-                Clock In/Out
+                Pointer ma présence
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="flex overflow-hidden pt-16">
-        <aside className="fixed z-20 h-full top-0 left-0 pt-16 flex lg:flex flex-shrink-0 flex-col w-64 transition-width duration-75">
-          <div className="relative flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white pt-0">
-            <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <div className="flex-1 px-3 bg-white divide-y space-y-1">
-                <ul className="space-y-2 pb-2">
-                  <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Présences
-                    </Button>
-                  </li>
-                  <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Congés
-                    </Button>
-                  </li>
-                  <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Clock4 className="mr-2 h-4 w-4" />
-                      Heures Supp.
-                    </Button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <div className="bg-gray-50 lg:ml-64 overflow-y-auto w-full h-full">
-          <main className="flex-1 relative z-0 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8 h-full">
-            {children}
-          </main>
-        </div>
+      <div className="pt-16">
+        <main className="flex-1 relative z-0 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8 h-full">
+          {children}
+        </main>
       </div>
     </div>
   );
