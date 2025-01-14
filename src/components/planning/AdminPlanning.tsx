@@ -5,7 +5,7 @@ import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Clock, Clock4 } from "lucide-react";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,6 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { OvertimeRequest } from "@/types/hr";
 
 interface TimeLog {
   clockIn?: string;
@@ -122,6 +125,27 @@ export const AdminPlanning = () => {
     toast.success("Employé ajouté avec succès");
   };
 
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDelayDialog, setShowDelayDialog] = useState(false);
+  const [showExtraTimeDialog, setShowExtraTimeDialog] = useState(false);
+
+  const handleEditEmployee = (employee: NewEmployee) => {
+    // Here you would update the employee data
+    toast.success("Informations de l'employé mises à jour");
+    setShowEditDialog(false);
+  };
+
+  const handleAddDelay = (data: { date: string; time: string; reason: string }) => {
+    // Here you would save the delay record
+    toast.success("Retard enregistré");
+  };
+
+  const handleAddExtraTime = (data: { date: string; time: string; reason: string }) => {
+    // Here you would save the extra time record
+    toast.success("Heures supplémentaires enregistrées");
+  };
+
   return (
     <Tabs defaultValue="planning" className="space-y-4">
       <TabsList>
@@ -172,7 +196,41 @@ export const AdminPlanning = () => {
                   {employees.map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell className="sticky left-0 bg-white font-medium">
-                        {employee.name}
+                        <div className="flex items-center space-x-2">
+                          <span>{employee.name}</span>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setShowEditDialog(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setShowDelayDialog(true);
+                              }}
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setShowExtraTimeDialog(true);
+                              }}
+                            >
+                              <Clock4 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </TableCell>
                       {getDaysToShow().map((date, i) => {
                         const timeLog = getTimeLog(employee.id, date);
@@ -293,3 +351,120 @@ export const AdminPlanning = () => {
     </Tabs>
   );
 };
+
+interface EditEmployeeDialogProps {
+  employee: Employee;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (employee: NewEmployee) => void;
+}
+
+const EditEmployeeDialog = ({ employee, isOpen, onClose, onSubmit }: EditEmployeeDialogProps) => {
+  return (
+    <NewEmployeeForm
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={onSubmit}
+      initialData={employee}
+    />
+  );
+};
+
+interface TimeAdjustmentDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { date: string; time: string; reason: string }) => void;
+  type: 'delay' | 'extraTime';
+  employeeName: string;
+}
+
+const TimeAdjustmentDialog = ({ isOpen, onClose, onSubmit, type, employeeName }: TimeAdjustmentDialogProps) => {
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [reason, setReason] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({ date, time, reason });
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {type === 'delay' ? 'Ajouter un retard' : 'Ajouter des heures supplémentaires'}
+          </DialogTitle>
+          <DialogDescription>
+            {`Pour ${employeeName}`}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="time">
+              {type === 'delay' ? 'Durée du retard' : 'Heures supplémentaires'}
+            </Label>
+            <Input
+              id="time"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Motif</Label>
+            <Textarea
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" type="button" onClick={onClose}>
+              Annuler
+            </Button>
+            <Button type="submit">Valider</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+{selectedEmployee && (
+  <>
+    <EditEmployeeDialog
+      employee={selectedEmployee}
+      isOpen={showEditDialog}
+      onClose={() => setShowEditDialog(false)}
+      onSubmit={handleEditEmployee}
+    />
+    <TimeAdjustmentDialog
+      isOpen={showDelayDialog}
+      onClose={() => setShowDelayDialog(false)}
+      onSubmit={handleAddDelay}
+      type="delay"
+      employeeName={selectedEmployee.name}
+    />
+    <TimeAdjustmentDialog
+      isOpen={showExtraTimeDialog}
+      onClose={() => setShowExtraTimeDialog(false)}
+      onSubmit={handleAddExtraTime}
+      type="extraTime"
+      employeeName={selectedEmployee.name}
+    />
+  </>
+)}

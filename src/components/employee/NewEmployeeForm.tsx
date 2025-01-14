@@ -11,17 +11,19 @@ interface NewEmployeeFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (employee: NewEmployee) => void;
+  initialData?: Partial<NewEmployee>;
 }
 
-export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormProps) => {
-  const [formData, setFormData] = useState<Partial<NewEmployee>>({
+export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, initialData }: NewEmployeeFormProps) => {
+  const [formData, setFormData] = useState<Partial<NewEmployee>>(() => ({
     workSchedule: {
-      startTime: '',
-      endTime: '',
-      breakStartTime: '',
-      breakEndTime: ''
-    }
-  });
+      startTime: initialData?.workSchedule?.startTime || '',
+      endTime: initialData?.workSchedule?.endTime || '',
+      breakStartTime: initialData?.workSchedule?.breakStartTime || '',
+      breakEndTime: initialData?.workSchedule?.breakEndTime || ''
+    },
+    ...initialData
+  }));
 
   const positions: Position[] = [
     'Traducteur', 'Traductrice', 'Interprète', 'Coordinatrice',
