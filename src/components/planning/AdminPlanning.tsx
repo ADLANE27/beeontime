@@ -18,6 +18,8 @@ import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { OvertimeRequest } from "@/types/hr";
 
 interface TimeLog {
@@ -353,7 +355,7 @@ export const AdminPlanning = () => {
 };
 
 interface EditEmployeeDialogProps {
-  employee: Employee;
+  employee: Partial<NewEmployee>;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (employee: NewEmployee) => void;
