@@ -4,15 +4,25 @@ import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const now = new Date();
-  const formattedDate = format(now, "EEEE d MMMM yyyy", { locale: fr });
-  const formattedTime = format(now, "HH:mm");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = format(currentTime, "EEEE d MMMM yyyy", { locale: fr });
+  const formattedTime = format(currentTime, "HH:mm");
 
   const handleClockIn = () => {
     toast.success(`Présence enregistrée le ${formattedDate} à ${formattedTime}`);
