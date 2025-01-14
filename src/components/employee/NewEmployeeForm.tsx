@@ -14,7 +14,14 @@ interface NewEmployeeFormProps {
 }
 
 export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormProps) => {
-  const [formData, setFormData] = useState<Partial<NewEmployee>>({});
+  const [formData, setFormData] = useState<Partial<NewEmployee>>({
+    workSchedule: {
+      startTime: '',
+      endTime: '',
+      breakStartTime: '',
+      breakEndTime: ''
+    }
+  });
 
   const positions: Position[] = [
     'Traducteur', 'Traductrice', 'Interprète', 'Coordinatrice',
@@ -46,6 +53,13 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
       return;
     }
 
+    // Validate work schedule
+    const { workSchedule } = formData;
+    if (!workSchedule?.startTime || !workSchedule?.endTime || !workSchedule?.breakStartTime || !workSchedule?.breakEndTime) {
+      toast.error("Veuillez remplir tous les horaires de travail");
+      return;
+    }
+
     onSubmit(formData as NewEmployee);
     onClose();
   };
@@ -58,9 +72,9 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
     setFormData(prev => ({
       ...prev,
       workSchedule: {
-        ...(prev.workSchedule || {}),
+        ...prev.workSchedule,
         [field]: value
-      }
+      } as WorkSchedule
     }));
   };
 
