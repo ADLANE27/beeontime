@@ -2,9 +2,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Clock, AlertTriangle, Clock4, FileText } from "lucide-react";
+import { Download, Clock, AlertTriangle, Clock4, FileText, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
+import { AdminPlanning } from "@/components/planning/AdminPlanning";
 
 const HRDashboard = () => {
   const handleExport = () => {
@@ -21,8 +22,12 @@ const HRDashboard = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="leave" className="space-y-4">
+        <Tabs defaultValue="planning" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="planning">
+              <Calendar className="mr-2 h-4 w-4" />
+              Planning
+            </TabsTrigger>
             <TabsTrigger value="leave">
               <Clock className="mr-2 h-4 w-4" />
               Demandes de congés
@@ -40,6 +45,10 @@ const HRDashboard = () => {
               Documents
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="planning">
+            <AdminPlanning />
+          </TabsContent>
 
           <TabsContent value="leave">
             <Card className="p-6">
