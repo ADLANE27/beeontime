@@ -1,12 +1,17 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO, isToday } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO, isToday, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TimeLog {
   clockIn?: string;
@@ -40,7 +45,6 @@ const absenceTypes: AbsenceType[] = [
   { type: "paye", color: "bg-indigo-100", label: "Congé payé" }
 ];
 
-// Exemple de données (à remplacer par les vraies données)
 const employees: Employee[] = [
   { id: 1, name: "Jean Dupont", hasClockedIn: true },
   { id: 2, name: "Marie Martin", hasClockedIn: false },
@@ -49,13 +53,18 @@ const employees: Employee[] = [
 
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date(),
+  });
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
+  
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
-  // Exemple de données de pointage (à remplacer par les vraies données)
   const getTimeLog = (employeeId: number, date: Date): TimeLog | undefined => {
     if (isToday(date)) {
       return {
@@ -68,7 +77,6 @@ export const AdminPlanning = () => {
     return undefined;
   };
 
-  // Exemple de données d'absence (à remplacer par les vraies données)
   const getAbsence = (employeeId: number, day: number): AbsenceType | undefined => {
     if (employeeId === 1 && day === 10) {
       return absenceTypes[9];
@@ -76,10 +84,35 @@ export const AdminPlanning = () => {
     return undefined;
   };
 
+  const getDaysToShow = () => {
+    switch (viewMode) {
+      case 'week':
+        const start = startOfWeek(currentDate, { locale: fr });
+        const end = endOfWeek(currentDate, { locale: fr });
+        return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+      case 'custom':
+        if (date?.from && date?.to) {
+          const dayCount = differenceInDays(date.to, date.from) + 1;
+          return Array.from({ length: dayCount }, (_, i) => addDays(date.from, i));
+        }
+        return [];
+      default:
+        return Array.from({ length: daysInMonth }, (_, i) => 
+          new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1)
+        );
+    }
+  };
+
+  const isDateInRange = (dateToCheck: Date) => {
+    if (viewMode === 'custom' && date?.from && date?.to) {
+      return isWithinInterval(dateToCheck, { start: date.from, end: date.to });
+    }
+    return true;
+  };
+
   return (
     <Card className="p-4">
       <div className="space-y-4">
-        {/* En-tête avec navigation et légende */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="icon" onClick={previousMonth}>
@@ -92,9 +125,59 @@ export const AdminPlanning = () => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          
+          <div className="flex items-center space-x-4">
+            <Select value={viewMode} onValueChange={(value: 'month' | 'week' | 'custom') => setViewMode(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sélectionner une vue" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Vue mensuelle</SelectItem>
+                <SelectItem value="week">Vue hebdomadaire</SelectItem>
+                <SelectItem value="custom">Période personnalisée</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {viewMode === 'custom' && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "dd/MM/yyyy")} -{" "}
+                          {format(date.to, "dd/MM/yyyy")}
+                        </>
+                      ) : (
+                        format(date.from, "dd/MM/yyyy")
+                      )
+                    ) : (
+                      <span>Sélectionner une période</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
 
-        {/* Légende des absences */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
           {absenceTypes.map((type) => (
             <div
@@ -107,51 +190,19 @@ export const AdminPlanning = () => {
           ))}
         </div>
 
-        {/* État des pointages du jour */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Pointages du {format(new Date(), 'dd MMMM yyyy', { locale: fr })}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {employees.map((employee) => (
-              <div
-                key={employee.id}
-                className={`p-4 rounded-lg border ${
-                  employee.hasClockedIn ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{employee.name}</span>
-                  <Badge variant="outline" className={employee.hasClockedIn ? 'bg-green-100' : 'bg-red-100'}>
-                    {employee.hasClockedIn ? 'Présent' : 'Absent'}
-                  </Badge>
-                </div>
-                {employee.hasClockedIn && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    <div>Arrivée: 09:00</div>
-                    <div>Pause déjeuner: 12:00 - 13:00</div>
-                    <div>Départ prévu: 17:00</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Calendrier */}
         <ScrollArea className="h-[500px] border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="sticky left-0 bg-white z-10">Employé</TableHead>
-                {Array.from({ length: daysInMonth }, (_, i) => (
+                {getDaysToShow().map((date, i) => (
                   <TableHead 
                     key={i} 
                     className={`text-center min-w-[100px] ${
-                      isToday(new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1)) 
-                        ? 'bg-blue-50' 
-                        : ''
+                      isToday(date) ? 'bg-blue-50' : ''
                     }`}
                   >
-                    {format(new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1), 'dd/MM')}
+                    {format(date, 'dd/MM')}
                   </TableHead>
                 ))}
               </TableRow>
@@ -162,16 +213,15 @@ export const AdminPlanning = () => {
                   <TableCell className="sticky left-0 bg-white font-medium">
                     {employee.name}
                   </TableCell>
-                  {Array.from({ length: daysInMonth }, (_, i) => {
-                    const currentDay = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1);
-                    const timeLog = getTimeLog(employee.id, currentDay);
-                    const absence = getAbsence(employee.id, i + 1);
+                  {getDaysToShow().map((date, i) => {
+                    const timeLog = getTimeLog(employee.id, date);
+                    const absence = getAbsence(employee.id, date.getDate());
 
                     return (
                       <TableCell
                         key={i}
                         className={`text-center p-2 ${
-                          isToday(currentDay) ? 'bg-blue-50' : ''
+                          isToday(date) ? 'bg-blue-50' : ''
                         } ${absence ? absence.color : ''}`}
                       >
                         {timeLog && (
