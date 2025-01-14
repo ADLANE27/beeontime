@@ -16,15 +16,45 @@ import {
 } from "@/components/ui/toggle-group";
 import { useState } from "react";
 import { Calendar, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { differenceInHours, differenceInMonths, addHours, addMonths } from "date-fns";
 
 export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<string>();
   const [dayType, setDayType] = useState("full"); // "full" ou "half"
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const start = new Date(startDate);
+    const now = new Date();
+
+    // Vérification des délais selon le type de congé
+    if (leaveType === "vacation") {
+      const hoursUntilStart = differenceInHours(start, now);
+      if (hoursUntilStart < 48) {
+        toast.error("Les congés payés doivent être demandés au moins 48 heures à l'avance");
+        return;
+      }
+    }
+
+    if (leaveType === "annual") {
+      const monthsUntilStart = differenceInMonths(start, now);
+      if (monthsUntilStart < 2) {
+        toast.error("Les congés annuels doivent être demandés au moins 2 mois à l'avance");
+        return;
+      }
+    }
+
+    toast.success("Demande de congé soumise avec succès");
+  };
 
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Demande de congé</h2>
-      <form className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <Label htmlFor="type">Type de congé</Label>
           <Select value={leaveType} onValueChange={setLeaveType}>
@@ -32,9 +62,16 @@ export const LeaveRequestForm = () => {
               <SelectValue placeholder="Sélectionnez un type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="vacation">Congés payés</SelectItem>
-              <SelectItem value="sick">Maladie</SelectItem>
-              <SelectItem value="other">Autre</SelectItem>
+              <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
+              <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
+              <SelectItem value="paternity">Congé paternité</SelectItem>
+              <SelectItem value="maternity">Congé maternité</SelectItem>
+              <SelectItem value="sickChild">Congé enfant malade</SelectItem>
+              <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
+              <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
+              <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
+              <SelectItem value="rtt">RTT</SelectItem>
+              <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -63,11 +100,21 @@ export const LeaveRequestForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startDate">Date de début</Label>
-            <Input type="date" id="startDate" />
+            <Input 
+              type="date" 
+              id="startDate" 
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="endDate">Date de fin</Label>
-            <Input type="date" id="endDate" />
+            <Input 
+              type="date" 
+              id="endDate"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
           </div>
         </div>
 
