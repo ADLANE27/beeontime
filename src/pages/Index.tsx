@@ -1,13 +1,21 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { AttendanceCalendar } from "@/components/attendance/AttendanceCalendar";
+import { LeaveRequestForm } from "@/components/leave/LeaveRequestForm";
+import { PayslipList } from "@/components/payslip/PayslipList";
+import { OvertimeList } from "@/components/overtime/OvertimeList";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <DashboardLayout>
+      <div className="grid grid-cols-1 gap-6">
+        <AttendanceCalendar />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <LeaveRequestForm />
+          <PayslipList />
+        </div>
+        <OvertimeList />
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
