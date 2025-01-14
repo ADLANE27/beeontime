@@ -4,7 +4,6 @@ import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
@@ -29,16 +28,16 @@ interface AbsenceType {
 }
 
 const absenceTypes: AbsenceType[] = [
-  { type: "paternite", color: "#E5F6FD", label: "Congé paternité" },
-  { type: "maternite", color: "#FFF0F0", label: "Congé maternité" },
-  { type: "enfantMalade", color: "#F0FFF4", label: "Congé enfant malade" },
-  { type: "nonRemuneree", color: "#FFF5EB", label: "Absence non rémunérée" },
-  { type: "injustifiee", color: "#FEE2E2", label: "Absence injustifiée" },
-  { type: "justifiee", color: "#EFF6FF", label: "Absence justifiée" },
-  { type: "rtt", color: "#FFFBEB", label: "RTT" },
-  { type: "evenementsFamiliaux", color: "#F5F3FF", label: "Événements familiaux" },
-  { type: "annuel", color: "#F3F4F6", label: "Congé annuel" },
-  { type: "paye", color: "#EEF2FF", label: "Congé payé" }
+  { type: "paternite", color: "bg-blue-100", label: "Congé paternité" },
+  { type: "maternite", color: "bg-pink-100", label: "Congé maternité" },
+  { type: "enfantMalade", color: "bg-green-100", label: "Congé enfant malade" },
+  { type: "nonRemuneree", color: "bg-orange-100", label: "Absence non rémunérée" },
+  { type: "injustifiee", color: "bg-red-100", label: "Absence injustifiée" },
+  { type: "justifiee", color: "bg-blue-100", label: "Absence justifiée" },
+  { type: "rtt", color: "bg-yellow-100", label: "RTT" },
+  { type: "evenementsFamiliaux", color: "bg-purple-100", label: "Événements familiaux" },
+  { type: "annuel", color: "bg-gray-100", label: "Congé annuel" },
+  { type: "paye", color: "bg-indigo-100", label: "Congé payé" }
 ];
 
 // Exemple de données (à remplacer par les vraies données)
@@ -50,8 +49,6 @@ const employees: Employee[] = [
 
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'month' | 'week'>('month');
-  
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
 
@@ -82,85 +79,81 @@ export const AdminPlanning = () => {
   return (
     <Card className="p-4">
       <div className="space-y-4">
-        <div className="flex flex-col space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <h2 className="text-2xl font-bold">
-                Planning du mois de {format(currentDate, 'MMMM yyyy', { locale: fr })}
-              </h2>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="icon" onClick={previousMonth}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={nextMonth}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant={view === 'month' ? 'default' : 'outline'}
-                onClick={() => setView('month')}
-              >
-                Mois
-              </Button>
-              <Button
-                variant={view === 'week' ? 'default' : 'outline'}
-                onClick={() => setView('week')}
-              >
-                Semaine
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {absenceTypes.map((type) => (
-              <Badge
-                key={type.type}
-                variant="outline"
-                style={{ backgroundColor: type.color }}
-                className="text-xs justify-start p-2"
-              >
-                {type.label}
-              </Badge>
-            ))}
-          </div>
-
-          <div className="bg-muted/10 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">État des pointages du jour</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {employees.map((employee) => (
-                <div
-                  key={employee.id}
-                  className={`p-3 rounded-lg ${
-                    employee.hasClockedIn ? 'bg-green-50' : 'bg-red-50'
-                  }`}
-                >
-                  <span className="font-medium">{employee.name}</span>
-                  <span className={`ml-2 text-sm ${
-                    employee.hasClockedIn ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {employee.hasClockedIn ? 'A pointé' : 'N\'a pas encore pointé'}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* En-tête avec navigation et légende */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="icon" onClick={previousMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-xl font-semibold">
+              {format(currentDate, 'MMMM yyyy', { locale: fr })}
+            </h2>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        <ScrollArea className="h-[600px]">
+        {/* Légende des absences */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+          {absenceTypes.map((type) => (
+            <div
+              key={type.type}
+              className={`flex items-center space-x-2 p-2 rounded-md ${type.color}`}
+            >
+              <div className="w-3 h-3 rounded-full bg-current"></div>
+              <span className="text-sm">{type.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* État des pointages du jour */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Pointages du {format(new Date(), 'dd MMMM yyyy', { locale: fr })}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {employees.map((employee) => (
+              <div
+                key={employee.id}
+                className={`p-4 rounded-lg border ${
+                  employee.hasClockedIn ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{employee.name}</span>
+                  <Badge variant="outline" className={employee.hasClockedIn ? 'bg-green-100' : 'bg-red-100'}>
+                    {employee.hasClockedIn ? 'Présent' : 'Absent'}
+                  </Badge>
+                </div>
+                {employee.hasClockedIn && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <div>Arrivée: 09:00</div>
+                    <div>Pause déjeuner: 12:00 - 13:00</div>
+                    <div>Départ prévu: 17:00</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Calendrier */}
+        <ScrollArea className="h-[500px] border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-white z-10 min-w-[200px]">Employé</TableHead>
-                {Array.from({ length: daysInMonth }, (_, i) => {
-                  const currentDay = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1);
-                  return (
-                    <TableHead key={i} className="text-center min-w-[120px]">
-                      {format(currentDay, 'dd/MM', { locale: fr })}
-                    </TableHead>
-                  );
-                })}
+                <TableHead className="sticky left-0 bg-white z-10">Employé</TableHead>
+                {Array.from({ length: daysInMonth }, (_, i) => (
+                  <TableHead 
+                    key={i} 
+                    className={`text-center min-w-[100px] ${
+                      isToday(new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1)) 
+                        ? 'bg-blue-50' 
+                        : ''
+                    }`}
+                  >
+                    {format(new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1), 'dd/MM')}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -177,45 +170,25 @@ export const AdminPlanning = () => {
                     return (
                       <TableCell
                         key={i}
-                        style={{ backgroundColor: absence?.color }}
-                        className={`text-center p-1 ${isToday(currentDay) ? 'bg-blue-50' : ''}`}
+                        className={`text-center p-2 ${
+                          isToday(currentDay) ? 'bg-blue-50' : ''
+                        } ${absence ? absence.color : ''}`}
                       >
-                        {timeLog ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger className="w-full">
-                                <div className="text-xs space-y-1">
-                                  {timeLog.clockIn ? (
-                                    <div className="font-medium text-green-600">Présent</div>
-                                  ) : (
-                                    <div className="font-medium text-red-600">Absent</div>
-                                  )}
-                                  {timeLog.clockIn && (
-                                    <>
-                                      <div>Arrivée: {timeLog.clockIn}</div>
-                                      <div>Pause: {timeLog.breakStart}</div>
-                                      <div>Reprise: {timeLog.breakEnd}</div>
-                                      <div>Départ: {timeLog.clockOut}</div>
-                                    </>
-                                  )}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-sm space-y-1">
-                                  {timeLog.clockIn && (
-                                    <>
-                                      <p>Arrivée: {timeLog.clockIn}</p>
-                                      <p>Pause: {timeLog.breakStart} - {timeLog.breakEnd}</p>
-                                      <p>Départ: {timeLog.clockOut}</p>
-                                    </>
-                                  )}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : absence ? (
-                          <span className="text-xs p-1 rounded">{absence.label}</span>
-                        ) : null}
+                        {timeLog && (
+                          <div className="text-xs space-y-1">
+                            {timeLog.clockIn ? (
+                              <>
+                                <div className="font-medium text-green-600">✓</div>
+                                <div>{timeLog.clockIn}</div>
+                              </>
+                            ) : (
+                              <div className="font-medium text-red-600">✗</div>
+                            )}
+                          </div>
+                        )}
+                        {absence && (
+                          <div className="text-xs font-medium">{absence.label}</div>
+                        )}
                       </TableCell>
                     );
                   })}
