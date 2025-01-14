@@ -68,6 +68,10 @@ export const AdminPlanning = () => {
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
   const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Partial<NewEmployee> | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDelayDialog, setShowDelayDialog] = useState(false);
+  const [showExtraTimeDialog, setShowExtraTimeDialog] = useState(false);
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
@@ -76,7 +80,6 @@ export const AdminPlanning = () => {
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
   const getTimeLog = (employeeId: number, date: Date): TimeLog | undefined => {
-    // Simulation de données de pointage
     if (!isWeekend(date)) {
       return {
         clockIn: "09:00",
@@ -122,30 +125,26 @@ export const AdminPlanning = () => {
   };
 
   const handleAddEmployee = (employee: NewEmployee) => {
-    // Ici vous ajouteriez la logique pour sauvegarder l'employé
     console.log("Nouvel employé:", employee);
     toast.success("Employé ajouté avec succès");
   };
 
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDelayDialog, setShowDelayDialog] = useState(false);
-  const [showExtraTimeDialog, setShowExtraTimeDialog] = useState(false);
-
   const handleEditEmployee = (employee: NewEmployee) => {
-    // Here you would update the employee data
+    console.log("Editing employee:", employee);
     toast.success("Informations de l'employé mises à jour");
     setShowEditDialog(false);
   };
 
   const handleAddDelay = (data: { date: string; time: string; reason: string }) => {
-    // Here you would save the delay record
+    console.log("Adding delay:", data);
     toast.success("Retard enregistré");
+    setShowDelayDialog(false);
   };
 
   const handleAddExtraTime = (data: { date: string; time: string; reason: string }) => {
-    // Here you would save the extra time record
+    console.log("Adding extra time:", data);
     toast.success("Heures supplémentaires enregistrées");
+    setShowExtraTimeDialog(false);
   };
 
   return (
@@ -459,14 +458,14 @@ const TimeAdjustmentDialog = ({ isOpen, onClose, onSubmit, type, employeeName }:
       onClose={() => setShowDelayDialog(false)}
       onSubmit={handleAddDelay}
       type="delay"
-      employeeName={selectedEmployee.name}
+      employeeName={selectedEmployee.firstName || ''}
     />
     <TimeAdjustmentDialog
       isOpen={showExtraTimeDialog}
       onClose={() => setShowExtraTimeDialog(false)}
       onSubmit={handleAddExtraTime}
       type="extraTime"
-      employeeName={selectedEmployee.name}
+      employeeName={selectedEmployee.firstName || ''}
     />
   </>
 )}
