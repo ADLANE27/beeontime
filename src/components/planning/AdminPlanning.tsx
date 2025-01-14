@@ -13,6 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
+import { NewEmployee } from "@/types/hr";
 
 interface TimeLog {
   clockIn?: string;
@@ -59,7 +61,8 @@ export const AdminPlanning = () => {
     to: new Date(),
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
-  
+  const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
+
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
 
@@ -110,6 +113,12 @@ export const AdminPlanning = () => {
       return isWithinInterval(dateToCheck, { start: date.from, end: date.to });
     }
     return true;
+  };
+
+  const handleAddEmployee = (employee: NewEmployee) => {
+    // Ici vous ajouteriez la logique pour sauvegarder l'employé
+    console.log("Nouvel employé:", employee);
+    toast.success("Employé ajouté avec succès");
   };
 
   return (
@@ -208,9 +217,17 @@ export const AdminPlanning = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Gestion des employés</h2>
-              <Button>Ajouter un employé</Button>
+              <Button onClick={() => setShowNewEmployeeForm(true)}>
+                Ajouter un employé
+              </Button>
             </div>
             
+            <NewEmployeeForm
+              isOpen={showNewEmployeeForm}
+              onClose={() => setShowNewEmployeeForm(false)}
+              onSubmit={handleAddEmployee}
+            />
+
             <Table>
               <TableHeader>
                 <TableRow>
