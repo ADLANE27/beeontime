@@ -8,21 +8,9 @@ import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { toast } from "sonner";
 
 const EmployeeDashboard = () => {
-  const handleClockIn = () => {
-    // Ici, vous ajouterez la logique pour enregistrer l'heure d'arrivée
-    toast.success("Présence enregistrée avec succès");
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button onClick={handleClockIn} className="w-full md:w-auto">
-            <Clock className="mr-2 h-4 w-4" />
-            Pointer ma présence
-          </Button>
-        </div>
-
         <Tabs defaultValue="documents" className="space-y-4">
           <TabsList>
             <TabsTrigger value="documents">
