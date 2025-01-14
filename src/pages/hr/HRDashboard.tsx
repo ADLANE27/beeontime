@@ -2,8 +2,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Clock, AlertTriangle, Clock4 } from "lucide-react";
+import { Download, Clock, AlertTriangle, Clock4, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 
 const HRDashboard = () => {
   const handleExport = () => {
@@ -33,6 +34,10 @@ const HRDashboard = () => {
             <TabsTrigger value="lateness">
               <AlertTriangle className="mr-2 h-4 w-4" />
               Retards
+            </TabsTrigger>
+            <TabsTrigger value="payslips">
+              <FileText className="mr-2 h-4 w-4" />
+              Documents
             </TabsTrigger>
           </TabsList>
 
@@ -94,6 +99,10 @@ const HRDashboard = () => {
                 ))}
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="payslips">
+            <PayslipManagement />
           </TabsContent>
         </Tabs>
       </div>
