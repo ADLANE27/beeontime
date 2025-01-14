@@ -10,10 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 import { useState } from "react";
+import { Calendar, Clock } from "lucide-react";
 
 export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<string>();
+  const [dayType, setDayType] = useState("full"); // "full" ou "half"
 
   return (
     <Card className="p-6">
@@ -33,6 +39,27 @@ export const LeaveRequestForm = () => {
           </Select>
         </div>
 
+        <div className="space-y-2">
+          <Label>Type de journée</Label>
+          <ToggleGroup
+            type="single"
+            value={dayType}
+            onValueChange={(value) => {
+              if (value) setDayType(value);
+            }}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="full" aria-label="Journée complète" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Journée complète
+            </ToggleGroupItem>
+            <ToggleGroupItem value="half" aria-label="Demi-journée" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Demi-journée
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startDate">Date de début</Label>
@@ -43,6 +70,21 @@ export const LeaveRequestForm = () => {
             <Input type="date" id="endDate" />
           </div>
         </div>
+
+        {dayType === "half" && (
+          <div className="space-y-2">
+            <Label htmlFor="period">Période</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez la période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Matin</SelectItem>
+                <SelectItem value="afternoon">Après-midi</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="reason">Motif</Label>
