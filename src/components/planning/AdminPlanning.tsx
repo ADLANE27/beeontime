@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO, isToday, startOfWeek, endOfWeek, isWithinInterval, addDays, differenceInDays } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO, isToday, startOfWeek, endOfWeek, isWithinInterval, addDays, differenceInDays, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TimeLog {
   clockIn?: string;
@@ -66,9 +67,10 @@ export const AdminPlanning = () => {
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
   const getTimeLog = (employeeId: number, date: Date): TimeLog | undefined => {
-    if (isToday(date)) {
+    // Simulation de données de pointage
+    if (!isWeekend(date)) {
       return {
-        clockIn: employees.find(e => e.id === employeeId)?.hasClockedIn ? "09:00" : undefined,
+        clockIn: "09:00",
         breakStart: "12:00",
         breakEnd: "13:00",
         clockOut: "17:00"
@@ -111,143 +113,165 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon" onClick={previousMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-xl font-semibold">
-              {format(currentDate, 'MMMM yyyy', { locale: fr })}
-            </h2>
-            <Button variant="outline" size="icon" onClick={nextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <Select value={viewMode} onValueChange={(value: 'month' | 'week' | 'custom') => setViewMode(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sélectionner une vue" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Vue mensuelle</SelectItem>
-                <SelectItem value="week">Vue hebdomadaire</SelectItem>
-                <SelectItem value="custom">Période personnalisée</SelectItem>
-              </SelectContent>
-            </Select>
+    <Tabs defaultValue="planning" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="planning">Planning</TabsTrigger>
+        <TabsTrigger value="employees">Gestion des employés</TabsTrigger>
+        <TabsTrigger value="stats">Statistiques</TabsTrigger>
+      </TabsList>
 
-            {viewMode === 'custom' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date?.from ? (
-                      date.to ? (
-                        <>
-                          {format(date.from, "dd/MM/yyyy")} -{" "}
-                          {format(date.to, "dd/MM/yyyy")}
-                        </>
-                      ) : (
-                        format(date.from, "dd/MM/yyyy")
-                      )
-                    ) : (
-                      <span>Sélectionner une période</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={date?.from}
-                    selected={date}
-                    onSelect={setDate}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-          {absenceTypes.map((type) => (
-            <div
-              key={type.type}
-              className={`flex items-center space-x-2 p-2 rounded-md ${type.color}`}
-            >
-              <div className="w-3 h-3 rounded-full bg-current"></div>
-              <span className="text-sm">{type.label}</span>
+      <TabsContent value="planning">
+        <Card className="p-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="icon" onClick={previousMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="text-xl font-semibold">
+                  {format(currentDate, 'MMMM yyyy', { locale: fr })}
+                </h2>
+                <Button variant="outline" size="icon" onClick={nextMonth}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
-
-        <ScrollArea className="h-[500px] border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 bg-white z-10">Employé</TableHead>
-                {getDaysToShow().map((date, i) => (
-                  <TableHead 
-                    key={i} 
-                    className={`text-center min-w-[100px] ${
-                      isToday(date) ? 'bg-blue-50' : ''
-                    }`}
-                  >
-                    {format(date, 'dd/MM')}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell className="sticky left-0 bg-white font-medium">
-                    {employee.name}
-                  </TableCell>
-                  {getDaysToShow().map((date, i) => {
-                    const timeLog = getTimeLog(employee.id, date);
-                    const absence = getAbsence(employee.id, date.getDate());
-
-                    return (
-                      <TableCell
-                        key={i}
-                        className={`text-center p-2 ${
-                          isToday(date) ? 'bg-blue-50' : ''
-                        } ${absence ? absence.color : ''}`}
+            
+            <ScrollArea className="h-[500px] border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-white z-10">Employé</TableHead>
+                    {getDaysToShow().map((date, i) => (
+                      <TableHead 
+                        key={i} 
+                        className={cn(
+                          "text-center min-w-[100px]",
+                          {
+                            "bg-blue-50": isToday(date),
+                            "bg-gray-100": isWeekend(date)
+                          }
+                        )}
                       >
-                        {timeLog && (
-                          <div className="text-xs space-y-1">
-                            {timeLog.clockIn ? (
-                              <>
-                                <div className="font-medium text-green-600">✓</div>
-                                <div>{timeLog.clockIn}</div>
-                              </>
-                            ) : (
-                              <div className="font-medium text-red-600">✗</div>
-                            )}
-                          </div>
-                        )}
-                        {absence && (
-                          <div className="text-xs font-medium">{absence.label}</div>
-                        )}
+                        {format(date, 'dd/MM')}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((employee) => (
+                    <TableRow key={employee.id}>
+                      <TableCell className="sticky left-0 bg-white font-medium">
+                        {employee.name}
                       </TableCell>
-                    );
-                  })}
+                      {getDaysToShow().map((date, i) => {
+                        const timeLog = getTimeLog(employee.id, date);
+                        const absence = getAbsence(employee.id, date.getDate());
+
+                        return (
+                          <TableCell
+                            key={i}
+                            className={cn(
+                              "text-center p-2",
+                              {
+                                "bg-blue-50": isToday(date),
+                                "bg-gray-100": isWeekend(date),
+                                [absence?.color || ""]: absence
+                              }
+                            )}
+                          >
+                            {timeLog && (
+                              <div className="text-xs space-y-1">
+                                <div>{timeLog.clockIn} - {timeLog.clockOut}</div>
+                                <div className="text-gray-500">
+                                  {timeLog.breakStart} - {timeLog.breakEnd}
+                                </div>
+                              </div>
+                            )}
+                            {absence && (
+                              <div className="text-xs font-medium">{absence.label}</div>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="employees">
+        <Card className="p-6">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gestion des employés</h2>
+              <Button>Ajouter un employé</Button>
+            </div>
+            
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </div>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell>{employee.name}</TableCell>
+                    <TableCell>{`${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Actif</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-x-2">
+                        <Button variant="outline" size="sm">Réinitialiser MDP</Button>
+                        <Button variant="outline" size="sm">Désactiver</Button>
+                        <Button variant="destructive" size="sm">Supprimer</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="stats">
+        <Card className="p-6">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Statistiques</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Taux de présence</h3>
+                <p className="text-3xl font-bold text-green-600">95%</p>
+              </Card>
+              
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Taux d'absentéisme</h3>
+                <p className="text-3xl font-bold text-red-600">5%</p>
+              </Card>
+              
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Congés pris (moyenne)</h3>
+                <p className="text-3xl font-bold text-blue-600">12 jours</p>
+              </Card>
+              
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Retards (ce mois)</h3>
+                <p className="text-3xl font-bold text-orange-600">3</p>
+              </Card>
+            </div>
+          </div>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 };
