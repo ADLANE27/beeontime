@@ -57,9 +57,18 @@ export type Position =
   | 'Directeur'
   | 'Assistante de direction';
 
+export interface WorkSchedule {
+  startTime: string;
+  endTime: string;
+  breakStartTime: string;
+  breakEndTime: string;
+}
+
 export interface NewEmployee {
   firstName: string;
   lastName: string;
+  email: string;
+  phone: string;
   birthDate: Date;
   birthPlace: string;
   birthCountry: string;
@@ -67,7 +76,7 @@ export interface NewEmployee {
   contractType: ContractType;
   startDate: Date;
   position: Position;
-  workSchedule: string;
+  workSchedule: WorkSchedule;
   previousYearVacationDays: number;
   usedVacationDays: number;
   remainingVacationDays: number;

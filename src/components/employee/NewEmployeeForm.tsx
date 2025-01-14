@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ContractType, Position, NewEmployee } from "@/types/hr";
+import { ContractType, Position, NewEmployee, WorkSchedule } from "@/types/hr";
 
 interface NewEmployeeFormProps {
   isOpen: boolean;
@@ -27,8 +27,22 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.lastName || !formData.position) {
+    if (!formData.firstName || !formData.lastName || !formData.position || !formData.email || !formData.phone) {
       toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Format d'email invalide");
+      return;
+    }
+
+    // Validate phone format (French format)
+    const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Format de téléphone invalide");
       return;
     }
 
@@ -40,17 +54,30 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleWorkScheduleChange = (field: keyof WorkSchedule, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      workSchedule: {
+        ...(prev.workSchedule || {}),
+        [field]: value
+      }
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Ajouter un nouvel employé</DialogTitle>
+          <DialogDescription>
+            Remplissez les informations du nouvel employé. Tous les champs marqués d'un * sont obligatoires.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom</Label>
+              <Label htmlFor="firstName">Prénom *</Label>
               <Input
                 id="firstName"
                 value={formData.firstName || ''}
@@ -60,11 +87,34 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nom</Label>
+              <Label htmlFor="lastName">Nom *</Label>
               <Input
                 id="lastName"
                 value={formData.lastName || ''}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone || ''}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="06 12 34 56 78"
                 required
               />
             </div>
@@ -155,15 +205,46 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="workSchedule">Horaires de travail</Label>
-              <Input
-                id="workSchedule"
-                value={formData.workSchedule || ''}
-                onChange={(e) => handleInputChange('workSchedule', e.target.value)}
-                placeholder="ex: 9h-17h"
-                required
-              />
+            <div className="col-span-2 grid grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="workScheduleStart">Heure d'arrivée</Label>
+                <Input
+                  id="workScheduleStart"
+                  type="time"
+                  onChange={(e) => handleWorkScheduleChange('startTime', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workScheduleBreakStart">Début pause</Label>
+                <Input
+                  id="workScheduleBreakStart"
+                  type="time"
+                  onChange={(e) => handleWorkScheduleChange('breakStartTime', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workScheduleBreakEnd">Fin pause</Label>
+                <Input
+                  id="workScheduleBreakEnd"
+                  type="time"
+                  onChange={(e) => handleWorkScheduleChange('breakEndTime', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workScheduleEnd">Heure de départ</Label>
+                <Input
+                  id="workScheduleEnd"
+                  type="time"
+                  onChange={(e) => handleWorkScheduleChange('endTime', e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
