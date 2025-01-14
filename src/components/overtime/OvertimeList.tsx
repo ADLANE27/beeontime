@@ -36,10 +36,10 @@ export const OvertimeList = () => {
             <Badge
               variant={
                 request.status === "approved"
-                  ? "success"
+                  ? "secondary"
                   : request.status === "rejected"
                   ? "destructive"
-                  : "secondary"
+                  : "outline"
               }
             >
               {request.status}
