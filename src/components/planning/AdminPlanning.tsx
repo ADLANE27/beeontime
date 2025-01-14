@@ -1,12 +1,12 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameMonth, parseISO, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 interface TimeLog {
@@ -59,10 +59,10 @@ export const AdminPlanning = () => {
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
   // Exemple de données de pointage (à remplacer par les vraies données)
-  const getTimeLog = (employeeId: number, day: number): TimeLog | undefined => {
-    if (day === 15) {
+  const getTimeLog = (employeeId: number, date: Date): TimeLog | undefined => {
+    if (isToday(date)) {
       return {
-        clockIn: "09:00",
+        clockIn: employees.find(e => e.id === employeeId)?.hasClockedIn ? "09:00" : undefined,
         breakStart: "12:00",
         breakEnd: "13:00",
         clockOut: "17:00"
@@ -119,7 +119,7 @@ export const AdminPlanning = () => {
                 key={type.type}
                 variant="outline"
                 style={{ backgroundColor: type.color }}
-                className="text-xs justify-start"
+                className="text-xs justify-start p-2"
               >
                 {type.label}
               </Badge>
@@ -153,11 +153,14 @@ export const AdminPlanning = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="sticky left-0 bg-white z-10 min-w-[200px]">Employé</TableHead>
-                {Array.from({ length: daysInMonth }, (_, i) => (
-                  <TableHead key={i} className="text-center min-w-[120px]">
-                    {format(new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1), 'dd/MM', { locale: fr })}
-                  </TableHead>
-                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                  const currentDay = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1);
+                  return (
+                    <TableHead key={i} className="text-center min-w-[120px]">
+                      {format(currentDay, 'dd/MM', { locale: fr })}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,31 +170,45 @@ export const AdminPlanning = () => {
                     {employee.name}
                   </TableCell>
                   {Array.from({ length: daysInMonth }, (_, i) => {
-                    const timeLog = getTimeLog(employee.id, i + 1);
+                    const currentDay = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1);
+                    const timeLog = getTimeLog(employee.id, currentDay);
                     const absence = getAbsence(employee.id, i + 1);
 
                     return (
                       <TableCell
                         key={i}
                         style={{ backgroundColor: absence?.color }}
-                        className="text-center p-1"
+                        className={`text-center p-1 ${isToday(currentDay) ? 'bg-blue-50' : ''}`}
                       >
                         {timeLog ? (
                           <TooltipProvider>
                             <Tooltip>
-                              <TooltipTrigger>
+                              <TooltipTrigger className="w-full">
                                 <div className="text-xs space-y-1">
-                                  <div className="font-medium">Arrivée: {timeLog.clockIn}</div>
-                                  <div>Pause: {timeLog.breakStart}</div>
-                                  <div>Reprise: {timeLog.breakEnd}</div>
-                                  <div className="font-medium">Départ: {timeLog.clockOut}</div>
+                                  {timeLog.clockIn ? (
+                                    <div className="font-medium text-green-600">Présent</div>
+                                  ) : (
+                                    <div className="font-medium text-red-600">Absent</div>
+                                  )}
+                                  {timeLog.clockIn && (
+                                    <>
+                                      <div>Arrivée: {timeLog.clockIn}</div>
+                                      <div>Pause: {timeLog.breakStart}</div>
+                                      <div>Reprise: {timeLog.breakEnd}</div>
+                                      <div>Départ: {timeLog.clockOut}</div>
+                                    </>
+                                  )}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="text-sm space-y-1">
-                                  <p>Arrivée: {timeLog.clockIn}</p>
-                                  <p>Pause: {timeLog.breakStart} - {timeLog.breakEnd}</p>
-                                  <p>Départ: {timeLog.clockOut}</p>
+                                  {timeLog.clockIn && (
+                                    <>
+                                      <p>Arrivée: {timeLog.clockIn}</p>
+                                      <p>Pause: {timeLog.breakStart} - {timeLog.breakEnd}</p>
+                                      <p>Départ: {timeLog.clockOut}</p>
+                                    </>
+                                  )}
                                 </div>
                               </TooltipContent>
                             </Tooltip>
