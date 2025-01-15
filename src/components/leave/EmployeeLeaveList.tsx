@@ -33,9 +33,14 @@ export const EmployeeLeaveList = () => {
     queryKey: ['employee-leave-requests'],
     queryFn: async () => {
       console.log('Fetching leave requests...');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('leave_requests')
         .select('*')
+        .eq('employee_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -79,6 +84,9 @@ export const EmployeeLeaveList = () => {
                 )}
                 <p className="text-sm text-gray-600">
                   Type de journée: {request.day_type === "complete" ? "Journée complète" : "Demi-journée"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
                 </p>
               </div>
               <Badge className={getStatusColor(request.status)}>
