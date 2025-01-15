@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ContractType, NewEmployee, Position, WorkSchedule } from "@/types/hr";
+import { Json } from "@/integrations/supabase/types";
 
 interface NewEmployeeFormProps {
   isOpen: boolean;
@@ -434,3 +435,4 @@ export const NewEmployeeForm = ({
     </Dialog>
   );
 };
+
