@@ -80,8 +80,7 @@ export const NewEmployeeForm = ({
       return;
     }
 
-    const formData = {
-      id: employeeToEdit?.firstName || crypto.randomUUID(),
+    const formData: NewEmployee = {
       firstName,
       lastName,
       email,
@@ -159,6 +158,11 @@ export const NewEmployeeForm = ({
 
         toast.success("Employé créé avec succès");
       } else {
+        if (!employeeToEdit?.id) {
+          toast.error("ID de l'employé manquant pour la mise à jour");
+          return;
+        }
+
         const { error: updateError } = await supabase
           .from('employees')
           .update({
@@ -178,7 +182,7 @@ export const NewEmployeeForm = ({
             used_vacation_days: formData.usedVacationDays,
             remaining_vacation_days: formData.remainingVacationDays
           })
-          .eq('id', employeeToEdit?.id);
+          .eq('id', employeeToEdit.id);
 
         if (updateError) {
           console.error('Update Error:', updateError);

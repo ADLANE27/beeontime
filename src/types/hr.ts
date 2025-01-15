@@ -67,16 +67,17 @@ export interface WorkSchedule {
 }
 
 export interface NewEmployee {
+  id?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  birthDate: Date;
+  birthDate: string;
   birthPlace: string;
   birthCountry: string;
   socialSecurityNumber: string;
   contractType: ContractType;
-  startDate: Date;
+  startDate: string;
   position: Position;
   workSchedule: WorkSchedule;
   previousYearVacationDays: number;
