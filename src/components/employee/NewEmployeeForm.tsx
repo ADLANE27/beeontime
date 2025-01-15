@@ -110,11 +110,17 @@ export const NewEmployeeForm = ({
         console.log('Creating new employee:', formData);
         
         // First check if user already exists
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: queryError } = await supabase
           .from('profiles')
           .select('id')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle();
+
+        if (queryError) {
+          console.error('Query Error:', queryError);
+          toast.error("Erreur lors de la vérification de l'utilisateur");
+          return;
+        }
 
         if (existingUser) {
           toast.error("Un utilisateur avec cet email existe déjà");
@@ -178,10 +184,6 @@ export const NewEmployeeForm = ({
             });
 
           if (employeeError) {
-            if (employeeError.code === '23505') {
-              toast.error("Un employé avec cet email existe déjà");
-              return;
-            }
             console.error('Employee Error:', employeeError);
             toast.error("Erreur lors de la création de l'employé");
             return;
