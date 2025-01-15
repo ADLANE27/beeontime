@@ -69,26 +69,33 @@ export const LeaveRequestForm = () => {
       }
 
       // Check if employee record exists
-      const { data: employee } = await supabase
+      const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (employeeError) {
+        console.error('Error checking employee record:', employeeError);
+        toast.error("Erreur lors de la vérification du profil employé");
+        return;
+      }
 
       // If no employee record exists, create one
       if (!employee) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('first_name, last_name, email')
           .eq('id', user.id)
           .single();
 
-        if (!profile) {
+        if (profileError || !profile) {
+          console.error('Error fetching profile:', profileError);
           toast.error("Erreur lors de la récupération du profil");
           return;
         }
 
-        const { error: employeeError } = await supabase
+        const { error: createEmployeeError } = await supabase
           .from('employees')
           .insert({
             id: user.id,
@@ -97,14 +104,14 @@ export const LeaveRequestForm = () => {
             email: profile.email
           });
 
-        if (employeeError) {
-          console.error('Error creating employee record:', employeeError);
+        if (createEmployeeError) {
+          console.error('Error creating employee record:', createEmployeeError);
           toast.error("Erreur lors de la création du profil employé");
           return;
         }
       }
 
-      const { error } = await supabase
+      const { error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
           employee_id: user.id,
@@ -116,8 +123,8 @@ export const LeaveRequestForm = () => {
           status: 'pending'
         });
 
-      if (error) {
-        console.error('Error submitting leave request:', error);
+      if (leaveRequestError) {
+        console.error('Error submitting leave request:', leaveRequestError);
         toast.error("Erreur lors de la soumission de la demande");
         return;
       }
