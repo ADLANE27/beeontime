@@ -67,7 +67,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center justify-start">
               <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl">
-                {isAdmin ? "Gestionnaire" : "Pointeuse AFTraduction"}
+                {isAdmin ? "" : "Pointeuse AFTraduction"}
               </h1>
             </div>
             {!isAdmin && (
