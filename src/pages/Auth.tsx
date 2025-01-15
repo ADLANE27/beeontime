@@ -5,13 +5,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
 
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          if (error.message.includes("Invalid login credentials")) {
+            return "Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.";
+          }
+          return "Une erreur s'est produite lors de la connexion. Veuillez réessayer.";
+        case 422:
+          return "Format d'email invalide.";
+        default:
+          return "Une erreur inattendue s'est produite. Veuillez réessayer.";
+      }
+    }
+    return error.message;
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth event:", event);
       if (event === "SIGNED_IN") {
         const { data: profile } = await supabase
           .from("profiles")
@@ -25,6 +44,8 @@ const Auth = () => {
           setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
           await supabase.auth.signOut();
         }
+      } else if (event === "SIGNED_OUT") {
+        setErrorMessage("");
       }
     });
 
