@@ -12,8 +12,8 @@ const Portal = () => {
         <h1 className="text-3xl font-bold text-center mb-8">
           Portail AFTraduction
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6 hover:shadow-lg transition-shadow">
+        <div className="flex justify-center">
+          <Card className="p-6 hover:shadow-lg transition-shadow max-w-md w-full">
             <div className="space-y-4 text-center">
               <User className="w-12 h-12 mx-auto text-primary" />
               <h2 className="text-2xl font-semibold">Espace Employé</h2>
