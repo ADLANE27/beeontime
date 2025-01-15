@@ -17,6 +17,8 @@ import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { OvertimeList } from "@/components/overtime/OvertimeList";
+import { DelayList } from "@/components/delays/DelayList";
 
 interface TimeLog {
   clockIn?: string;
@@ -64,16 +66,6 @@ export const AdminPlanning = () => {
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
   const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Partial<NewEmployee>>();
-  const [showDelayDialog, setShowDelayDialog] = useState(false);
-  const [showExtraTimeDialog, setShowExtraTimeDialog] = useState(false);
-  const [delayDate, setDelayDate] = useState("");
-  const [delayTime, setDelayTime] = useState("");
-  const [delayReason, setDelayReason] = useState("");
-  const [extraTimeDate, setExtraTimeDate] = useState("");
-  const [extraTimeStart, setExtraTimeStart] = useState("");
-  const [extraTimeEnd, setExtraTimeEnd] = useState("");
-  const [extraTimeReason, setExtraTimeReason] = useState("");
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
@@ -124,25 +116,6 @@ export const AdminPlanning = () => {
       return isWithinInterval(dateToCheck, { start: date.from, end: date.to });
     }
     return true;
-  };
-
-  const handleAddDelay = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Retard enregistré avec succès");
-    setShowDelayDialog(false);
-    setDelayDate("");
-    setDelayTime("");
-    setDelayReason("");
-  };
-
-  const handleAddExtraTime = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Heures supplémentaires enregistrées avec succès");
-    setShowExtraTimeDialog(false);
-    setExtraTimeDate("");
-    setExtraTimeStart("");
-    setExtraTimeEnd("");
-    setExtraTimeReason("");
   };
 
   const handleAddEmployee = (employee: NewEmployee) => {
@@ -323,125 +296,11 @@ export const AdminPlanning = () => {
       </TabsContent>
 
       <TabsContent value="delays">
-        <Card className="p-6">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Gestion des retards</h2>
-              <Button onClick={() => setShowDelayDialog(true)}>
-                Enregistrer un retard
-              </Button>
-            </div>
-
-            <Dialog open={showDelayDialog} onOpenChange={setShowDelayDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Enregistrer un retard</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddDelay} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="delayDate">Date</Label>
-                    <Input
-                      id="delayDate"
-                      type="date"
-                      value={delayDate}
-                      onChange={(e) => setDelayDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delayTime">Durée du retard</Label>
-                    <Input
-                      id="delayTime"
-                      type="time"
-                      value={delayTime}
-                      onChange={(e) => setDelayTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delayReason">Motif</Label>
-                    <Textarea
-                      id="delayReason"
-                      value={delayReason}
-                      onChange={(e) => setDelayReason(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Enregistrer
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </Card>
+        <DelayList />
       </TabsContent>
 
       <TabsContent value="overtime">
-        <Card className="p-6">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Gestion des heures supplémentaires</h2>
-              <Button onClick={() => setShowExtraTimeDialog(true)}>
-                Enregistrer des heures supplémentaires
-              </Button>
-            </div>
-
-            <Dialog open={showExtraTimeDialog} onOpenChange={setShowExtraTimeDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Enregistrer des heures supplémentaires</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddExtraTime} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="extraTimeDate">Date</Label>
-                    <Input
-                      id="extraTimeDate"
-                      type="date"
-                      value={extraTimeDate}
-                      onChange={(e) => setExtraTimeDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="extraTimeStart">Heure de début</Label>
-                      <Input
-                        id="extraTimeStart"
-                        type="time"
-                        value={extraTimeStart}
-                        onChange={(e) => setExtraTimeStart(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="extraTimeEnd">Heure de fin</Label>
-                      <Input
-                        id="extraTimeEnd"
-                        type="time"
-                        value={extraTimeEnd}
-                        onChange={(e) => setExtraTimeEnd(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="extraTimeReason">Motif</Label>
-                    <Textarea
-                      id="extraTimeReason"
-                      value={extraTimeReason}
-                      onChange={(e) => setExtraTimeReason(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Enregistrer
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </Card>
+        <OvertimeList />
       </TabsContent>
     </Tabs>
   );
