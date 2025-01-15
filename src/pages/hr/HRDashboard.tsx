@@ -6,8 +6,7 @@ import { AdminPlanning } from "@/components/planning/AdminPlanning";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { DelayList } from "@/components/delays/DelayList";
 import { ExportDataTab } from "@/components/export/ExportDataTab";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { LeaveRequestsList } from "@/components/leave/LeaveRequestsList";
 
 const HRDashboard = () => {
   return (
@@ -46,24 +45,7 @@ const HRDashboard = () => {
           </TabsContent>
 
           <TabsContent value="leave">
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Demandes de congés</h2>
-              <div className="space-y-4">
-                {[1, 2].map((id) => (
-                  <div key={id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">Jean Dupont</h3>
-                      <p className="text-sm text-gray-600">20-27 Mars 2024</p>
-                      <p className="text-sm text-gray-600">Congés payés</p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">Refuser</Button>
-                      <Button size="sm">Accepter</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <LeaveRequestsList />
           </TabsContent>
 
           <TabsContent value="overtime">
