@@ -271,31 +271,34 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
-          email: string
-          first_name: string | null
           id: string
-          last_name: string | null
+          email: string
           role: Database["public"]["Enums"]["user_role"]
+          first_name: string | null
+          last_name: string | null
+          created_at: string
           updated_at: string
+          active: boolean | null
         }
         Insert: {
-          created_at?: string
-          email: string
-          first_name?: string | null
           id: string
-          last_name?: string | null
+          email: string
           role?: Database["public"]["Enums"]["user_role"]
+          first_name?: string | null
+          last_name?: string | null
+          created_at?: string
           updated_at?: string
+          active?: boolean | null
         }
         Update: {
-          created_at?: string
-          email?: string
-          first_name?: string | null
           id?: string
-          last_name?: string | null
+          email?: string
           role?: Database["public"]["Enums"]["user_role"]
+          first_name?: string | null
+          last_name?: string | null
+          created_at?: string
           updated_at?: string
+          active?: boolean | null
         }
         Relationships: []
       }
@@ -336,7 +339,7 @@ export type Tables<
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
       Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -348,10 +351,10 @@ export type Tables<
         PublicSchema["Views"])
     ? (PublicSchema["Tables"] &
         PublicSchema["Views"])[PublicTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+      Row: infer R
+    }
+    ? R
+    : never
     : never
 
 export type TablesInsert<
