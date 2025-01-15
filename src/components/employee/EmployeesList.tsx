@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -209,6 +209,12 @@ export const EmployeesList = () => {
                       {employee.first_name} {employee.last_name}
                     </h3>
                     <p className="text-sm text-muted-foreground">{employee.email}</p>
+                    {employee.phone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {employee.phone}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {employee.profiles?.active ? 'Actif' : ''}
                     </p>
