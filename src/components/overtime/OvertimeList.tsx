@@ -13,20 +13,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export const OvertimeList = () => {
   const [open, setOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
 
-  // Exemple de données
-  const overtimeRequests: OvertimeRequest[] = [
+  // Example data - in a real app, this would come from your backend
+  const employees = [
+    { id: "1", name: "Jean Dupont" },
+    { id: "2", name: "Marie Martin" },
+    { id: "3", name: "Pierre Durant" }
+  ];
+
+  const overtimeRequests: (OvertimeRequest & { employeeName: string })[] = [
     {
       id: 1,
       employeeId: 1,
+      employeeName: "Jean Dupont",
       date: "2024-03-20",
       hours: 2,
       reason: "Projet urgent",
@@ -37,10 +46,15 @@ export const OvertimeList = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Ici vous ajouterez la logique pour soumettre la demande
+    if (!selectedEmployee) {
+      toast.error("Veuillez sélectionner un employé");
+      return;
+    }
+
     toast.success("Demande d'heures supplémentaires soumise avec succès");
     setOpen(false);
     // Reset form
+    setSelectedEmployee("");
     setDate("");
     setStartTime("");
     setEndTime("");
@@ -60,6 +74,21 @@ export const OvertimeList = () => {
               <DialogTitle>Nouvelle demande d'heures supplémentaires</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee">Employé</Label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un employé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -115,7 +144,8 @@ export const OvertimeList = () => {
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">{request.date}</p>
+              <p className="font-semibold">{request.employeeName}</p>
+              <p className="text-sm text-gray-600">{request.date}</p>
               <p className="text-sm text-gray-600">{request.hours} heures</p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>

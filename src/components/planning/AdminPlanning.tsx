@@ -17,6 +17,8 @@ import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DelayList } from "@/components/delays/DelayList";
+import { OvertimeList } from "@/components/overtime/OvertimeList";
 
 interface TimeLog {
   clockIn?: string;
@@ -127,6 +129,8 @@ export const AdminPlanning = () => {
         <TabsTrigger value="planning">Planning</TabsTrigger>
         <TabsTrigger value="employees">Gestion des employés</TabsTrigger>
         <TabsTrigger value="stats">Statistiques</TabsTrigger>
+        <TabsTrigger value="delays">Retards</TabsTrigger>
+        <TabsTrigger value="overtime">Heures supplémentaires</TabsTrigger>
       </TabsList>
 
       <TabsContent value="planning">
@@ -288,6 +292,14 @@ export const AdminPlanning = () => {
             </div>
           </div>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="delays">
+        <DelayList />
+      </TabsContent>
+
+      <TabsContent value="overtime">
+        <OvertimeList />
       </TabsContent>
     </Tabs>
   );
