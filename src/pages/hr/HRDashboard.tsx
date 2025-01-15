@@ -6,6 +6,8 @@ import { Download, Clock, AlertTriangle, Clock4, FileText, Calendar } from "luci
 import { Badge } from "@/components/ui/badge";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
+import { OvertimeList } from "@/components/overtime/OvertimeList";
+import { DelayList } from "@/components/delays/DelayList";
 
 const HRDashboard = () => {
   const handleExport = () => {
@@ -23,7 +25,7 @@ const HRDashboard = () => {
         </div>
 
         <Tabs defaultValue="planning" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="planning">
               <Calendar className="mr-2 h-4 w-4" />
               Planning
@@ -72,42 +74,11 @@ const HRDashboard = () => {
           </TabsContent>
 
           <TabsContent value="overtime">
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Demandes d'heures supplémentaires</h2>
-              <div className="space-y-4">
-                {[1, 2].map((id) => (
-                  <div key={id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">Marie Martin</h3>
-                      <p className="text-sm text-gray-600">15 Mars 2024 - 2h</p>
-                      <p className="text-sm text-gray-600">Projet urgent</p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">Refuser</Button>
-                      <Button size="sm">Accepter</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <OvertimeList />
           </TabsContent>
 
           <TabsContent value="lateness">
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Suivi des retards</h2>
-              <div className="space-y-4">
-                {[1, 2].map((id) => (
-                  <div key={id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">Pierre Durand</h3>
-                      <p className="text-sm text-gray-600">18 Mars 2024</p>
-                      <p className="text-sm text-gray-600">Retard: 15 minutes</p>
-                    </div>
-                    <Badge variant="outline">À traiter</Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <DelayList />
           </TabsContent>
 
           <TabsContent value="payslips">
