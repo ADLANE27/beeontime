@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface LeaveRequest {
   id: number;
@@ -94,14 +96,32 @@ const leaveTypes = [
 ];
 
 export const LeaveRequestsList = () => {
-  const handleApprove = (requestId: number) => {
-    // Logique d'approbation à implémenter
-    toast.success("Demande approuvée avec succès");
+  const [loadingRequestId, setLoadingRequestId] = useState<number | null>(null);
+
+  const handleApprove = async (requestId: number) => {
+    setLoadingRequestId(requestId);
+    try {
+      // Simulate API call with setTimeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success("Demande approuvée avec succès");
+    } catch (error) {
+      toast.error("Une erreur est survenue");
+    } finally {
+      setLoadingRequestId(null);
+    }
   };
 
-  const handleReject = (requestId: number) => {
-    // Logique de refus à implémenter
-    toast.error("Demande refusée");
+  const handleReject = async (requestId: number) => {
+    setLoadingRequestId(requestId);
+    try {
+      // Simulate API call with setTimeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.error("Demande refusée");
+    } catch (error) {
+      toast.error("Une erreur est survenue");
+    } finally {
+      setLoadingRequestId(null);
+    }
   };
 
   return (
@@ -205,14 +225,22 @@ export const LeaveRequestsList = () => {
                                 variant="outline"
                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => handleApprove(request.id)}
+                                disabled={loadingRequestId === request.id}
                               >
+                                {loadingRequestId === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : null}
                                 Accepter
                               </Button>
                               <Button
                                 variant="outline"
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleReject(request.id)}
+                                disabled={loadingRequestId === request.id}
                               >
+                                {loadingRequestId === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : null}
                                 Refuser
                               </Button>
                             </>
