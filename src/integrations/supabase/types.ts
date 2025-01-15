@@ -182,6 +182,7 @@ export type Database = {
           employee_id: string
           end_date: string
           id: string
+          period: string | null
           reason: string | null
           start_date: string
           status: Database["public"]["Enums"]["request_status"] | null
@@ -194,6 +195,7 @@ export type Database = {
           employee_id: string
           end_date: string
           id?: string
+          period?: string | null
           reason?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["request_status"] | null
@@ -206,6 +208,7 @@ export type Database = {
           employee_id?: string
           end_date?: string
           id?: string
+          period?: string | null
           reason?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["request_status"] | null

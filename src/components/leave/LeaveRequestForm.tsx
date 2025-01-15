@@ -27,6 +27,7 @@ type LeaveType = Database["public"]["Enums"]["leave_type"];
 export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
   const [dayType, setDayType] = useState("full");
+  const [period, setPeriod] = useState<string>();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -37,6 +38,11 @@ export const LeaveRequestForm = () => {
     
     if (!leaveType) {
       toast.error("Veuillez sélectionner un type de congé");
+      return;
+    }
+
+    if (dayType === "half" && !period) {
+      toast.error("Veuillez sélectionner la période (matin ou après-midi)");
       return;
     }
 
@@ -120,6 +126,7 @@ export const LeaveRequestForm = () => {
           end_date: endDate,
           type: leaveType,
           day_type: dayType,
+          period: dayType === "half" ? period : null,
           reason: reason,
           status: 'pending'
         });
@@ -134,6 +141,7 @@ export const LeaveRequestForm = () => {
       // Reset form
       setLeaveType(undefined);
       setDayType("full");
+      setPeriod(undefined);
       setStartDate("");
       setEndDate("");
       setReason("");
@@ -176,7 +184,12 @@ export const LeaveRequestForm = () => {
             type="single"
             value={dayType}
             onValueChange={(value) => {
-              if (value) setDayType(value);
+              if (value) {
+                setDayType(value);
+                if (value === "full") {
+                  setPeriod(undefined);
+                }
+              }
             }}
             className="justify-start"
           >
@@ -217,7 +230,7 @@ export const LeaveRequestForm = () => {
         {dayType === "half" && (
           <div className="space-y-2">
             <Label htmlFor="period">Période</Label>
-            <Select>
+            <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionnez la période" />
               </SelectTrigger>
