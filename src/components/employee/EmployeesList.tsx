@@ -242,15 +242,21 @@ export const EmployeesList = () => {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      <Briefcase className="h-4 w-4 inline-block mr-1" />
+                      Poste
+                    </div>
                     <span className="text-sm">
                       {employee.position || 'Non spécifié'}
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      <Calendar className="h-4 w-4 inline-block mr-1" />
+                      Date d'arrivée
+                    </div>
                     <span className="text-sm">
                       {employee.start_date 
                         ? format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })
@@ -258,19 +264,31 @@ export const EmployeesList = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      <Clock className="h-4 w-4 inline-block mr-1" />
+                      Horaires de travail
+                    </div>
                     <span className="text-sm">
                       {employee.work_schedule 
-                        ? `${employee.work_schedule.startTime} - ${employee.work_schedule.endTime}`
+                        ? <>
+                            {employee.work_schedule.startTime} - {employee.work_schedule.endTime}
+                            <br />
+                            <span className="text-muted-foreground">
+                              Pause: {employee.work_schedule.breakStartTime} - {employee.work_schedule.breakEndTime}
+                            </span>
+                          </>
                         : 'Non spécifié'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <PalmtreeIcon className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      <PalmtreeIcon className="h-4 w-4 inline-block mr-1" />
+                      Congés restants
+                    </div>
                     <span className="text-sm">
-                      {`${employee.remaining_vacation_days || 0} jours de congés restants`}
+                      {`${employee.remaining_vacation_days || 0} jours`}
                     </span>
                   </div>
                 </div>
