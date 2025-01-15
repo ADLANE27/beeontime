@@ -30,9 +30,25 @@ const EmployeeDashboard = () => {
             <PayslipList />
           </TabsContent>
 
-          <TabsContent value="leave" className="space-y-6">
-            <LeaveRequestForm />
-            <EmployeeLeaveList />
+          <TabsContent value="leave">
+            <Tabs defaultValue="request" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="request">
+                  Demande de congé
+                </TabsTrigger>
+                <TabsTrigger value="list">
+                  Mes demandes de congés
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="request">
+                <LeaveRequestForm />
+              </TabsContent>
+
+              <TabsContent value="list">
+                <EmployeeLeaveList />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="overtime">
