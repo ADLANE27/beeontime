@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface LeaveRequest {
   id: number;
@@ -77,7 +79,31 @@ const getStatusColor = (status: LeaveRequest["status"]) => {
   }
 };
 
+// Types de congés alignés avec le formulaire employé
+const leaveTypes = [
+  { value: "vacation", label: "Congés payés" },
+  { value: "annual", label: "Congé annuel" },
+  { value: "rtt", label: "RTT" },
+  { value: "paternity", label: "Congé paternité" },
+  { value: "maternity", label: "Congé maternité" },
+  { value: "sickChild", label: "Congé enfant malade" },
+  { value: "unpaidUnexcused", label: "Absence injustifiée non rémunérée" },
+  { value: "unpaidExcused", label: "Absence justifiée non rémunérée" },
+  { value: "unpaid", label: "Absence non rémunérée" },
+  { value: "familyEvent", label: "Absences pour événements familiaux" }
+];
+
 export const LeaveRequestsList = () => {
+  const handleApprove = (requestId: number) => {
+    // Logique d'approbation à implémenter
+    toast.success("Demande approuvée avec succès");
+  };
+
+  const handleReject = (requestId: number) => {
+    // Logique de refus à implémenter
+    toast.error("Demande refusée");
+  };
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
@@ -107,9 +133,11 @@ export const LeaveRequestsList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les types</SelectItem>
-                <SelectItem value="paid">Congés payés</SelectItem>
-                <SelectItem value="rtt">RTT</SelectItem>
-                <SelectItem value="unpaid">Congé sans solde</SelectItem>
+                {leaveTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -120,18 +148,20 @@ export const LeaveRequestsList = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="pending" className="w-full">
+        <Tabs defaultValue="all" className="w-full">
           <TabsList className="w-full justify-start">
+            <TabsTrigger value="all">Toutes</TabsTrigger>
             <TabsTrigger value="pending">En attente</TabsTrigger>
             <TabsTrigger value="approved">Acceptée</TabsTrigger>
             <TabsTrigger value="rejected">Refusée</TabsTrigger>
           </TabsList>
 
-          {["pending", "approved", "rejected"].map((tab) => (
+          {["all", "pending", "approved", "rejected"].map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="space-y-4">
                 {mockLeaveRequests
                   .filter((request) => {
+                    if (tab === "all") return true;
                     switch (tab) {
                       case "pending":
                         return request.status === "En attente";
@@ -168,9 +198,29 @@ export const LeaveRequestsList = () => {
                             </p>
                           )}
                         </div>
-                        <Badge className={getStatusColor(request.status)}>
-                          {request.status}
-                        </Badge>
+                        <div className="flex flex-col sm:flex-row gap-2 items-end">
+                          {request.status === "En attente" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => handleApprove(request.id)}
+                              >
+                                Accepter
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleReject(request.id)}
+                              >
+                                Refuser
+                              </Button>
+                            </>
+                          )}
+                          <Badge className={getStatusColor(request.status)}>
+                            {request.status}
+                          </Badge>
+                        </div>
                       </div>
                     </Card>
                   ))}
