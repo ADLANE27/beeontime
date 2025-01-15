@@ -11,32 +11,38 @@ export const TimeClock = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [checkInId, setCheckInId] = useState<string | null>(null);
+  const [clockEvents, setClockEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Check if employee has already checked in today
-    const checkTodayAttendance = async () => {
+    // Load today's clock events
+    const loadTodayClockEvents = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: attendance } = await supabase
+      const { data: events } = await supabase
         .from("delays")
-        .select("id, actual_time")
+        .select("*")
         .eq("employee_id", user.id)
         .eq("date", today)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
 
-      if (attendance) {
-        setHasCheckedIn(true);
-        setCheckInId(attendance.id);
+      if (events && events.length > 0) {
+        setClockEvents(events);
+        // If last event is not completed (no checkout), set check-in state
+        const lastEvent = events[events.length - 1];
+        if (!lastEvent.reason.includes('sortie')) {
+          setHasCheckedIn(true);
+          setCheckInId(lastEvent.id);
+        }
       }
     };
 
-    checkTodayAttendance();
+    loadTodayClockEvents();
     return () => clearInterval(timer);
   }, []);
 
@@ -68,6 +74,7 @@ export const TimeClock = () => {
 
       setCheckInId(data.id);
       setHasCheckedIn(true);
+      setClockEvents([...clockEvents, data]);
       toast.success("Arrivée enregistrée avec succès");
     } catch (error) {
       console.error("Erreur lors du pointage:", error);
@@ -83,18 +90,23 @@ export const TimeClock = () => {
 
     try {
       const checkOutTime = format(currentTime, "HH:mm");
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("delays")
         .update({
           reason: `Pointage arrivée-sortie (${checkOutTime})`,
           status: 'approved'
         })
-        .eq('id', checkInId);
+        .eq('id', checkInId)
+        .select()
+        .single();
 
       if (error) throw error;
 
       setHasCheckedIn(false);
       setCheckInId(null);
+      setClockEvents(clockEvents.map(event => 
+        event.id === checkInId ? data : event
+      ));
       toast.success("Départ enregistré avec succès");
     } catch (error) {
       console.error("Erreur lors du pointage de sortie:", error);
@@ -102,36 +114,67 @@ export const TimeClock = () => {
     }
   };
 
+  const formatEventTime = (time: string) => {
+    return format(new Date(`2000-01-01T${time}`), "HH:mm");
+  };
+
   return (
-    <Card className="p-6">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="text-center">
-          <p className="text-lg text-gray-600">{formattedDate}</p>
-          <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
-        </div>
-        
-        <div className="flex gap-4">
-          <Button
-            size="lg"
-            className="bg-green-600 hover:bg-green-700"
-            onClick={handleCheckIn}
-            disabled={hasCheckedIn}
-          >
-            <ArrowRight className="mr-2 h-5 w-5" />
-            Pointer arrivée
-          </Button>
+    <div className="space-y-4">
+      <Card className="p-6">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="text-center">
+            <p className="text-lg text-gray-600">{formattedDate}</p>
+            <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
+          </div>
           
-          <Button
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={handleCheckOut}
-            disabled={!hasCheckedIn}
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Pointer sortie
-          </Button>
+          <div className="flex gap-4">
+            {!hasCheckedIn ? (
+              <Button
+                size="lg"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleCheckIn}
+              >
+                <ArrowRight className="mr-2 h-5 w-5" />
+                Pointer arrivée
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handleCheckOut}
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" />
+                Pointer sortie
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Historique des pointages du jour</h3>
+        <div className="space-y-2">
+          {clockEvents.map((event, index) => (
+            <div 
+              key={event.id}
+              className="flex justify-between items-center p-2 bg-gray-50 rounded"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">#{index + 1}</span>
+                <span>{formatEventTime(event.actual_time)}</span>
+              </div>
+              <span className="text-sm text-gray-600">
+                {event.reason.includes('sortie') 
+                  ? 'Sortie' 
+                  : 'Arrivée'}
+              </span>
+            </div>
+          ))}
+          {clockEvents.length === 0 && (
+            <p className="text-gray-500 text-center">Aucun pointage aujourd'hui</p>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 };
