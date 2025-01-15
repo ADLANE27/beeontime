@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +11,9 @@ interface NewEmployeeFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (employee: NewEmployee) => void;
-  initialData?: NewEmployee | null;
 }
 
-export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, initialData }: NewEmployeeFormProps) => {
+export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormProps) => {
   const [formData, setFormData] = useState<Partial<NewEmployee>>({
     workSchedule: {
       startTime: '',
@@ -23,12 +22,6 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, initialData }: NewE
       breakEndTime: ''
     }
   });
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    }
-  }, [initialData]);
 
   const positions: Position[] = [
     'Traducteur', 'Traductrice', 'Interprète', 'Coordinatrice',
@@ -89,12 +82,9 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, initialData }: NewE
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Modifier un employé" : "Ajouter un nouvel employé"}</DialogTitle>
+          <DialogTitle>Ajouter un nouvel employé</DialogTitle>
           <DialogDescription>
-            {initialData 
-              ? "Modifiez les informations de l'employé. Tous les champs marqués d'un * sont obligatoires."
-              : "Remplissez les informations du nouvel employé. Tous les champs marqués d'un * sont obligatoires."
-            }
+            Remplissez les informations du nouvel employé. Tous les champs marqués d'un * sont obligatoires.
           </DialogDescription>
         </DialogHeader>
         
@@ -313,7 +303,7 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, initialData }: NewE
               Annuler
             </Button>
             <Button type="submit">
-              {initialData ? "Mettre à jour" : "Ajouter l'employé"}
+              Ajouter l'employé
             </Button>
           </div>
         </form>
