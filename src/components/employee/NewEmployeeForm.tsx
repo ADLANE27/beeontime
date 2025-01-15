@@ -126,13 +126,16 @@ export const NewEmployeeForm = ({
         }
 
         if (!authData.user) {
+          console.error('No user data returned');
           toast.error("Erreur lors de la création du compte utilisateur");
           return;
         }
 
+        console.log('User created successfully:', authData.user.id);
+
         // Wait briefly for the profile trigger to complete
         await new Promise(resolve => setTimeout(resolve, 1000));
-
+        
         console.log('Creating employee record for user:', authData.user.id);
         
         const { error: employeeError } = await supabase
@@ -165,8 +168,12 @@ export const NewEmployeeForm = ({
         console.log('Employee created successfully');
         toast.success("Employé créé avec succès");
         
-        // Call onSubmit to update the list
+        // Call onSubmit to update the list with the new employee
         onSubmit(formData);
+        
+        // Reset form and close dialog
+        resetForm();
+        onClose();
       } else {
         if (!employeeToEdit?.id) {
           toast.error("ID de l'employé manquant pour la mise à jour");
@@ -205,9 +212,6 @@ export const NewEmployeeForm = ({
         console.log('Employee updated successfully');
         toast.success("Employé mis à jour avec succès");
       }
-
-      resetForm();
-      onClose();
     } catch (error) {
       console.error('Error:', error);
       toast.error("Une erreur est survenue");
