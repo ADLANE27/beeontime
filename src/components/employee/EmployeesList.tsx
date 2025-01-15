@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,12 @@ import { Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
+import { toast } from "sonner";
 
 export const EmployeesList = () => {
   const [editingEmployee, setEditingEmployee] = useState<NewEmployee | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees'],
@@ -61,8 +63,48 @@ export const EmployeesList = () => {
 
     if (error) {
       console.error('Error deleting employee:', error);
+      toast.error("Erreur lors de la suppression de l'employé");
       return;
     }
+
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    toast.success("Employé supprimé avec succès");
+  };
+
+  const handleUpdate = async (updatedEmployee: NewEmployee) => {
+    console.log('Updated employee:', updatedEmployee);
+    
+    const { error } = await supabase
+      .from('employees')
+      .update({
+        first_name: updatedEmployee.firstName,
+        last_name: updatedEmployee.lastName,
+        email: updatedEmployee.email,
+        phone: updatedEmployee.phone,
+        birth_date: updatedEmployee.birthDate,
+        birth_place: updatedEmployee.birthPlace,
+        birth_country: updatedEmployee.birthCountry,
+        social_security_number: updatedEmployee.socialSecurityNumber,
+        contract_type: updatedEmployee.contractType,
+        start_date: updatedEmployee.startDate,
+        position: updatedEmployee.position,
+        work_schedule: updatedEmployee.workSchedule,
+        previous_year_vacation_days: updatedEmployee.previousYearVacationDays,
+        used_vacation_days: updatedEmployee.usedVacationDays,
+        remaining_vacation_days: updatedEmployee.remainingVacationDays
+      })
+      .eq('id', updatedEmployee.id);
+
+    if (error) {
+      console.error('Error updating employee:', error);
+      toast.error("Erreur lors de la mise à jour de l'employé");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    toast.success("Employé mis à jour avec succès");
+    setIsEditModalOpen(false);
+    setEditingEmployee(null);
   };
 
   if (isLoading) return <div>Chargement...</div>;
@@ -109,10 +151,7 @@ export const EmployeesList = () => {
             setIsEditModalOpen(false);
             setEditingEmployee(null);
           }}
-          onSubmit={(updatedEmployee) => {
-            // Handle employee update
-            console.log('Updated employee:', updatedEmployee);
-          }}
+          onSubmit={handleUpdate}
           employeeToEdit={editingEmployee}
           mode="edit"
         />
