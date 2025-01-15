@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ContractType, Position, NewEmployee, WorkSchedule } from "@/types/hr";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewEmployeeFormProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
       breakEndTime: ''
     }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (mode === 'edit' && employeeToEdit) {
@@ -39,48 +41,121 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
 
   const contractTypes: ContractType[] = ['CDI', 'CDD', 'Alternance', 'Stage'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (!formData.firstName || !formData.lastName || !formData.position || !formData.email || !formData.phone) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
+    try {
+      if (!formData.firstName || !formData.lastName || !formData.position || !formData.email || !formData.phone) {
+        toast.error("Veuillez remplir tous les champs obligatoires");
+        return;
+      }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Format d'email invalide");
-      return;
-    }
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        toast.error("Format d'email invalide");
+        return;
+      }
 
-    // Validate phone format (French format)
-    const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      toast.error("Format de téléphone invalide");
-      return;
-    }
+      // Validate phone format (French format)
+      const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        toast.error("Format de téléphone invalide");
+        return;
+      }
 
-    // Validate work schedule
-    const { workSchedule } = formData;
-    if (!workSchedule?.startTime || !workSchedule?.endTime || !workSchedule?.breakStartTime || !workSchedule?.breakEndTime) {
-      toast.error("Veuillez remplir tous les horaires de travail");
-      return;
-    }
+      // Validate work schedule
+      const { workSchedule } = formData;
+      if (!workSchedule?.startTime || !workSchedule?.endTime || !workSchedule?.breakStartTime || !workSchedule?.breakEndTime) {
+        toast.error("Veuillez remplir tous les horaires de travail");
+        return;
+      }
 
-    onSubmit(formData as NewEmployee);
-    onClose();
-    
-    // Reset form if it's create mode
-    if (mode === 'create') {
-      setFormData({
-        workSchedule: {
-          startTime: '',
-          endTime: '',
-          breakStartTime: '',
-          breakEndTime: ''
+      if (mode === 'create') {
+        // Create auth user
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: formData.email,
+          password: 'Welcome123!', // Temporary password
+          email_confirm: true
+        });
+
+        if (authError) {
+          console.error('Auth Error:', authError);
+          toast.error("Erreur lors de la création du compte: " + authError.message);
+          return;
         }
-      });
+
+        if (!authData.user) {
+          toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        // Update profile with name
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName
+          })
+          .eq('id', authData.user.id);
+
+        if (profileError) {
+          console.error('Profile Error:', profileError);
+          toast.error("Erreur lors de la mise à jour du profil");
+          return;
+        }
+
+        // Create employee record
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .insert([{
+            id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            birth_date: formData.birthDate,
+            birth_place: formData.birthPlace,
+            birth_country: formData.birthCountry,
+            social_security_number: formData.socialSecurityNumber,
+            contract_type: formData.contractType,
+            start_date: formData.startDate,
+            position: formData.position,
+            work_schedule: formData.workSchedule,
+            previous_year_vacation_days: formData.previousYearVacationDays,
+            used_vacation_days: formData.usedVacationDays,
+            remaining_vacation_days: formData.remainingVacationDays
+          }]);
+
+        if (employeeError) {
+          console.error('Employee Error:', employeeError);
+          toast.error("Erreur lors de la création de l'employé");
+          return;
+        }
+
+        toast.success("Employé créé avec succès");
+      }
+
+      onSubmit(formData as NewEmployee);
+      onClose();
+      
+      // Reset form if it's create mode
+      if (mode === 'create') {
+        setFormData({
+          workSchedule: {
+            startTime: '',
+            endTime: '',
+            breakStartTime: '',
+            breakEndTime: ''
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("Une erreur est survenue lors de la création de l'employé");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -323,11 +398,15 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" type="button" onClick={onClose}>
+            <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit">
-              {mode === 'create' ? 'Ajouter l\'employé' : 'Enregistrer les modifications'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting 
+                ? 'Création en cours...' 
+                : mode === 'create' 
+                  ? 'Ajouter l\'employé' 
+                  : 'Enregistrer les modifications'}
             </Button>
           </div>
         </form>
