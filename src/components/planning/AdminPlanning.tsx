@@ -67,6 +67,8 @@ export const AdminPlanning = () => {
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
   const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<NewEmployee | null>(null);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
@@ -120,8 +122,16 @@ export const AdminPlanning = () => {
   };
 
   const handleAddEmployee = (employee: NewEmployee) => {
-    toast.success("Employé ajouté avec succès");
+    toast.success(formMode === 'create' ? "Employé ajouté avec succès" : "Informations de l'employé mises à jour avec succès");
     setShowNewEmployeeForm(false);
+    setSelectedEmployee(null);
+    setFormMode('create');
+  };
+
+  const handleEditEmployee = (employee: NewEmployee) => {
+    setSelectedEmployee(employee);
+    setFormMode('edit');
+    setShowNewEmployeeForm(true);
   };
 
   return (
@@ -220,15 +230,25 @@ export const AdminPlanning = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Gestion des employés</h2>
-              <Button onClick={() => setShowNewEmployeeForm(true)}>
+              <Button onClick={() => {
+                setFormMode('create');
+                setSelectedEmployee(null);
+                setShowNewEmployeeForm(true);
+              }}>
                 Ajouter un employé
               </Button>
             </div>
             
             <NewEmployeeForm
               isOpen={showNewEmployeeForm}
-              onClose={() => setShowNewEmployeeForm(false)}
+              onClose={() => {
+                setShowNewEmployeeForm(false);
+                setSelectedEmployee(null);
+                setFormMode('create');
+              }}
               onSubmit={handleAddEmployee}
+              employeeToEdit={selectedEmployee || undefined}
+              mode={formMode}
             />
 
             <Table>
@@ -250,6 +270,34 @@ export const AdminPlanning = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditEmployee({
+                            firstName: employee.name.split(' ')[0],
+                            lastName: employee.name.split(' ')[1],
+                            email: `${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`,
+                            position: employee.position as Position,
+                            phone: "0612345678",
+                            birthDate: new Date(),
+                            birthPlace: "Paris",
+                            birthCountry: "France",
+                            socialSecurityNumber: "123456789",
+                            contractType: "CDI",
+                            startDate: new Date(),
+                            workSchedule: {
+                              startTime: "09:00",
+                              endTime: "17:00",
+                              breakStartTime: "12:00",
+                              breakEndTime: "13:00"
+                            },
+                            previousYearVacationDays: 25,
+                            usedVacationDays: 10,
+                            remainingVacationDays: 15
+                          })}
+                        >
+                          Modifier
+                        </Button>
                         <Button variant="outline" size="sm">Réinitialiser MDP</Button>
                         <Button variant="outline" size="sm">Désactiver</Button>
                         <Button variant="destructive" size="sm">Supprimer</Button>

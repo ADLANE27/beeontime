@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,11 @@ interface NewEmployeeFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (employee: NewEmployee) => void;
+  employeeToEdit?: NewEmployee;
+  mode?: 'create' | 'edit';
 }
 
-export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormProps) => {
+export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mode = 'create' }: NewEmployeeFormProps) => {
   const [formData, setFormData] = useState<Partial<NewEmployee>>({
     workSchedule: {
       startTime: '',
@@ -22,6 +24,12 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
       breakEndTime: ''
     }
   });
+
+  useEffect(() => {
+    if (mode === 'edit' && employeeToEdit) {
+      setFormData(employeeToEdit);
+    }
+  }, [mode, employeeToEdit]);
 
   const positions: Position[] = [
     'Traducteur', 'Traductrice', 'Interprète', 'Coordinatrice',
@@ -62,6 +70,18 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
 
     onSubmit(formData as NewEmployee);
     onClose();
+    
+    // Reset form if it's create mode
+    if (mode === 'create') {
+      setFormData({
+        workSchedule: {
+          startTime: '',
+          endTime: '',
+          breakStartTime: '',
+          breakEndTime: ''
+        }
+      });
+    }
   };
 
   const handleInputChange = (field: keyof NewEmployee, value: any) => {
@@ -82,9 +102,13 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Ajouter un nouvel employé</DialogTitle>
+          <DialogTitle>
+            {mode === 'create' ? 'Ajouter un nouvel employé' : 'Modifier les informations de l\'employé'}
+          </DialogTitle>
           <DialogDescription>
-            Remplissez les informations du nouvel employé. Tous les champs marqués d'un * sont obligatoires.
+            {mode === 'create' 
+              ? 'Remplissez les informations du nouvel employé. Tous les champs marqués d\'un * sont obligatoires.'
+              : 'Modifiez les informations de l\'employé. Tous les champs marqués d\'un * sont obligatoires.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -303,7 +327,7 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit }: NewEmployeeFormPr
               Annuler
             </Button>
             <Button type="submit">
-              Ajouter l'employé
+              {mode === 'create' ? 'Ajouter l\'employé' : 'Enregistrer les modifications'}
             </Button>
           </div>
         </form>
