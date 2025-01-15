@@ -1,10 +1,7 @@
 import { Card } from "@/components/ui/card";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,18 +24,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
         <div className="px-3 py-3 lg:px-5 lg:pl-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center justify-start">
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl">
-                {isAdmin ? "Portail RH" : "Pointeuse AFTraduction"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Se déconnecter
-              </Button>
-            </div>
+          <div className="flex items-center justify-end">
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Se déconnecter
+            </Button>
           </div>
         </div>
         {children}
