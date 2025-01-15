@@ -164,6 +164,9 @@ export const NewEmployeeForm = ({
 
         console.log('Employee created successfully');
         toast.success("Employé créé avec succès");
+        
+        // Call onSubmit to update the list
+        onSubmit(formData);
       } else {
         if (!employeeToEdit?.id) {
           toast.error("ID de l'employé manquant pour la mise à jour");
@@ -203,7 +206,6 @@ export const NewEmployeeForm = ({
         toast.success("Employé mis à jour avec succès");
       }
 
-      onSubmit(formData);
       resetForm();
       onClose();
     } catch (error) {
