@@ -106,6 +106,8 @@ export const NewEmployeeForm = ({
 
     try {
       if (mode === 'create') {
+        console.log('Creating new employee:', formData);
+        
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: 'Welcome123!',
@@ -128,6 +130,11 @@ export const NewEmployeeForm = ({
           return;
         }
 
+        // Wait briefly for the profile trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        console.log('Creating employee record for user:', authData.user.id);
+        
         const { error: employeeError } = await supabase
           .from('employees')
           .insert({
@@ -155,6 +162,7 @@ export const NewEmployeeForm = ({
           return;
         }
 
+        console.log('Employee created successfully');
         toast.success("Employé créé avec succès");
       } else {
         if (!employeeToEdit?.id) {
@@ -162,6 +170,8 @@ export const NewEmployeeForm = ({
           return;
         }
 
+        console.log('Updating employee:', employeeToEdit.id);
+        
         const { error: updateError } = await supabase
           .from('employees')
           .update({
@@ -189,6 +199,7 @@ export const NewEmployeeForm = ({
           return;
         }
 
+        console.log('Employee updated successfully');
         toast.success("Employé mis à jour avec succès");
       }
 
@@ -435,4 +446,3 @@ export const NewEmployeeForm = ({
     </Dialog>
   );
 };
-
