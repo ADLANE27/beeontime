@@ -7,8 +7,47 @@ import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { DelayList } from "@/components/delays/DelayList";
 import { ExportDataTab } from "@/components/export/ExportDataTab";
 import { LeaveRequestsList } from "@/components/leave/LeaveRequestsList";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const HRDashboard = () => {
+  useEffect(() => {
+    const checkAccess = async () => {
+      console.log('Checking HR access...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session);
+
+      if (session?.user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+
+        console.log('User profile:', profile);
+
+        const { data: employees, error: employeesError } = await supabase
+          .from('employees')
+          .select('*');
+
+        if (employeesError) {
+          console.error('Error fetching employees:', employeesError);
+          return;
+        }
+
+        console.log('Fetched employees:', employees);
+      }
+    };
+
+    checkAccess();
+  }, []);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
