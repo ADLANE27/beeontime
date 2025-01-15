@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface TimeLog {
   clockIn?: string;
@@ -142,6 +143,12 @@ export const AdminPlanning = () => {
     setExtraTimeStart("");
     setExtraTimeEnd("");
     setExtraTimeReason("");
+  };
+
+  const handleAddEmployee = (employee: NewEmployee) => {
+    // Here you would typically add the employee to your system
+    toast.success("Employé ajouté avec succès");
+    setShowNewEmployeeForm(false);
   };
 
   return (
