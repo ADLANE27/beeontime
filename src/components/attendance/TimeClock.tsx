@@ -10,12 +10,33 @@ import { supabase } from "@/integrations/supabase/client";
 export const TimeClock = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
+  const [checkInId, setCheckInId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
+    // Vérifier si l'employé a déjà pointé aujourd'hui
+    const checkTodayAttendance = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data: attendance } = await supabase
+        .from("delays")
+        .select("id, actual_time")
+        .eq("employee_id", user.id)
+        .eq("date", today)
+        .maybeSingle();
+
+      if (attendance) {
+        setHasCheckedIn(true);
+        setCheckInId(attendance.id);
+      }
+    };
+
+    checkTodayAttendance();
     return () => clearInterval(timer);
   }, []);
 
@@ -25,19 +46,27 @@ export const TimeClock = () => {
   const handleCheckIn = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast.error("Vous devez être connecté pour pointer");
+        return;
+      }
 
-      const { error } = await supabase.from("delays").insert({
-        employee_id: user.id,
-        date: format(currentTime, "yyyy-MM-dd"),
-        scheduled_time: "09:00",
-        actual_time: format(currentTime, "HH:mm"),
-        duration: "0",
-        reason: "Pointage automatique"
-      });
+      const { data, error } = await supabase
+        .from("delays")
+        .insert({
+          employee_id: user.id,
+          date: format(currentTime, "yyyy-MM-dd"),
+          scheduled_time: "09:00",
+          actual_time: format(currentTime, "HH:mm"),
+          duration: "0",
+          reason: "Pointage arrivée"
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
+      setCheckInId(data.id);
       setHasCheckedIn(true);
       toast.success("Arrivée enregistrée avec succès");
     } catch (error) {
@@ -46,9 +75,31 @@ export const TimeClock = () => {
     }
   };
 
-  const handleCheckOut = () => {
-    setHasCheckedIn(false);
-    toast.success("Départ enregistré avec succès");
+  const handleCheckOut = async () => {
+    if (!checkInId) {
+      toast.error("Aucun pointage d'entrée trouvé");
+      return;
+    }
+
+    try {
+      const checkOutTime = format(currentTime, "HH:mm");
+      const { error } = await supabase
+        .from("delays")
+        .update({
+          reason: `Pointage arrivée-sortie (${checkOutTime})`,
+          status: 'approved'
+        })
+        .eq('id', checkInId);
+
+      if (error) throw error;
+
+      setHasCheckedIn(false);
+      setCheckInId(null);
+      toast.success("Départ enregistré avec succès");
+    } catch (error) {
+      console.error("Erreur lors du pointage de sortie:", error);
+      toast.error("Erreur lors de l'enregistrement du pointage de sortie");
+    }
   };
 
   return (
