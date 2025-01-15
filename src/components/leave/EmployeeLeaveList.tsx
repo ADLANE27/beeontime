@@ -90,7 +90,10 @@ export const EmployeeLeaveList = () => {
         .delete()
         .eq('id', leaveId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error canceling leave request:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Demande de congé annulée avec succès");
@@ -102,9 +105,9 @@ export const EmployeeLeaveList = () => {
     }
   });
 
-  const handleCancel = (leaveId: string) => {
+  const handleCancel = async (leaveId: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir annuler cette demande de congé ?")) {
-      cancelMutation.mutate(leaveId);
+      await cancelMutation.mutateAsync(leaveId);
     }
   };
 
@@ -168,8 +171,13 @@ export const EmployeeLeaveList = () => {
                       size="sm"
                       onClick={() => handleCancel(request.id)}
                       className="mt-2"
+                      disabled={cancelMutation.isPending}
                     >
-                      <Trash2 className="h-4 w-4 mr-1" />
+                      {cancelMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
                       Annuler
                     </Button>
                   )}
