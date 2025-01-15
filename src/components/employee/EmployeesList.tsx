@@ -10,6 +10,33 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  birth_date: string | null;
+  birth_place: string | null;
+  birth_country: string | null;
+  social_security_number: string | null;
+  contract_type: string | null;
+  start_date: string | null;
+  position: string | null;
+  work_schedule: {
+    startTime: string;
+    endTime: string;
+    breakStartTime: string;
+    breakEndTime: string;
+  } | null;
+  previous_year_vacation_days: number | null;
+  used_vacation_days: number | null;
+  remaining_vacation_days: number | null;
+  profiles: {
+    active: boolean | null;
+  } | null;
+}
+
 export const EmployeesList = () => {
   const [editingEmployee, setEditingEmployee] = useState<NewEmployee | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -25,7 +52,7 @@ export const EmployeesList = () => {
       
       if (error) throw error;
       console.log('Fetched employees:', data);
-      return data;
+      return data as Employee[];
     }
   });
 
