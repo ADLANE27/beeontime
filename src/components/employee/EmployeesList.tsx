@@ -52,7 +52,14 @@ export const EmployeesList = () => {
       
       if (error) throw error;
       console.log('Fetched employees:', data);
-      return data as Employee[];
+      
+      // Transform the data to match our Employee interface
+      const transformedData = data.map((employee: any) => ({
+        ...employee,
+        work_schedule: employee.work_schedule as Employee['work_schedule']
+      }));
+      
+      return transformedData as Employee[];
     }
   });
 
