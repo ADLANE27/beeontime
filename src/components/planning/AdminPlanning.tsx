@@ -17,6 +17,8 @@ import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { EmployeeStats } from "@/components/stats/EmployeeStats";
+import { CompanyStats } from "@/components/stats/CompanyStats";
 
 interface TimeLog {
   clockIn?: string;
@@ -265,27 +267,35 @@ export const AdminPlanning = () => {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Statistiques</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Taux de présence</h3>
-                <p className="text-3xl font-bold text-green-600">95%</p>
-              </Card>
+            <Tabs defaultValue="company">
+              <TabsList>
+                <TabsTrigger value="company">Vue d'ensemble</TabsTrigger>
+                <TabsTrigger value="individual">Par employé</TabsTrigger>
+              </TabsList>
               
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Taux d'absentéisme</h3>
-                <p className="text-3xl font-bold text-red-600">5%</p>
-              </Card>
+              <TabsContent value="company" className="mt-6">
+                <CompanyStats />
+              </TabsContent>
               
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Congés pris (moyenne)</h3>
-                <p className="text-3xl font-bold text-blue-600">12 jours</p>
-              </Card>
-              
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Retards (ce mois)</h3>
-                <p className="text-3xl font-bold text-orange-600">3</p>
-              </Card>
-            </div>
+              <TabsContent value="individual" className="mt-6">
+                <div className="mb-6">
+                  <Label>Employé</Label>
+                  <Select>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Sélectionner un employé" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id.toString()}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <EmployeeStats />
+              </TabsContent>
+            </Tabs>
           </div>
         </Card>
       </TabsContent>
