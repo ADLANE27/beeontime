@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ContractType, NewEmployee, Position, WorkSchedule } from "@/types/hr";
@@ -220,235 +221,239 @@ export const NewEmployeeForm = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Ajouter un employé' : 'Modifier un employé'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom</Label>
-              <Input
-                id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
+        <ScrollArea className="h-[calc(90vh-8rem)] pr-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Prénom</Label>
+                <Input
+                  id="firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Nom</Label>
+                <Input
+                  id="lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Nom</Label>
-              <Input
-                id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="birthDate">Date de naissance</Label>
-              <Input
-                id="birthDate"
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">Date de naissance</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthPlace">Lieu de naissance</Label>
+                <Input
+                  id="birthPlace"
+                  value={birthPlace}
+                  onChange={(e) => setBirthPlace(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="birthPlace">Lieu de naissance</Label>
-              <Input
-                id="birthPlace"
-                value={birthPlace}
-                onChange={(e) => setBirthPlace(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="birthCountry">Pays de naissance</Label>
-              <Input
-                id="birthCountry"
-                value={birthCountry}
-                onChange={(e) => setBirthCountry(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="birthCountry">Pays de naissance</Label>
+                <Input
+                  id="birthCountry"
+                  value={birthCountry}
+                  onChange={(e) => setBirthCountry(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="socialSecurityNumber">Numéro de sécurité sociale</Label>
+                <Input
+                  id="socialSecurityNumber"
+                  value={socialSecurityNumber}
+                  onChange={(e) => setSocialSecurityNumber(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="socialSecurityNumber">Numéro de sécurité sociale</Label>
-              <Input
-                id="socialSecurityNumber"
-                value={socialSecurityNumber}
-                onChange={(e) => setSocialSecurityNumber(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contractType">Type de contrat</Label>
+                <Select value={contractType} onValueChange={(value: ContractType) => setContractType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un type de contrat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CDI">CDI</SelectItem>
+                    <SelectItem value="CDD">CDD</SelectItem>
+                    <SelectItem value="Alternance">Alternance</SelectItem>
+                    <SelectItem value="Stage">Stage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Date de début</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="contractType">Type de contrat</Label>
-              <Select value={contractType} onValueChange={(value: ContractType) => setContractType(value)}>
+              <Label htmlFor="position">Poste</Label>
+              <Select value={position} onValueChange={(value: Position) => setPosition(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un type de contrat" />
+                  <SelectValue placeholder="Sélectionner un poste" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="CDI">CDI</SelectItem>
-                  <SelectItem value="CDD">CDD</SelectItem>
-                  <SelectItem value="Alternance">Alternance</SelectItem>
-                  <SelectItem value="Stage">Stage</SelectItem>
+                  <SelectItem value="Traducteur">Traducteur</SelectItem>
+                  <SelectItem value="Traductrice">Traductrice</SelectItem>
+                  <SelectItem value="Interprète">Interprète</SelectItem>
+                  <SelectItem value="Coordinatrice">Coordinatrice</SelectItem>
+                  <SelectItem value="Cheffe de projets">Cheffe de projets</SelectItem>
+                  <SelectItem value="Chef de projets">Chef de projets</SelectItem>
+                  <SelectItem value="Alternant">Alternant</SelectItem>
+                  <SelectItem value="Alternante">Alternante</SelectItem>
+                  <SelectItem value="Stagiaire">Stagiaire</SelectItem>
+                  <SelectItem value="Directeur">Directeur</SelectItem>
+                  <SelectItem value="Assistante de direction">Assistante de direction</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Date de début</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="position">Poste</Label>
-            <Select value={position} onValueChange={(value: Position) => setPosition(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un poste" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Traducteur">Traducteur</SelectItem>
-                <SelectItem value="Traductrice">Traductrice</SelectItem>
-                <SelectItem value="Interprète">Interprète</SelectItem>
-                <SelectItem value="Coordinatrice">Coordinatrice</SelectItem>
-                <SelectItem value="Cheffe de projets">Cheffe de projets</SelectItem>
-                <SelectItem value="Chef de projets">Chef de projets</SelectItem>
-                <SelectItem value="Alternant">Alternant</SelectItem>
-                <SelectItem value="Alternante">Alternante</SelectItem>
-                <SelectItem value="Stagiaire">Stagiaire</SelectItem>
-                <SelectItem value="Directeur">Directeur</SelectItem>
-                <SelectItem value="Assistante de direction">Assistante de direction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Heure d'arrivée</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime">Heure de départ</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Heure d'arrivée</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="breakStartTime">Début pause déjeuner</Label>
+                <Input
+                  id="breakStartTime"
+                  type="time"
+                  value={breakStartTime}
+                  onChange={(e) => setBreakStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="breakEndTime">Fin pause déjeuner</Label>
+                <Input
+                  id="breakEndTime"
+                  type="time"
+                  value={breakEndTime}
+                  onChange={(e) => setBreakEndTime(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">Heure de départ</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="breakStartTime">Début pause déjeuner</Label>
-              <Input
-                id="breakStartTime"
-                type="time"
-                value={breakStartTime}
-                onChange={(e) => setBreakStartTime(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="previousYearVacationDays">Congés N-1</Label>
+                <Input
+                  id="previousYearVacationDays"
+                  type="number"
+                  value={previousYearVacationDays}
+                  onChange={(e) => setPreviousYearVacationDays(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="usedVacationDays">Congés pris</Label>
+                <Input
+                  id="usedVacationDays"
+                  type="number"
+                  value={usedVacationDays}
+                  onChange={(e) => setUsedVacationDays(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="remainingVacationDays">Congés restants</Label>
+                <Input
+                  id="remainingVacationDays"
+                  type="number"
+                  value={remainingVacationDays}
+                  onChange={(e) => setRemainingVacationDays(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="breakEndTime">Fin pause déjeuner</Label>
-              <Input
-                id="breakEndTime"
-                type="time"
-                value={breakEndTime}
-                onChange={(e) => setBreakEndTime(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="previousYearVacationDays">Congés N-1</Label>
-              <Input
-                id="previousYearVacationDays"
-                type="number"
-                value={previousYearVacationDays}
-                onChange={(e) => setPreviousYearVacationDays(e.target.value)}
-                required
-              />
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Annuler
+              </Button>
+              <Button type="submit">
+                {mode === 'create' ? 'Ajouter' : 'Mettre à jour'}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="usedVacationDays">Congés pris</Label>
-              <Input
-                id="usedVacationDays"
-                type="number"
-                value={usedVacationDays}
-                onChange={(e) => setUsedVacationDays(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="remainingVacationDays">Congés restants</Label>
-              <Input
-                id="remainingVacationDays"
-                type="number"
-                value={remainingVacationDays}
-                onChange={(e) => setRemainingVacationDays(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Annuler
-            </Button>
-            <Button type="submit">
-              {mode === 'create' ? 'Ajouter' : 'Mettre à jour'}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default NewEmployeeForm;
