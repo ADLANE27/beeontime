@@ -109,7 +109,6 @@ export const NewEmployeeForm = ({
       if (mode === 'create') {
         console.log('Starting employee creation process...');
         
-        // First check if user already exists with case-insensitive email check
         const { data: existingUser, error: queryError } = await supabase
           .from('profiles')
           .select('id')
@@ -128,14 +127,16 @@ export const NewEmployeeForm = ({
           return;
         }
 
-        // Create auth user with retry logic for network issues
         let authData;
         let authError;
         let retryCount = 0;
         const maxRetries = 3;
+        const baseDelay = 60000; // 60 seconds base delay for rate limit
 
         while (retryCount < maxRetries) {
           try {
+            console.log(`Attempt ${retryCount + 1} to create auth user...`);
+            
             const result = await supabase.auth.signUp({
               email: formData.email.toLowerCase(),
               password: 'Welcome123!',
@@ -149,13 +150,25 @@ export const NewEmployeeForm = ({
             
             authData = result.data;
             authError = result.error;
-            if (!authError) break;
+
+            if (!authError) {
+              console.log('Auth user created successfully');
+              break;
+            }
             
-            if (authError.message.includes('rate_limit')) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
+            // Check if it's a rate limit error
+            if (authError.message.includes('rate_limit') || 
+                (authError as any)?.body?.includes('over_email_send_rate_limit')) {
+              const delay = baseDelay * (retryCount + 1); // Exponential backoff
+              console.log(`Rate limit hit. Waiting ${delay/1000} seconds before retry...`);
+              toast.error(`Limite de création d'utilisateurs atteinte. Nouvelle tentative dans ${delay/1000} secondes...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
               retryCount++;
               continue;
             }
+
+            // If it's not a rate limit error, break the loop
+            console.error('Non-rate-limit auth error:', authError);
             break;
           } catch (error) {
             console.error('Network error during auth:', error);
