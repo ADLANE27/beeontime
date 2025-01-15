@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Key, Plus, Power, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 export const EmployeesList = () => {
   const [editingEmployee, setEditingEmployee] = useState<NewEmployee | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: employees, isLoading } = useQuery({
@@ -18,7 +19,7 @@ export const EmployeesList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employees')
-        .select('*');
+        .select('*, profiles(active)');
       
       if (error) throw error;
       console.log('Fetched employees:', data);
@@ -27,7 +28,6 @@ export const EmployeesList = () => {
   });
 
   const handleEdit = (employee: any) => {
-    // Map database fields to NewEmployee type
     const mappedEmployee: NewEmployee = {
       id: employee.id,
       firstName: employee.first_name,
@@ -113,29 +113,108 @@ export const EmployeesList = () => {
     setEditingEmployee(null);
   };
 
+  const handleCreateEmployee = async (newEmployee: NewEmployee) => {
+    const { error } = await supabase.auth.signUp({
+      email: newEmployee.email,
+      password: 'Welcome123!', // Temporary password
+      options: {
+        data: {
+          first_name: newEmployee.firstName,
+          last_name: newEmployee.lastName,
+        }
+      }
+    });
+
+    if (error) {
+      console.error('Error creating user:', error);
+      toast.error("Erreur lors de la création de l'utilisateur");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    toast.success("Employé créé avec succès");
+    setIsNewEmployeeModalOpen(false);
+  };
+
+  const handleToggleActive = async (employeeId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ active: !currentStatus })
+      .eq('id', employeeId);
+
+    if (error) {
+      console.error('Error toggling user status:', error);
+      toast.error("Erreur lors de la modification du statut de l'employé");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    toast.success(`Employé ${currentStatus ? 'désactivé' : 'activé'} avec succès`);
+  };
+
+  const handleResetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      console.error('Error resetting password:', error);
+      toast.error("Erreur lors de la réinitialisation du mot de passe");
+      return;
+    }
+
+    toast.success("Email de réinitialisation du mot de passe envoyé");
+  };
+
   if (isLoading) return <div>Chargement...</div>;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Liste des employés</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Liste des employés</h2>
+        <Button onClick={() => setIsNewEmployeeModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un employé
+        </Button>
+      </div>
+
       <div className="grid gap-4">
         {employees?.map((employee) => (
           <Card key={employee.id} className="p-4">
             <div className="flex justify-between items-center">
-              <div>
+              <div className="grid gap-1">
                 <h3 className="text-lg font-semibold">
                   {employee.first_name} {employee.last_name}
                 </h3>
                 <p className="text-sm text-muted-foreground">{employee.email}</p>
-                <p className="text-sm text-muted-foreground">{employee.position}</p>
+                <p className="text-sm text-muted-foreground">
+                  Statut: {employee.profiles?.active ? 'Actif' : 'Inactif'}
+                </p>
               </div>
-              <div className="space-x-2">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleEdit(employee)}
                 >
                   <Edit className="h-4 w-4" />
+                  Modifier
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleResetPassword(employee.email)}
+                >
+                  <Key className="h-4 w-4" />
+                  Réinitialiser MDP
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleToggleActive(employee.id, employee.profiles?.active)}
+                >
+                  <Power className="h-4 w-4" />
+                  {employee.profiles?.active ? 'Désactiver' : 'Activer'}
                 </Button>
                 <Button
                   variant="destructive"
@@ -143,6 +222,7 @@ export const EmployeesList = () => {
                   onClick={() => handleDelete(employee.id)}
                 >
                   <Trash2 className="h-4 w-4" />
+                  Supprimer
                 </Button>
               </div>
             </div>
@@ -162,6 +242,13 @@ export const EmployeesList = () => {
           mode="edit"
         />
       )}
+
+      <NewEmployeeForm
+        isOpen={isNewEmployeeModalOpen}
+        onClose={() => setIsNewEmployeeModalOpen(false)}
+        onSubmit={handleCreateEmployee}
+        mode="create"
+      />
     </div>
   );
 };
