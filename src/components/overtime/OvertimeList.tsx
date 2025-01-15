@@ -170,7 +170,7 @@ export const OvertimeList = () => {
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
             <div className="flex gap-2">
-              {request.status === "en attente de confirmation" && (
+              {request.status === "En attente de confirmation" && (
                 <>
                   <Button 
                     variant="outline" 
