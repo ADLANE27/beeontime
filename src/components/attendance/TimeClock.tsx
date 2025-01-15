@@ -62,9 +62,13 @@ export const TimeClock = () => {
           reason: "Pointage arrivée"
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        toast.error("Erreur lors de l'enregistrement du pointage");
+        return;
+      }
 
       setCheckInId(data.id);
       setHasCheckedIn(true);
@@ -111,25 +115,25 @@ export const TimeClock = () => {
         </div>
         
         <div className="flex gap-4">
-          <Button
-            size="lg"
-            className="bg-green-600 hover:bg-green-700"
-            onClick={handleCheckIn}
-            disabled={hasCheckedIn}
-          >
-            <ArrowRight className="mr-2 h-5 w-5" />
-            Pointer arrivée
-          </Button>
-          
-          <Button
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={handleCheckOut}
-            disabled={!hasCheckedIn}
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Pointer sortie
-          </Button>
+          {!hasCheckedIn ? (
+            <Button
+              size="lg"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleCheckIn}
+            >
+              <ArrowRight className="mr-2 h-5 w-5" />
+              Pointer arrivée
+            </Button>
+          ) : (
+            <Button
+              size="lg"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleCheckOut}
+            >
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Pointer sortie
+            </Button>
+          )}
         </div>
       </div>
     </Card>
