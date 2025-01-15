@@ -12,28 +12,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
 
-  // Example data - in a real app, this would come from your backend
-  const employees = [
-    { id: "1", name: "Jean Dupont" },
-    { id: "2", name: "Marie Martin" },
-    { id: "3", name: "Pierre Durant" }
-  ];
-
+  // Exemple de données
   const delays = [
     {
       id: 1,
       employeeId: 1,
-      employeeName: "Jean Dupont",
       date: "2024-03-20",
       duration: "30min",
       reason: "Trafic",
@@ -44,15 +35,10 @@ export const DelayList = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEmployee) {
-      toast.error("Veuillez sélectionner un employé");
-      return;
-    }
-
+    // Ici vous ajouterez la logique pour soumettre le retard
     toast.success("Retard enregistré avec succès");
     setOpen(false);
     // Reset form
-    setSelectedEmployee("");
     setDate("");
     setTime("");
     setReason("");
@@ -71,21 +57,6 @@ export const DelayList = () => {
               <DialogTitle>Enregistrer un retard</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="employee">Employé</Label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un employé" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -129,8 +100,7 @@ export const DelayList = () => {
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">{delay.employeeName}</p>
-              <p className="text-sm text-gray-600">{delay.date}</p>
+              <p className="font-semibold">{delay.date}</p>
               <p className="text-sm text-gray-600">{delay.duration}</p>
               <p className="text-sm text-gray-600">{delay.reason}</p>
             </div>
