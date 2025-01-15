@@ -42,14 +42,21 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
       const maxAttempts = 5;
       
       while (attempts < maxAttempts && !profile) {
-        const { data: profileData } = await supabase
+        console.log(`Attempt ${attempts + 1} to fetch profile...`);
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
           
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          continue;
+        }
+
         if (profileData) {
           profile = profileData;
+          console.log('Profile found:', profile);
           break;
         }
         
@@ -58,7 +65,7 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
       }
 
       if (!profile) {
-        console.error('Profile creation failed');
+        console.error('Profile creation failed after', maxAttempts, 'attempts');
         toast.error("Erreur lors de la création du profil");
         return;
       }
