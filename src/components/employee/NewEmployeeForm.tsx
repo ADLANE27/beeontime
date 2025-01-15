@@ -109,72 +109,97 @@ export const NewEmployeeForm = ({
       if (mode === 'create') {
         console.log('Creating new employee:', formData);
         
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: 'Welcome123!',
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName
-            }
-          }
-        });
+        // First check if user already exists
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', formData.email)
+          .single();
 
-        if (authError) {
-          console.error('Auth Error:', authError);
-          toast.error("Erreur lors de la création du compte utilisateur");
+        if (existingUser) {
+          toast.error("Un utilisateur avec cet email existe déjà");
           return;
         }
 
-        if (!authData.user) {
-          console.error('No user data returned');
-          toast.error("Erreur lors de la création du compte utilisateur");
-          return;
-        }
-
-        console.log('User created successfully:', authData.user.id);
-
-        // Wait briefly for the profile trigger to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log('Creating employee record for user:', authData.user.id);
-        
-        const { error: employeeError } = await supabase
-          .from('employees')
-          .insert({
-            id: authData.user.id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signUp({
             email: formData.email,
-            phone: formData.phone,
-            birth_date: formData.birthDate,
-            birth_place: formData.birthPlace,
-            birth_country: formData.birthCountry,
-            social_security_number: formData.socialSecurityNumber,
-            contract_type: formData.contractType,
-            start_date: formData.startDate,
-            position: formData.position,
-            work_schedule: formData.workSchedule as unknown as Json,
-            previous_year_vacation_days: formData.previousYearVacationDays,
-            used_vacation_days: formData.usedVacationDays,
-            remaining_vacation_days: formData.remainingVacationDays
+            password: 'Welcome123!',
+            options: {
+              data: {
+                first_name: formData.firstName,
+                last_name: formData.lastName
+              }
+            }
           });
 
-        if (employeeError) {
-          console.error('Employee Error:', employeeError);
-          toast.error("Erreur lors de la création de l'employé");
-          return;
-        }
+          if (authError) {
+            if (authError.message.includes('rate_limit')) {
+              toast.error("Veuillez patienter quelques secondes avant de réessayer");
+              return;
+            }
+            console.error('Auth Error:', authError);
+            toast.error("Erreur lors de la création du compte utilisateur");
+            return;
+          }
 
-        console.log('Employee created successfully');
-        toast.success("Employé créé avec succès");
-        
-        // Call onSubmit to update the list with the new employee
-        onSubmit(formData);
-        
-        // Reset form and close dialog
-        resetForm();
-        onClose();
+          if (!authData.user) {
+            console.error('No user data returned');
+            toast.error("Erreur lors de la création du compte utilisateur");
+            return;
+          }
+
+          console.log('User created successfully:', authData.user.id);
+
+          // Wait briefly for the profile trigger to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          console.log('Creating employee record for user:', authData.user.id);
+          
+          const { error: employeeError } = await supabase
+            .from('employees')
+            .insert({
+              id: authData.user.id,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              birth_date: formData.birthDate,
+              birth_place: formData.birthPlace,
+              birth_country: formData.birthCountry,
+              social_security_number: formData.socialSecurityNumber,
+              contract_type: formData.contractType,
+              start_date: formData.startDate,
+              position: formData.position,
+              work_schedule: formData.workSchedule as unknown as Json,
+              previous_year_vacation_days: formData.previousYearVacationDays,
+              used_vacation_days: formData.usedVacationDays,
+              remaining_vacation_days: formData.remainingVacationDays
+            });
+
+          if (employeeError) {
+            if (employeeError.code === '23505') {
+              toast.error("Un employé avec cet email existe déjà");
+              return;
+            }
+            console.error('Employee Error:', employeeError);
+            toast.error("Erreur lors de la création de l'employé");
+            return;
+          }
+
+          console.log('Employee created successfully');
+          toast.success("Employé créé avec succès");
+          onSubmit(formData);
+          resetForm();
+          onClose();
+        } catch (error: any) {
+          console.error('Error:', error);
+          if (error.message?.includes('rate_limit')) {
+            toast.error("Veuillez patienter quelques secondes avant de réessayer");
+          } else {
+            toast.error("Une erreur est survenue");
+          }
+        }
       } else {
         if (!employeeToEdit?.id) {
           toast.error("ID de l'employé manquant pour la mise à jour");
