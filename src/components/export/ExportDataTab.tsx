@@ -4,12 +4,45 @@ import { Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import * as XLSX from 'xlsx';
 
 export const ExportDataTab = () => {
   const handleExport = (type: string) => {
     const currentDate = format(new Date(), 'MMMM yyyy', { locale: fr });
-    toast.success(`Export des ${type} pour ${currentDate} en cours...`);
-    // Ici, vous ajouterez la logique d'export réelle
+    
+    // Exemple de données (à remplacer par vos vraies données)
+    const mockData = [
+      {
+        nom: "Dupont",
+        prenom: "Jean",
+        poste: "Traducteur",
+        joursPresence: 20,
+        heuresSupp: 5,
+        congesPris: 2,
+        retards: 0
+      },
+      {
+        nom: "Martin",
+        prenom: "Marie",
+        poste: "Traductrice",
+        joursPresence: 22,
+        heuresSupp: 3,
+        congesPris: 0,
+        retards: 1
+      }
+    ];
+
+    // Création du workbook Excel
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(mockData);
+
+    // Ajout de la feuille au workbook
+    XLSX.utils.book_append_sheet(wb, ws, `Données ${type}`);
+
+    // Génération et téléchargement du fichier
+    XLSX.writeFile(wb, `export_${type}_${currentDate}.xlsx`);
+    
+    toast.success(`Export des ${type} pour ${currentDate} effectué avec succès`);
   };
 
   return (
@@ -34,14 +67,14 @@ export const ExportDataTab = () => {
             </div>
           </Card>
 
-          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("heures supplémentaires")}>
+          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("heures_supplementaires")}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Heures supplémentaires</h3>
                 <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">Export des heures supplémentaires du mois</p>
-              <Button variant="outline" className="w-full" onClick={() => handleExport("heures supplémentaires")}>
+              <Button variant="outline" className="w-full" onClick={() => handleExport("heures_supplementaires")}>
                 <Download className="mr-2 h-4 w-4" />
                 Exporter
               </Button>
@@ -62,28 +95,28 @@ export const ExportDataTab = () => {
             </div>
           </Card>
 
-          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("jours travaillés")}>
+          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("jours_travailles")}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Jours travaillés</h3>
                 <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">Nombre de jours travaillés par employé</p>
-              <Button variant="outline" className="w-full" onClick={() => handleExport("jours travaillés")}>
+              <Button variant="outline" className="w-full" onClick={() => handleExport("jours_travailles")}>
                 <Download className="mr-2 h-4 w-4" />
                 Exporter
               </Button>
             </div>
           </Card>
 
-          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("synthèse mensuelle")}>
+          <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => handleExport("synthese_mensuelle")}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Synthèse mensuelle</h3>
                 <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">Rapport complet mensuel par employé</p>
-              <Button variant="outline" className="w-full" onClick={() => handleExport("synthèse mensuelle")}>
+              <Button variant="outline" className="w-full" onClick={() => handleExport("synthese_mensuelle")}>
                 <Download className="mr-2 h-4 w-4" />
                 Exporter
               </Button>
