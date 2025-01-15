@@ -46,7 +46,7 @@ export const OvertimeList = () => {
       date: "2024-03-20",
       hours: 2,
       reason: "Projet urgent",
-      status: "pending"
+      status: "en attente de confirmation"
     }
   ];
 
@@ -58,7 +58,7 @@ export const OvertimeList = () => {
       return;
     }
     
-    toast.success("Heures supplémentaires ajoutées manuellement avec succès");
+    toast.success("Heures supplémentaires ajoutées avec succès");
     setOpenManual(false);
     // Reset form
     setDate("");
@@ -170,7 +170,7 @@ export const OvertimeList = () => {
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
             <div className="flex gap-2">
-              {request.status === "pending" && (
+              {request.status === "en attente de confirmation" && (
                 <>
                   <Button 
                     variant="outline" 
@@ -189,9 +189,9 @@ export const OvertimeList = () => {
               )}
               <Badge
                 variant={
-                  request.status === "approved"
+                  request.status === "approuvé"
                     ? "secondary"
-                    : request.status === "rejected"
+                    : request.status === "rejeté"
                     ? "destructive"
                     : "outline"
                 }

@@ -44,7 +44,7 @@ export const DelayList = () => {
       date: "2024-03-20",
       duration: "30min",
       reason: "Trafic",
-      status: "pending"
+      status: "en attente de confirmation"
     }
   ];
 
@@ -148,9 +148,9 @@ export const DelayList = () => {
             </div>
             <Badge
               variant={
-                delay.status === "approved"
+                delay.status === "approuvé"
                   ? "secondary"
-                  : delay.status === "rejected"
+                  : delay.status === "rejeté"
                   ? "destructive"
                   : "outline"
               }
