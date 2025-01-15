@@ -228,8 +228,7 @@ export const NewEmployeeForm = ({
 
         if (!profile) {
           console.error('Profile creation failed after', maxAttempts, 'attempts');
-          await supabase.auth.admin.deleteUser(userId);
-          toast.error("Erreur lors de la création du profil utilisateur");
+          toast.error("Erreur lors de la création du profil utilisateur. Veuillez réessayer plus tard.");
           return;
         }
 
@@ -265,13 +264,6 @@ export const NewEmployeeForm = ({
               break;
             }
 
-            if (employeeError.code === '23505') {
-              console.error('Employee already exists:', employeeError);
-              toast.error("Un employé avec cet identifiant existe déjà");
-              await supabase.auth.admin.deleteUser(userId);
-              return;
-            }
-
             console.error('Employee creation error:', employeeError);
             await new Promise(resolve => setTimeout(resolve, 2000));
             retryCount++;
@@ -284,8 +276,7 @@ export const NewEmployeeForm = ({
 
         if (!employeeCreated) {
           console.error('Employee creation failed after retries');
-          await supabase.auth.admin.deleteUser(userId);
-          toast.error("Erreur lors de la création de l'employé");
+          toast.error("Erreur lors de la création de l'employé. Veuillez réessayer plus tard.");
           return;
         }
 
