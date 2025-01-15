@@ -44,7 +44,7 @@ export const DelayList = () => {
       date: "2024-03-20",
       duration: "30min",
       reason: "Trafic",
-      status: "en attente de confirmation"
+      status: "En attente de confirmation"
     }
   ];
 

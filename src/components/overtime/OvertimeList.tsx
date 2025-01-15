@@ -46,7 +46,7 @@ export const OvertimeList = () => {
       date: "2024-03-20",
       hours: 2,
       reason: "Projet urgent",
-      status: "en attente de confirmation"
+      status: "En attente de confirmation"
     }
   ];
 
