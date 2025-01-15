@@ -155,17 +155,18 @@ export const NewEmployeeForm = ({
             return;
           }
 
-          console.log('User created successfully:', authData.user.id);
+          const userId = authData.user.id;
+          console.log('User created successfully:', userId);
 
           // Wait briefly for the profile trigger to complete
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          console.log('Creating employee record for user:', authData.user.id);
+          console.log('Creating employee record for user:', userId);
           
           const { error: employeeError } = await supabase
             .from('employees')
             .insert({
-              id: authData.user.id,
+              id: userId,
               first_name: formData.firstName,
               last_name: formData.lastName,
               email: formData.email,
@@ -185,6 +186,12 @@ export const NewEmployeeForm = ({
 
           if (employeeError) {
             console.error('Employee Error:', employeeError);
+            if (employeeError.code === '23505') {
+              toast.error("Un employé avec cet identifiant existe déjà. Veuillez réessayer.");
+              // Try to clean up the auth user since employee creation failed
+              await supabase.auth.admin.deleteUser(userId);
+              return;
+            }
             toast.error("Erreur lors de la création de l'employé");
             return;
           }
