@@ -23,6 +23,14 @@ import { toast } from "sonner";
 import { Plus, Check, X, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Delay = Database['public']['Tables']['delays']['Row'] & {
+  employees: {
+    first_name: string;
+    last_name: string;
+  } | null;
+};
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
@@ -58,7 +66,7 @@ export const DelayList = () => {
           )
         `);
       if (error) throw error;
-      return data;
+      return data as Delay[];
     }
   });
 
