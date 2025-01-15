@@ -11,38 +11,32 @@ export const TimeClock = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [checkInId, setCheckInId] = useState<string | null>(null);
-  const [clockEvents, setClockEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Load today's clock events
-    const loadTodayClockEvents = async () => {
+    // Check if employee has already checked in today
+    const checkTodayAttendance = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: events } = await supabase
+      const { data: attendance } = await supabase
         .from("delays")
-        .select("*")
+        .select("id, actual_time")
         .eq("employee_id", user.id)
         .eq("date", today)
-        .order('created_at', { ascending: true });
+        .maybeSingle();
 
-      if (events && events.length > 0) {
-        setClockEvents(events);
-        // If last event is not completed (no checkout), set check-in state
-        const lastEvent = events[events.length - 1];
-        if (!lastEvent.reason.includes('sortie')) {
-          setHasCheckedIn(true);
-          setCheckInId(lastEvent.id);
-        }
+      if (attendance) {
+        setHasCheckedIn(true);
+        setCheckInId(attendance.id);
       }
     };
 
-    loadTodayClockEvents();
+    checkTodayAttendance();
     return () => clearInterval(timer);
   }, []);
 
@@ -68,17 +62,12 @@ export const TimeClock = () => {
           reason: "Pointage arrivée"
         })
         .select()
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
-      if (!data) {
-        toast.error("Erreur lors de l'enregistrement du pointage");
-        return;
-      }
 
       setCheckInId(data.id);
       setHasCheckedIn(true);
-      setClockEvents([...clockEvents, data]);
       toast.success("Arrivée enregistrée avec succès");
     } catch (error) {
       console.error("Erreur lors du pointage:", error);
@@ -94,27 +83,18 @@ export const TimeClock = () => {
 
     try {
       const checkOutTime = format(currentTime, "HH:mm");
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("delays")
         .update({
           reason: `Pointage arrivée-sortie (${checkOutTime})`,
           status: 'approved'
         })
-        .eq('id', checkInId)
-        .select()
-        .maybeSingle();
+        .eq('id', checkInId);
 
       if (error) throw error;
-      if (!data) {
-        toast.error("Erreur lors de la mise à jour du pointage");
-        return;
-      }
 
       setHasCheckedIn(false);
       setCheckInId(null);
-      setClockEvents(clockEvents.map(event => 
-        event.id === checkInId ? data : event
-      ));
       toast.success("Départ enregistré avec succès");
     } catch (error) {
       console.error("Erreur lors du pointage de sortie:", error);
@@ -122,67 +102,36 @@ export const TimeClock = () => {
     }
   };
 
-  const formatEventTime = (time: string) => {
-    return format(new Date(`2000-01-01T${time}`), "HH:mm");
-  };
-
   return (
-    <div className="space-y-4">
-      <Card className="p-6">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-center">
-            <p className="text-lg text-gray-600">{formattedDate}</p>
-            <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
-          </div>
+    <Card className="p-6">
+      <div className="flex flex-col items-center space-y-4">
+        <div className="text-center">
+          <p className="text-lg text-gray-600">{formattedDate}</p>
+          <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
+        </div>
+        
+        <div className="flex gap-4">
+          <Button
+            size="lg"
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleCheckIn}
+            disabled={hasCheckedIn}
+          >
+            <ArrowRight className="mr-2 h-5 w-5" />
+            Pointer arrivée
+          </Button>
           
-          <div className="flex gap-4">
-            {!hasCheckedIn ? (
-              <Button
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
-                onClick={handleCheckIn}
-              >
-                <ArrowRight className="mr-2 h-5 w-5" />
-                Pointer arrivée
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                className="bg-red-600 hover:bg-red-700"
-                onClick={handleCheckOut}
-              >
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                Pointer sortie
-              </Button>
-            )}
-          </div>
+          <Button
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={handleCheckOut}
+            disabled={!hasCheckedIn}
+          >
+            <ArrowLeft className="mr-2 h-5 w-5" />
+            Pointer sortie
+          </Button>
         </div>
-      </Card>
-
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Historique des pointages du jour</h3>
-        <div className="space-y-2">
-          {clockEvents.map((event, index) => (
-            <div 
-              key={event.id}
-              className="flex justify-between items-center p-2 bg-gray-50 rounded"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">#{index + 1}</span>
-                <span>{formatEventTime(event.actual_time)}</span>
-              </div>
-              <span className="text-sm text-gray-600">
-                {event.reason.includes('sortie') 
-                  ? 'Sortie' 
-                  : 'Arrivée'}
-              </span>
-            </div>
-          ))}
-          {clockEvents.length === 0 && (
-            <p className="text-gray-500 text-center">Aucun pointage aujourd'hui</p>
-          )}
-        </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   );
 };
