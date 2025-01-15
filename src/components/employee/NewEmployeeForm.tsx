@@ -48,6 +48,7 @@ export const NewEmployeeForm = ({
   const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
     resetForm();
     onSubmit({
+      id: employeeToEdit?.id, // Include the ID when editing
       firstName,
       lastName,
       email,
@@ -140,6 +141,7 @@ export const NewEmployeeForm = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData: NewEmployee = {
+      id: employeeToEdit?.id, // Include the ID when editing
       firstName,
       lastName,
       email,
