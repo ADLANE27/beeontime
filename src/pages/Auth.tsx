@@ -29,6 +29,28 @@ const Auth = () => {
   };
 
   useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile?.role === "employee") {
+          navigate("/employee");
+        } else if (profile?.role === "hr") {
+          navigate("/hr");
+        } else {
+          setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
+          await supabase.auth.signOut();
+        }
+      }
+    };
+
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth event:", event);
       if (event === "SIGNED_IN") {
@@ -40,6 +62,8 @@ const Auth = () => {
 
         if (profile?.role === "employee") {
           navigate("/employee");
+        } else if (profile?.role === "hr") {
+          navigate("/hr");
         } else {
           setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
           await supabase.auth.signOut();
