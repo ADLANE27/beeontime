@@ -1,29 +1,16 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Clock, AlertTriangle, Clock4, FileText, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Clock, AlertTriangle, Clock4, FileText, Calendar, Download } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { DelayList } from "@/components/delays/DelayList";
+import { ExportDataTab } from "@/components/export/ExportDataTab";
 
 const HRDashboard = () => {
-  const handleExport = () => {
-    // Ici, vous ajouterez la logique pour exporter les données
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button onClick={handleExport} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Exporter les données
-          </Button>
-        </div>
-
         <Tabs defaultValue="planning" className="space-y-4">
           <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="planning">
@@ -45,6 +32,10 @@ const HRDashboard = () => {
             <TabsTrigger value="payslips">
               <FileText className="mr-2 h-4 w-4" />
               Documents
+            </TabsTrigger>
+            <TabsTrigger value="export">
+              <Download className="mr-2 h-4 w-4" />
+              Export
             </TabsTrigger>
           </TabsList>
 
@@ -83,6 +74,10 @@ const HRDashboard = () => {
 
           <TabsContent value="payslips">
             <PayslipManagement />
+          </TabsContent>
+
+          <TabsContent value="export">
+            <ExportDataTab />
           </TabsContent>
         </Tabs>
       </div>
