@@ -33,9 +33,12 @@ type Delay = Database['public']['Tables']['delays']['Row'] & {
 };
 
 const formatDuration = (duration: unknown): string => {
+  console.log('Formatting duration:', duration);
   if (!duration || typeof duration !== 'string') return 'N/A';
   // Postgres interval comes in format like "HH:MM:SS"
-  return duration.split('.')[0]; // Take only the time part
+  const formattedDuration = duration.split('.')[0]; // Take only the time part
+  console.log('Formatted duration:', formattedDuration);
+  return formattedDuration;
 };
 
 export const DelayList = () => {
@@ -50,10 +53,15 @@ export const DelayList = () => {
   const { data: employees, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
+      console.log('Fetching employees...');
       const { data, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name');
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching employees:', error);
+        throw error;
+      }
+      console.log('Employees fetched:', data);
       return data;
     }
   });
@@ -62,6 +70,7 @@ export const DelayList = () => {
   const { data: delays, isLoading: isLoadingDelays } = useQuery({
     queryKey: ['delays'],
     queryFn: async () => {
+      console.log('Fetching delays...');
       const { data, error } = await supabase
         .from('delays')
         .select(`
@@ -71,7 +80,11 @@ export const DelayList = () => {
             last_name
           )
         `);
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching delays:', error);
+        throw error;
+      }
+      console.log('Delays fetched:', data);
       return data as Delay[];
     }
   });
@@ -79,10 +92,14 @@ export const DelayList = () => {
   // Add delay mutation
   const addDelayMutation = useMutation({
     mutationFn: async (newDelay: any) => {
+      console.log('Adding new delay:', newDelay);
       const { error } = await supabase
         .from('delays')
         .insert(newDelay);
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding delay:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delays'] });
@@ -99,11 +116,15 @@ export const DelayList = () => {
   // Update delay status mutation
   const updateDelayMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => {
+      console.log('Updating delay status:', { id, status });
       const { error } = await supabase
         .from('delays')
         .update({ status })
         .eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating delay status:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delays'] });
@@ -141,6 +162,7 @@ export const DelayList = () => {
       status: 'pending'
     };
 
+    console.log('Submitting new delay:', newDelay);
     addDelayMutation.mutate(newDelay);
   };
 
