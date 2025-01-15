@@ -68,6 +68,16 @@ export const OvertimeList = () => {
     setSelectedEmployee("");
   };
 
+  const handleApprove = (requestId: number) => {
+    // Logique pour approuver la demande
+    toast.success("Demande approuvée avec succès");
+  };
+
+  const handleReject = (requestId: number) => {
+    // Logique pour rejeter la demande
+    toast.error("Demande rejetée");
+  };
+
   return (
     <Card className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -158,17 +168,36 @@ export const OvertimeList = () => {
               <p className="text-sm text-gray-600">{request.hours} heures</p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
-            <Badge
-              variant={
-                request.status === "approved"
-                  ? "secondary"
-                  : request.status === "rejected"
-                  ? "destructive"
-                  : "outline"
-              }
-            >
-              {request.status}
-            </Badge>
+            <div className="flex gap-2">
+              {request.status === "pending" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleReject(request.id)}
+                  >
+                    Refuser
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleApprove(request.id)}
+                  >
+                    Accepter
+                  </Button>
+                </>
+              )}
+              <Badge
+                variant={
+                  request.status === "approved"
+                    ? "secondary"
+                    : request.status === "rejected"
+                    ? "destructive"
+                    : "outline"
+                }
+              >
+                {request.status}
+              </Badge>
+            </div>
           </div>
         ))}
       </div>
