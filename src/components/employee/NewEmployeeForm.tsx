@@ -107,108 +107,132 @@ export const NewEmployeeForm = ({
 
     try {
       if (mode === 'create') {
-        console.log('Creating new employee:', formData);
+        console.log('Starting employee creation process...');
         
         // First check if user already exists
         const { data: existingUser, error: queryError } = await supabase
           .from('profiles')
           .select('id')
-          .eq('email', formData.email)
+          .eq('email', formData.email.toLowerCase())
           .maybeSingle();
 
         if (queryError) {
-          console.error('Query Error:', queryError);
+          console.error('Profile query error:', queryError);
           toast.error("Erreur lors de la vérification de l'utilisateur");
           return;
         }
 
         if (existingUser) {
+          console.log('User already exists:', existingUser);
           toast.error("Un utilisateur avec cet email existe déjà");
           return;
         }
 
-        try {
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: formData.email,
-            password: 'Welcome123!',
-            options: {
-              data: {
-                first_name: formData.firstName,
-                last_name: formData.lastName
-              }
-            }
-          });
-
-          if (authError) {
-            if (authError.message.includes('rate_limit')) {
-              toast.error("Veuillez patienter quelques secondes avant de réessayer");
-              return;
-            }
-            console.error('Auth Error:', authError);
-            toast.error("Erreur lors de la création du compte utilisateur");
-            return;
-          }
-
-          if (!authData.user) {
-            console.error('No user data returned');
-            toast.error("Erreur lors de la création du compte utilisateur");
-            return;
-          }
-
-          const userId = authData.user.id;
-          console.log('User created successfully:', userId);
-
-          // Wait briefly for the profile trigger to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          console.log('Creating employee record for user:', userId);
-          
-          const { error: employeeError } = await supabase
-            .from('employees')
-            .insert({
-              id: userId,
+        // Create auth user
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email.toLowerCase(),
+          password: 'Welcome123!',
+          options: {
+            data: {
               first_name: formData.firstName,
-              last_name: formData.lastName,
-              email: formData.email,
-              phone: formData.phone,
-              birth_date: formData.birthDate,
-              birth_place: formData.birthPlace,
-              birth_country: formData.birthCountry,
-              social_security_number: formData.socialSecurityNumber,
-              contract_type: formData.contractType,
-              start_date: formData.startDate,
-              position: formData.position,
-              work_schedule: formData.workSchedule as unknown as Json,
-              previous_year_vacation_days: formData.previousYearVacationDays,
-              used_vacation_days: formData.usedVacationDays,
-              remaining_vacation_days: formData.remainingVacationDays
-            });
-
-          if (employeeError) {
-            console.error('Employee Error:', employeeError);
-            if (employeeError.code === '23505') {
-              toast.error("Un employé avec cet identifiant existe déjà. Veuillez réessayer.");
-              // Try to clean up the auth user since employee creation failed
-              await supabase.auth.admin.deleteUser(userId);
-              return;
+              last_name: formData.lastName
             }
-            toast.error("Erreur lors de la création de l'employé");
-            return;
           }
+        });
 
-          console.log('Employee created successfully');
-          toast.success("Employé créé avec succès");
-          onSubmit(formData);
-          resetForm();
-          onClose();
-        } catch (error: any) {
-          console.error('Error:', error);
-          if (error.message?.includes('rate_limit')) {
+        if (authError) {
+          console.error('Auth Error:', authError);
+          if (authError.message.includes('rate_limit')) {
             toast.error("Veuillez patienter quelques secondes avant de réessayer");
           } else {
-            toast.error("Une erreur est survenue");
+            toast.error("Erreur lors de la création du compte utilisateur");
           }
+          return;
         }
+
+        if (!authData.user) {
+          console.error('No user data returned from auth signup');
+          toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        const userId = authData.user.id;
+        console.log('Auth user created successfully:', userId);
+
+        // Wait for profile creation
+        let profile = null;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (attempts < maxAttempts) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Profile check error:', profileError);
+            break;
+          }
+
+          if (profileData) {
+            profile = profileData;
+            console.log('Profile created successfully:', profile);
+            break;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          attempts++;
+        }
+
+        if (!profile) {
+          console.error('Profile creation failed after', maxAttempts, 'attempts');
+          await supabase.auth.admin.deleteUser(userId);
+          toast.error("Erreur lors de la création du profil utilisateur");
+          return;
+        }
+
+        // Create employee record
+        console.log('Creating employee record...');
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .insert({
+            id: userId,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email.toLowerCase(),
+            phone: formData.phone,
+            birth_date: formData.birthDate,
+            birth_place: formData.birthPlace,
+            birth_country: formData.birthCountry,
+            social_security_number: formData.socialSecurityNumber,
+            contract_type: formData.contractType,
+            start_date: formData.startDate,
+            position: formData.position,
+            work_schedule: formData.workSchedule as unknown as Json,
+            previous_year_vacation_days: formData.previousYearVacationDays,
+            used_vacation_days: formData.usedVacationDays,
+            remaining_vacation_days: formData.remainingVacationDays
+          });
+
+        if (employeeError) {
+          console.error('Employee creation error:', employeeError);
+          await supabase.auth.admin.deleteUser(userId);
+          
+          if (employeeError.code === '23505') {
+            toast.error("Un employé avec cet identifiant existe déjà");
+          } else {
+            toast.error("Erreur lors de la création de l'employé");
+          }
+          return;
+        }
+
+        console.log('Employee created successfully');
+        toast.success("Employé créé avec succès");
+        onSubmit(formData);
+        resetForm();
+        onClose();
       } else {
         if (!employeeToEdit?.id) {
           toast.error("ID de l'employé manquant pour la mise à jour");
@@ -247,9 +271,9 @@ export const NewEmployeeForm = ({
         console.log('Employee updated successfully');
         toast.success("Employé mis à jour avec succès");
       }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error("Une erreur est survenue");
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      toast.error("Une erreur inattendue est survenue");
     }
   };
 
