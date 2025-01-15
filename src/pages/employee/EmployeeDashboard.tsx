@@ -1,11 +1,10 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, FileText, Clock4 } from "lucide-react";
 import { LeaveRequestForm } from "@/components/leave/LeaveRequestForm";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { PayslipList } from "@/components/payslip/PayslipList";
+import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 
 const EmployeeDashboard = () => {
   return (
@@ -31,8 +30,9 @@ const EmployeeDashboard = () => {
             <PayslipList />
           </TabsContent>
 
-          <TabsContent value="leave">
+          <TabsContent value="leave" className="space-y-6">
             <LeaveRequestForm />
+            <EmployeeLeaveList />
           </TabsContent>
 
           <TabsContent value="overtime">
