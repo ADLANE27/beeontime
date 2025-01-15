@@ -28,6 +28,35 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const formattedTime = format(currentTime, "HH:mm");
 
   const handleClockIn = () => {
+    const scheduledStart = "09:00"; // This would come from employee's schedule
+    const currentHourMin = format(currentTime, "HH:mm");
+    
+    // Calculate delay if any
+    const [schedH, schedM] = scheduledStart.split(":").map(Number);
+    const [currH, currM] = currentHourMin.split(":").map(Number);
+    
+    const schedMinutes = schedH * 60 + schedM;
+    const currMinutes = currH * 60 + currM;
+    
+    const delayMinutes = currMinutes - schedMinutes;
+    
+    if (delayMinutes > 0) {
+      // Store delay in localStorage for demo (in real app, this would go to a backend)
+      const delays = JSON.parse(localStorage.getItem("delays") || "[]");
+      delays.push({
+        id: Date.now(),
+        employeeId: "1", // This would come from auth
+        employeeName: "Jean Dupont", // This would come from auth
+        date: format(currentTime, "yyyy-MM-dd"),
+        scheduledTime: scheduledStart,
+        actualTime: currentHourMin,
+        duration: `${delayMinutes}min`,
+        status: "En attente de confirmation",
+        reason: "Pointage automatique"
+      });
+      localStorage.setItem("delays", JSON.stringify(delays));
+    }
+
     toast.success(`Présence enregistrée le ${formattedDate} à ${formattedTime}`);
   };
 

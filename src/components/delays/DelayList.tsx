@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
@@ -28,6 +28,7 @@ export const DelayList = () => {
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [delays, setDelays] = useState<any[]>([]);
 
   // Exemple de données des employés
   const employees = [
@@ -36,17 +37,11 @@ export const DelayList = () => {
     { id: "3", name: "Pierre Durant" }
   ];
 
-  // Exemple de données
-  const delays = [
-    {
-      id: 1,
-      employeeId: 1,
-      date: "2024-03-20",
-      duration: "30min",
-      reason: "Trafic",
-      status: "En attente de confirmation"
-    }
-  ];
+  useEffect(() => {
+    // Load delays from localStorage
+    const storedDelays = JSON.parse(localStorage.getItem("delays") || "[]");
+    setDelays(storedDelays);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,13 +51,46 @@ export const DelayList = () => {
       return;
     }
     
+    const newDelay = {
+      id: Date.now(),
+      employeeId: selectedEmployee,
+      employeeName: employees.find(e => e.id === selectedEmployee)?.name,
+      date: date,
+      scheduledTime: "09:00",
+      actualTime: time,
+      duration: time,
+      status: "En attente de confirmation",
+      reason: reason
+    };
+
+    const updatedDelays = [...delays, newDelay];
+    setDelays(updatedDelays);
+    localStorage.setItem("delays", JSON.stringify(updatedDelays));
+    
     toast.success("Retard enregistré avec succès");
     setOpen(false);
-    // Reset form
     setDate("");
     setTime("");
     setReason("");
     setSelectedEmployee("");
+  };
+
+  const handleConfirmDelay = (delayId: number) => {
+    const updatedDelays = delays.map(delay => 
+      delay.id === delayId 
+        ? { ...delay, status: "Confirmé" }
+        : delay
+    );
+    setDelays(updatedDelays);
+    localStorage.setItem("delays", JSON.stringify(updatedDelays));
+    toast.success("Retard confirmé");
+  };
+
+  const handleDeleteDelay = (delayId: number) => {
+    const updatedDelays = delays.filter(delay => delay.id !== delayId);
+    setDelays(updatedDelays);
+    localStorage.setItem("delays", JSON.stringify(updatedDelays));
+    toast.success("Retard supprimé");
   };
 
   return (
@@ -107,7 +135,7 @@ export const DelayList = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="time">Durée du retard</Label>
+                <Label htmlFor="time">Heure d'arrivée</Label>
                 <Input
                   id="time"
                   type="time"
@@ -139,24 +167,43 @@ export const DelayList = () => {
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">
-                {employees.find(e => e.id === String(delay.employeeId))?.name}
+              <p className="font-semibold">{delay.employeeName}</p>
+              <p className="text-sm text-gray-600">Date: {delay.date}</p>
+              <p className="text-sm text-gray-600">
+                Heure prévue: {delay.scheduledTime} - Arrivée: {delay.actualTime}
               </p>
-              <p className="text-sm text-gray-600">{delay.date}</p>
-              <p className="text-sm text-gray-600">{delay.duration}</p>
-              <p className="text-sm text-gray-600">{delay.reason}</p>
+              <p className="text-sm text-gray-600">Durée: {delay.duration}</p>
+              <p className="text-sm text-gray-600">Motif: {delay.reason}</p>
             </div>
-            <Badge
-              variant={
-                delay.status === "approuvé"
-                  ? "secondary"
-                  : delay.status === "rejeté"
-                  ? "destructive"
-                  : "outline"
-              }
-            >
-              {delay.status}
-            </Badge>
+            <div className="flex flex-col gap-2">
+              <Badge
+                variant={
+                  delay.status === "Confirmé"
+                    ? "secondary"
+                    : delay.status === "Rejeté"
+                    ? "destructive"
+                    : "outline"
+                }
+              >
+                {delay.status}
+              </Badge>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleConfirmDelay(delay.id)}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteDelay(delay.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         ))}
       </div>
