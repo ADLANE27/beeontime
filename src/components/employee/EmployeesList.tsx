@@ -2,11 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2 } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export const EmployeesList = () => {
   const [editingEmployee, setEditingEmployee] = useState<NewEmployee | null>(null);
@@ -166,40 +168,78 @@ export const EmployeesList = () => {
         {employees?.map((employee) => (
           <Card key={employee.id} className="p-4">
             <div className="flex justify-between items-center">
-              <div className="grid gap-1">
-                <h3 className="text-lg font-semibold">
-                  {employee.first_name} {employee.last_name}
-                </h3>
-                <p className="text-sm text-muted-foreground">{employee.email}</p>
-                <p className="text-sm text-muted-foreground">
-                  {employee.profiles?.active ? 'Actif' : ''}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(employee)}
-                >
-                  <Edit className="h-4 w-4" />
-                  Modifier
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleResetPassword(employee.email)}
-                >
-                  <Key className="h-4 w-4" />
-                  Réinitialiser MDP
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(employee.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Supprimer
-                </Button>
+              <div className="grid gap-3 w-full">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {employee.first_name} {employee.last_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{employee.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {employee.profiles?.active ? 'Actif' : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(employee)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      Modifier
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleResetPassword(employee.email)}
+                    >
+                      <Key className="h-4 w-4" />
+                      Réinitialiser MDP
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(employee.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {employee.position || 'Non spécifié'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {employee.start_date 
+                        ? format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })
+                        : 'Non spécifié'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {employee.work_schedule 
+                        ? `${employee.work_schedule.startTime} - ${employee.work_schedule.endTime}`
+                        : 'Non spécifié'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <PalmtreeIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {`${employee.remaining_vacation_days || 0} jours de congés restants`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
