@@ -21,8 +21,11 @@ import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
+type LeaveType = "vacation" | "annual" | "paternity" | "maternity" | "sickChild" | 
+                 "unpaidUnexcused" | "unpaidExcused" | "unpaid" | "rtt" | "familyEvent";
+
 export const LeaveRequestForm = () => {
-  const [leaveType, setLeaveType] = useState<string>();
+  const [leaveType, setLeaveType] = useState<LeaveType>();
   const [dayType, setDayType] = useState("full");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -32,6 +35,11 @@ export const LeaveRequestForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!leaveType) {
+      toast.error("Veuillez sélectionner un type de congé");
+      return;
+    }
+
     const start = new Date(startDate);
     const now = new Date();
 
@@ -99,7 +107,7 @@ export const LeaveRequestForm = () => {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <Label htmlFor="type">Type de congé</Label>
-          <Select value={leaveType} onValueChange={setLeaveType}>
+          <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionnez un type" />
             </SelectTrigger>
@@ -147,6 +155,7 @@ export const LeaveRequestForm = () => {
               id="startDate" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -156,6 +165,7 @@ export const LeaveRequestForm = () => {
               id="endDate"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              required
             />
           </div>
         </div>
