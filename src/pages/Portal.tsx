@@ -16,13 +16,13 @@ const Portal = () => {
         </div>
         <div className="flex flex-col space-y-4">
           <Link to="/hr-portal">
-            <Button className="w-full" variant="outline">
-              Portail RH
+            <Button className="w-full bg-blue-600 hover:bg-blue-700">
+              Accès RH
             </Button>
           </Link>
-          <Link to="/portal">
-            <Button className="w-full">
-              Portail Employé
+          <Link to="/auth">
+            <Button className="w-full bg-green-600 hover:bg-green-700">
+              Accès Employé
             </Button>
           </Link>
         </div>

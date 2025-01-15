@@ -1,11 +1,10 @@
+import { useEffect, useState } from "react";
 import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { AuthError } from "@supabase/supabase-js";
 
 const HRPortal = () => {
   const navigate = useNavigate();
@@ -52,8 +51,8 @@ const HRPortal = () => {
             variables: {
               default: {
                 colors: {
-                  brand: '#22c55e',
-                  brandAccent: '#16a34a'
+                  brand: '#2563eb',
+                  brandAccent: '#1d4ed8'
                 }
               }
             }
