@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -84,6 +84,24 @@ export const OvertimeList = () => {
     }
   });
 
+  const deleteOvertimeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('overtime_requests')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
+      toast.success("Demande supprimée avec succès");
+    },
+    onError: (error) => {
+      console.error('Error deleting overtime request:', error);
+      toast.error("Erreur lors de la suppression de la demande");
+    }
+  });
+
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -117,6 +135,12 @@ export const OvertimeList = () => {
       hours,
       employee_id: user.id
     });
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette demande ?")) {
+      deleteOvertimeMutation.mutate(id);
+    }
   };
 
   if (isLoading) {
@@ -213,7 +237,7 @@ export const OvertimeList = () => {
               </p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
               <Badge
                 variant={
                   request.status === "approved"
@@ -226,6 +250,16 @@ export const OvertimeList = () => {
                 {request.status === "pending" ? "En attente" : 
                  request.status === "approved" ? "Approuvé" : "Refusé"}
               </Badge>
+              {request.status === "pending" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(request.id)}
+                  className="text-destructive hover:text-destructive/90"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
