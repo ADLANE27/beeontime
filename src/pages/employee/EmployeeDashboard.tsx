@@ -16,13 +16,9 @@ const EmployeeDashboard = () => {
               <FileText className="mr-2 h-4 w-4" />
               Documents
             </TabsTrigger>
-            <TabsTrigger value="leave-request">
+            <TabsTrigger value="leave">
               <Clock className="mr-2 h-4 w-4" />
-              Demande de congé
-            </TabsTrigger>
-            <TabsTrigger value="leave-list">
-              <Clock className="mr-2 h-4 w-4" />
-              Mes demandes de congés
+              Congés
             </TabsTrigger>
             <TabsTrigger value="overtime">
               <Clock4 className="mr-2 h-4 w-4" />
@@ -34,11 +30,8 @@ const EmployeeDashboard = () => {
             <PayslipList />
           </TabsContent>
 
-          <TabsContent value="leave-request">
+          <TabsContent value="leave" className="space-y-6">
             <LeaveRequestForm />
-          </TabsContent>
-
-          <TabsContent value="leave-list">
             <EmployeeLeaveList />
           </TabsContent>
 
