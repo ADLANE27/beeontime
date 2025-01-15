@@ -24,8 +24,32 @@ export const EmployeesList = () => {
     }
   });
 
-  const handleEdit = (employee: NewEmployee) => {
-    setEditingEmployee(employee);
+  const handleEdit = (employee: any) => {
+    // Map database fields to NewEmployee type
+    const mappedEmployee: NewEmployee = {
+      id: employee.id,
+      firstName: employee.first_name,
+      lastName: employee.last_name,
+      email: employee.email,
+      phone: employee.phone || '',
+      birthDate: employee.birth_date || '',
+      birthPlace: employee.birth_place || '',
+      birthCountry: employee.birth_country || '',
+      socialSecurityNumber: employee.social_security_number || '',
+      contractType: employee.contract_type || 'CDI',
+      startDate: employee.start_date || '',
+      position: employee.position || 'Traducteur',
+      workSchedule: employee.work_schedule || {
+        startTime: '09:00',
+        endTime: '17:00',
+        breakStartTime: '12:00',
+        breakEndTime: '13:00'
+      },
+      previousYearVacationDays: employee.previous_year_vacation_days || 0,
+      usedVacationDays: employee.used_vacation_days || 0,
+      remainingVacationDays: employee.remaining_vacation_days || 0,
+    };
+    setEditingEmployee(mappedEmployee);
     setIsEditModalOpen(true);
   };
 
