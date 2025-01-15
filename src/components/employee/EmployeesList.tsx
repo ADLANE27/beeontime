@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Power, Trash2 } from "lucide-react";
+import { Edit, Key, Plus, Power } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -53,22 +53,6 @@ export const EmployeesList = () => {
     };
     setEditingEmployee(mappedEmployee);
     setIsEditModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('employees')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting employee:', error);
-      toast.error("Erreur lors de la suppression de l'employé");
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
-    toast.success("Employé supprimé avec succès");
   };
 
   const handleUpdate = async (updatedEmployee: NewEmployee) => {
@@ -188,7 +172,7 @@ export const EmployeesList = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground">{employee.email}</p>
                 <p className="text-sm text-muted-foreground">
-                  Statut: {employee.profiles?.active ? 'Actif' : 'Inactif'}
+                  {employee.profiles?.active ? 'Actif' : ''}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -216,13 +200,6 @@ export const EmployeesList = () => {
                   <Power className="h-4 w-4" />
                   {employee.profiles?.active ? 'Désactiver' : 'Activer'}
                 </Button>
-</lov-replace>
-
-<lov-search>
-  Statut: {employee.profiles?.active ? 'Actif' : 'Inactif'}
-</lov-search>
-<lov-replace>
-  {employee.profiles?.active ? 'Actif' : ''}
               </div>
             </div>
           </Card>
