@@ -119,7 +119,6 @@ export const AdminPlanning = () => {
   };
 
   const handleAddEmployee = (employee: NewEmployee) => {
-    // Here you would typically add the employee to your system
     toast.success("Employé ajouté avec succès");
     setShowNewEmployeeForm(false);
   };
