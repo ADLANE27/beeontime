@@ -60,6 +60,7 @@ export type Position =
   | 'Assistante de direction';
 
 export interface WorkSchedule {
+  [key: string]: string;
   startTime: string;
   endTime: string;
   breakStartTime: string;

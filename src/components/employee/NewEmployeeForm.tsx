@@ -105,7 +105,6 @@ export const NewEmployeeForm = ({
 
     try {
       if (mode === 'create') {
-        // Create auth user using signUp
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: 'Welcome123!',
@@ -128,7 +127,6 @@ export const NewEmployeeForm = ({
           return;
         }
 
-        // Create employee record
         const { error: employeeError } = await supabase
           .from('employees')
           .insert({
@@ -144,7 +142,7 @@ export const NewEmployeeForm = ({
             contract_type: formData.contractType,
             start_date: formData.startDate,
             position: formData.position,
-            work_schedule: formData.workSchedule,
+            work_schedule: formData.workSchedule as unknown as Json,
             previous_year_vacation_days: formData.previousYearVacationDays,
             used_vacation_days: formData.usedVacationDays,
             remaining_vacation_days: formData.remainingVacationDays
@@ -177,7 +175,7 @@ export const NewEmployeeForm = ({
             contract_type: formData.contractType,
             start_date: formData.startDate,
             position: formData.position,
-            work_schedule: formData.workSchedule,
+            work_schedule: formData.workSchedule as unknown as Json,
             previous_year_vacation_days: formData.previousYearVacationDays,
             used_vacation_days: formData.usedVacationDays,
             remaining_vacation_days: formData.remainingVacationDays

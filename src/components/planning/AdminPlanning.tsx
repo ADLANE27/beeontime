@@ -130,7 +130,11 @@ export const AdminPlanning = () => {
   };
 
   const handleEditEmployee = (employee: NewEmployee) => {
-    setSelectedEmployee(employee);
+    setSelectedEmployee({
+      ...employee,
+      birthDate: new Date().toISOString(),  // Convert to ISO string
+      startDate: new Date().toISOString(),  // Convert to ISO string
+    });
     setFormMode('edit');
     setShowNewEmployeeForm(true);
   };
@@ -280,12 +284,12 @@ export const AdminPlanning = () => {
                             email: `${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`,
                             position: employee.poste,
                             phone: "0612345678",
-                            birthDate: new Date(),
+                            birthDate: new Date().toISOString(),
                             birthPlace: "Paris",
                             birthCountry: "France",
                             socialSecurityNumber: "123456789",
                             contractType: "CDI",
-                            startDate: new Date(),
+                            startDate: new Date().toISOString(),
                             workSchedule: {
                               startTime: "09:00",
                               endTime: "17:00",
