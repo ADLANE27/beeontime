@@ -1,35 +1,32 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
-import { User, Users } from "lucide-react";
 
 const Portal = () => {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="container max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          Portail AFTraduction
-        </h1>
-        <div className="flex justify-center">
-          <Card className="p-6 hover:shadow-lg transition-shadow max-w-md w-full">
-            <div className="space-y-4 text-center">
-              <User className="w-12 h-12 mx-auto text-primary" />
-              <h2 className="text-2xl font-semibold">Espace Employé</h2>
-              <p className="text-gray-600">
-                Accédez à vos documents, gérez vos congés et heures supplémentaires
-              </p>
-              <Button
-                className="w-full"
-                onClick={() => navigate("/employee")}
-              >
-                Accéder
-              </Button>
-            </div>
-          </Card>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md space-y-8 p-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Portail AFTraduction
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Choisissez votre portail de connexion
+          </p>
         </div>
-      </div>
+        <div className="flex flex-col space-y-4">
+          <Link to="/hr-portal">
+            <Button className="w-full" variant="outline">
+              Portail RH
+            </Button>
+          </Link>
+          <Link to="/portal">
+            <Button className="w-full">
+              Portail Employé
+            </Button>
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 };

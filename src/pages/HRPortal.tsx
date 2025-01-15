@@ -1,35 +1,84 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import { AuthError } from "@supabase/supabase-js";
 
 const HRPortal = () => {
   const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN") {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session?.user?.id)
+          .single();
+
+        if (profile?.role === "hr") {
+          navigate("/hr");
+        } else {
+          setErrorMessage("Accès non autorisé. Ce portail est réservé aux RH.");
+          await supabase.auth.signOut();
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="container max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          Portail RH AFTraduction
-        </h1>
-        <div className="max-w-md mx-auto">
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="space-y-4 text-center">
-              <Users className="w-12 h-12 mx-auto text-primary" />
-              <h2 className="text-2xl font-semibold">Espace RH</h2>
-              <p className="text-gray-600">
-                Gérez les demandes et suivez les présences des employés
-              </p>
-              <Button
-                className="w-full"
-                onClick={() => navigate("/hr")}
-              >
-                Accéder
-              </Button>
-            </div>
-          </Card>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md space-y-8 p-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Portail RH AFTraduction
+          </h2>
         </div>
-      </div>
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        <SupabaseAuth
+          supabaseClient={supabase}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#22c55e',
+                  brandAccent: '#16a34a'
+                }
+              }
+            }
+          }}
+          providers={[]}
+          localization={{
+            variables: {
+              sign_in: {
+                email_label: "Email",
+                password_label: "Mot de passe",
+                button_label: "Se connecter",
+                loading_button_label: "Connexion en cours...",
+                link_text: "Vous avez déjà un compte ? Connectez-vous"
+              },
+              sign_up: {
+                email_label: "Email",
+                password_label: "Mot de passe",
+                button_label: "S'inscrire",
+                loading_button_label: "Inscription en cours...",
+                link_text: "Vous n'avez pas de compte ? Inscrivez-vous"
+              }
+            }
+          }}
+        />
+      </Card>
     </div>
   );
 };
