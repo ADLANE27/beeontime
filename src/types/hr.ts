@@ -20,7 +20,7 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   type: 'vacation' | 'sick' | 'other';
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'en attente de confirmation' | 'approuvé' | 'rejeté';
   reason: string;
   comment?: string;
 }
@@ -39,7 +39,7 @@ export interface OvertimeRequest {
   date: string;
   hours: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'en attente de confirmation' | 'approuvé' | 'rejeté';
 }
 
 export type ContractType = 'CDI' | 'CDD' | 'Alternance' | 'Stage';
