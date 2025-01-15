@@ -109,11 +109,11 @@ export const NewEmployeeForm = ({
       if (mode === 'create') {
         console.log('Starting employee creation process...');
         
-        // First check if user already exists
+        // First check if user already exists with case-insensitive email check
         const { data: existingUser, error: queryError } = await supabase
           .from('profiles')
           .select('id')
-          .eq('email', formData.email.toLowerCase())
+          .ilike('email', formData.email)
           .maybeSingle();
 
         if (queryError) {
@@ -128,29 +128,49 @@ export const NewEmployeeForm = ({
           return;
         }
 
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email.toLowerCase(),
-          password: 'Welcome123!',
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName
+        // Create auth user with retry logic for network issues
+        let authData;
+        let authError;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (retryCount < maxRetries) {
+          try {
+            const result = await supabase.auth.signUp({
+              email: formData.email.toLowerCase(),
+              password: 'Welcome123!',
+              options: {
+                data: {
+                  first_name: formData.firstName,
+                  last_name: formData.lastName
+                }
+              }
+            });
+            
+            authData = result.data;
+            authError = result.error;
+            if (!authError) break;
+            
+            if (authError.message.includes('rate_limit')) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              retryCount++;
+              continue;
             }
+            break;
+          } catch (error) {
+            console.error('Network error during auth:', error);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retryCount++;
           }
-        });
+        }
 
         if (authError) {
-          console.error('Auth Error:', authError);
-          if (authError.message.includes('rate_limit')) {
-            toast.error("Veuillez patienter quelques secondes avant de réessayer");
-          } else {
-            toast.error("Erreur lors de la création du compte utilisateur");
-          }
+          console.error('Auth Error after retries:', authError);
+          toast.error("Erreur lors de la création du compte utilisateur");
           return;
         }
 
-        if (!authData.user) {
+        if (!authData?.user) {
           console.error('No user data returned from auth signup');
           toast.error("Erreur lors de la création du compte utilisateur");
           return;
@@ -159,31 +179,38 @@ export const NewEmployeeForm = ({
         const userId = authData.user.id;
         console.log('Auth user created successfully:', userId);
 
-        // Wait for profile creation
+        // Wait for profile creation with increased timeout
         let profile = null;
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 10; // Increased from 5 to 10
+        const delayMs = 2000; // Increased from 1000 to 2000
 
         while (attempts < maxAttempts) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle();
 
-          if (profileError) {
-            console.error('Profile check error:', profileError);
-            break;
+            if (profileError) {
+              console.error('Profile check error:', profileError);
+              break;
+            }
+
+            if (profileData) {
+              profile = profileData;
+              console.log('Profile created successfully:', profile);
+              break;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            attempts++;
+          } catch (error) {
+            console.error('Network error during profile check:', error);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            attempts++;
           }
-
-          if (profileData) {
-            profile = profileData;
-            console.log('Profile created successfully:', profile);
-            break;
-          }
-
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          attempts++;
         }
 
         if (!profile) {
@@ -193,38 +220,59 @@ export const NewEmployeeForm = ({
           return;
         }
 
-        // Create employee record
-        console.log('Creating employee record...');
-        const { error: employeeError } = await supabase
-          .from('employees')
-          .insert({
-            id: userId,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email.toLowerCase(),
-            phone: formData.phone,
-            birth_date: formData.birthDate,
-            birth_place: formData.birthPlace,
-            birth_country: formData.birthCountry,
-            social_security_number: formData.socialSecurityNumber,
-            contract_type: formData.contractType,
-            start_date: formData.startDate,
-            position: formData.position,
-            work_schedule: formData.workSchedule as unknown as Json,
-            previous_year_vacation_days: formData.previousYearVacationDays,
-            used_vacation_days: formData.usedVacationDays,
-            remaining_vacation_days: formData.remainingVacationDays
-          });
+        // Create employee record with retry logic
+        let employeeCreated = false;
+        retryCount = 0;
 
-        if (employeeError) {
-          console.error('Employee creation error:', employeeError);
-          await supabase.auth.admin.deleteUser(userId);
-          
-          if (employeeError.code === '23505') {
-            toast.error("Un employé avec cet identifiant existe déjà");
-          } else {
-            toast.error("Erreur lors de la création de l'employé");
+        while (retryCount < maxRetries) {
+          try {
+            const { error: employeeError } = await supabase
+              .from('employees')
+              .insert({
+                id: userId,
+                first_name: formData.firstName,
+                last_name: formData.lastName,
+                email: formData.email.toLowerCase(),
+                phone: formData.phone,
+                birth_date: formData.birthDate,
+                birth_place: formData.birthPlace,
+                birth_country: formData.birthCountry,
+                social_security_number: formData.socialSecurityNumber,
+                contract_type: formData.contractType,
+                start_date: formData.startDate,
+                position: formData.position,
+                work_schedule: formData.workSchedule,
+                previous_year_vacation_days: formData.previousYearVacationDays,
+                used_vacation_days: formData.usedVacationDays,
+                remaining_vacation_days: formData.remainingVacationDays
+              });
+
+            if (!employeeError) {
+              employeeCreated = true;
+              break;
+            }
+
+            if (employeeError.code === '23505') {
+              console.error('Employee already exists:', employeeError);
+              toast.error("Un employé avec cet identifiant existe déjà");
+              await supabase.auth.admin.deleteUser(userId);
+              return;
+            }
+
+            console.error('Employee creation error:', employeeError);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retryCount++;
+          } catch (error) {
+            console.error('Network error during employee creation:', error);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retryCount++;
           }
+        }
+
+        if (!employeeCreated) {
+          console.error('Employee creation failed after retries');
+          await supabase.auth.admin.deleteUser(userId);
+          toast.error("Erreur lors de la création de l'employé");
           return;
         }
 
