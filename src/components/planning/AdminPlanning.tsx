@@ -59,51 +59,55 @@ export const AdminPlanning = () => {
               </div>
             </div>
             
-            <ScrollArea className="h-[500px] border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky left-0 bg-white z-10">Employé</TableHead>
-                    {getDaysToShow().map((date, i) => (
-                      <TableHead 
-                        key={i} 
-                        className={cn(
-                          "text-center min-w-[100px]",
-                          {
-                            "bg-blue-50": isToday(date),
-                            "bg-gray-100": isWeekend(date)
-                          }
-                        )}
-                      >
-                        {format(date, 'dd/MM')}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employees.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell className="sticky left-0 bg-white font-medium">
-                        {employee.name}
-                      </TableCell>
+            <ScrollArea className="h-[500px]">
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-white z-10 w-[200px]">Employé</TableHead>
                       {getDaysToShow().map((date, i) => (
-                        <TableCell
-                          key={i}
+                        <TableHead 
+                          key={i} 
                           className={cn(
-                            "text-center p-2",
+                            "text-center w-[40px] p-2",
                             {
                               "bg-blue-50": isToday(date),
                               "bg-gray-100": isWeekend(date)
                             }
                           )}
                         >
-                          {/* Empty cell - time tracking will be handled in employee dashboard */}
-                        </TableCell>
+                          <div className="text-xs font-medium">
+                            {format(date, 'dd')}
+                          </div>
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {employees.map((employee) => (
+                      <TableRow key={employee.id}>
+                        <TableCell className="sticky left-0 bg-white font-medium w-[200px]">
+                          {employee.name}
+                        </TableCell>
+                        {getDaysToShow().map((date, i) => (
+                          <TableCell
+                            key={i}
+                            className={cn(
+                              "text-center p-2 w-[40px]",
+                              {
+                                "bg-blue-50": isToday(date),
+                                "bg-gray-100": isWeekend(date)
+                              }
+                            )}
+                          >
+                            {/* Empty cell - time tracking will be handled in employee dashboard */}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </div>
         </Card>
