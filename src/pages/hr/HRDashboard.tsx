@@ -6,6 +6,8 @@ import { AdminPlanning } from "@/components/planning/AdminPlanning";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { DelayList } from "@/components/delays/DelayList";
 import { ExportDataTab } from "@/components/export/ExportDataTab";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const HRDashboard = () => {
   return (
