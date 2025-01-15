@@ -85,9 +85,9 @@ export const EmployeeLeaveList = () => {
     gcTime: 0  // Disable garbage collection (previously cacheTime)
   });
 
-  const cancelMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (leaveId: string) => {
-      console.log('Canceling leave request:', leaveId);
+      console.log('Deleting leave request:', leaveId);
       const { error } = await supabase
         .from('leave_requests')
         .delete()
@@ -95,13 +95,13 @@ export const EmployeeLeaveList = () => {
         .eq('status', 'pending');
 
       if (error) {
-        console.error('Error canceling leave request:', error);
+        console.error('Error deleting leave request:', error);
         throw error;
       }
-      console.log('Leave request canceled successfully');
+      console.log('Leave request deleted successfully');
     },
     onSuccess: () => {
-      toast.success("Demande de congé annulée avec succès");
+      toast.success("Demande de congé supprimée avec succès");
       // Force an immediate refetch of the leave requests
       queryClient.invalidateQueries({ 
         queryKey: ['employee-leave-requests'],
@@ -110,14 +110,14 @@ export const EmployeeLeaveList = () => {
       });
     },
     onError: (error) => {
-      console.error('Error in cancelMutation:', error);
-      toast.error("Erreur lors de l'annulation de la demande");
+      console.error('Error in deleteMutation:', error);
+      toast.error("Erreur lors de la suppression de la demande");
     }
   });
 
-  const handleCancel = async (leaveId: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir annuler cette demande de congé ?")) {
-      await cancelMutation.mutateAsync(leaveId);
+  const handleDelete = async (leaveId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette demande de congé ?")) {
+      await deleteMutation.mutateAsync(leaveId);
     }
   };
 
@@ -179,16 +179,16 @@ export const EmployeeLeaveList = () => {
                     <Button 
                       variant="destructive" 
                       size="sm"
-                      onClick={() => handleCancel(request.id)}
+                      onClick={() => handleDelete(request.id)}
                       className="mt-2"
-                      disabled={cancelMutation.isPending}
+                      disabled={deleteMutation.isPending}
                     >
-                      {cancelMutation.isPending ? (
+                      {deleteMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-1" />
                       ) : (
                         <Trash2 className="h-4 w-4 mr-1" />
                       )}
-                      Annuler
+                      Supprimer
                     </Button>
                   )}
                 </div>
