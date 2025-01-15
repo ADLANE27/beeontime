@@ -31,6 +31,7 @@ interface TimeLog {
 interface Employee {
   id: number;
   name: string;
+  poste: Position;
   hasClockedIn?: boolean;
 }
 
@@ -54,9 +55,9 @@ const absenceTypes: AbsenceType[] = [
 ];
 
 const employees: Employee[] = [
-  { id: 1, name: "Jean Dupont", hasClockedIn: true },
-  { id: 2, name: "Marie Martin", hasClockedIn: false },
-  { id: 3, name: "Pierre Durant", hasClockedIn: true }
+  { id: 1, name: "Jean Dupont", poste: "Traducteur", hasClockedIn: true },
+  { id: 2, name: "Marie Martin", poste: "Traductrice", hasClockedIn: false },
+  { id: 3, name: "Pierre Durant", poste: "Interprète", hasClockedIn: true }
 ];
 
 export const AdminPlanning = () => {
@@ -277,7 +278,7 @@ export const AdminPlanning = () => {
                             firstName: employee.name.split(' ')[0],
                             lastName: employee.name.split(' ')[1],
                             email: `${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`,
-                            position: employee.position as Position,
+                            position: employee.poste,
                             phone: "0612345678",
                             birthDate: new Date(),
                             birthPlace: "Paris",
