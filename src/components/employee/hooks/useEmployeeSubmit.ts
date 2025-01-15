@@ -9,10 +9,10 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
   const handleSubmit = async (formData: NewEmployee) => {
     setIsSubmitting(true);
     try {
-      // 1. Create auth user with a temporary password
+      // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.toLowerCase(),
-        password: 'Welcome123!', // Temporary password
+        password: 'Welcome123!',
         options: {
           data: {
             first_name: formData.firstName,
@@ -21,56 +21,16 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
         }
       });
 
-      if (authError) {
+      if (authError || !authData.user) {
         console.error('Auth error:', authError);
         toast.error("Erreur lors de la création du compte utilisateur");
         return;
       }
 
-      if (!authData.user) {
-        console.error('No user data returned from auth signup');
-        toast.error("Erreur lors de la création du compte utilisateur");
-        return;
-      }
-
       const userId = authData.user.id;
-      console.log('Auth user created successfully:', userId);
+      console.log('Auth user created:', userId);
 
-      // 2. Wait for profile creation (triggered by database)
-      let profile = null;
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      while (attempts < maxAttempts && !profile) {
-        console.log(`Attempt ${attempts + 1} to fetch profile...`);
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          continue;
-        }
-
-        if (profileData) {
-          profile = profileData;
-          console.log('Profile found:', profile);
-          break;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        attempts++;
-      }
-
-      if (!profile) {
-        console.error('Profile creation failed after', maxAttempts, 'attempts');
-        toast.error("Erreur lors de la création du profil");
-        return;
-      }
-
-      // 3. Create employee record
+      // 2. Create employee record
       const { error: employeeError } = await supabase
         .from('employees')
         .insert({
