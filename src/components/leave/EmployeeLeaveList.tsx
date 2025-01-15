@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -56,6 +58,8 @@ const getLeaveTypeText = (type: string) => {
 };
 
 export const EmployeeLeaveList = () => {
+  const queryClient = useQueryClient();
+
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['employee-leave-requests'],
     queryFn: async () => {
@@ -79,6 +83,31 @@ export const EmployeeLeaveList = () => {
     }
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async (leaveId: string) => {
+      const { error } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', leaveId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Demande de congé annulée avec succès");
+      queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
+    },
+    onError: (error) => {
+      console.error('Error canceling leave request:', error);
+      toast.error("Erreur lors de l'annulation de la demande");
+    }
+  });
+
+  const handleCancel = (leaveId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir annuler cette demande de congé ?")) {
+      cancelMutation.mutate(leaveId);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -93,37 +122,59 @@ export const EmployeeLeaveList = () => {
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Mes demandes de congés</h2>
       <div className="space-y-4">
-        {leaveRequests?.map((request) => (
-          <Card key={request.id} className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold">
-                    Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
+        {leaveRequests?.map((request) => {
+          const startDate = new Date(request.start_date);
+          const endDate = new Date(request.end_date);
+          const numberOfDays = differenceInDays(endDate, startDate) + 1;
+          
+          return (
+            <Card key={request.id} className="p-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">
+                      Du {format(startDate, "dd MMMM yyyy", { locale: fr })}
+                    </p>
+                    <p className="font-semibold">
+                      au {format(endDate, "dd MMMM yyyy", { locale: fr })}
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Durée : {numberOfDays} jour{numberOfDays > 1 ? 's' : ''}
                   </p>
-                  <p className="font-semibold">
-                    au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                  <p className="text-sm text-gray-600">
+                    Type: {getLeaveTypeText(request.type)}
+                  </p>
+                  {request.reason && (
+                    <p className="text-sm text-gray-600">Motif: {request.reason}</p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
                   </p>
                 </div>
-                <p className="text-sm text-gray-600">
-                  Type: {getLeaveTypeText(request.type)}
-                </p>
-                {request.reason && (
-                  <p className="text-sm text-gray-600">Motif: {request.reason}</p>
-                )}
-                <p className="text-sm text-gray-600">
-                  Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
-                </p>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge className={getStatusColor(request.status)}>
+                    {getStatusText(request.status)}
+                  </Badge>
+                  {request.status === 'pending' && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleCancel(request.id)}
+                      className="mt-2"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Annuler
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Badge className={getStatusColor(request.status)}>
-                {getStatusText(request.status)}
-              </Badge>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
         {(!leaveRequests || leaveRequests.length === 0) && (
           <p className="text-center text-gray-500">Aucune demande de congés</p>
         )}
