@@ -80,7 +80,9 @@ export const EmployeeLeaveList = () => {
       }
       console.log('Leave requests fetched:', data);
       return data;
-    }
+    },
+    staleTime: 0, // Force refetch on every mount
+    cacheTime: 0  // Disable caching
   });
 
   const cancelMutation = useMutation({
@@ -90,7 +92,7 @@ export const EmployeeLeaveList = () => {
         .from('leave_requests')
         .delete()
         .eq('id', leaveId)
-        .eq('status', 'pending'); // Only allow cancellation of pending requests
+        .eq('status', 'pending');
 
       if (error) {
         console.error('Error canceling leave request:', error);
@@ -100,8 +102,12 @@ export const EmployeeLeaveList = () => {
     },
     onSuccess: () => {
       toast.success("Demande de congé annulée avec succès");
-      // Invalidate and refetch the leave requests query
-      queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
+      // Force an immediate refetch of the leave requests
+      queryClient.invalidateQueries({ 
+        queryKey: ['employee-leave-requests'],
+        exact: true,
+        refetchType: 'active'
+      });
     },
     onError: (error) => {
       console.error('Error in cancelMutation:', error);
