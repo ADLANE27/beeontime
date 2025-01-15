@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
@@ -28,20 +30,83 @@ export const DelayList = () => {
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [delays, setDelays] = useState<any[]>([]);
+  const queryClient = useQueryClient();
 
-  // Exemple de données des employés
-  const employees = [
-    { id: "1", name: "Jean Dupont" },
-    { id: "2", name: "Marie Martin" },
-    { id: "3", name: "Pierre Durant" }
-  ];
+  // Fetch employees
+  const { data: employees, isLoading: isLoadingEmployees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name');
+      if (error) throw error;
+      return data;
+    }
+  });
 
-  useEffect(() => {
-    // Load delays from localStorage
-    const storedDelays = JSON.parse(localStorage.getItem("delays") || "[]");
-    setDelays(storedDelays);
-  }, []);
+  // Fetch delays
+  const { data: delays, isLoading: isLoadingDelays } = useQuery({
+    queryKey: ['delays'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delays')
+        .select(`
+          *,
+          employees (
+            first_name,
+            last_name
+          )
+        `);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Add delay mutation
+  const addDelayMutation = useMutation({
+    mutationFn: async (newDelay: any) => {
+      const { error } = await supabase
+        .from('delays')
+        .insert(newDelay);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delays'] });
+      toast.success("Retard enregistré avec succès");
+      setOpen(false);
+      resetForm();
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de l'enregistrement du retard");
+      console.error('Error adding delay:', error);
+    }
+  });
+
+  // Update delay status mutation
+  const updateDelayMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => {
+      const { error } = await supabase
+        .from('delays')
+        .update({ status })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delays'] });
+      toast.success("Statut mis à jour avec succès");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la mise à jour du statut");
+      console.error('Error updating delay status:', error);
+    }
+  });
+
+  const resetForm = () => {
+    setDate("");
+    setTime("");
+    setReason("");
+    setSelectedEmployee("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,48 +115,30 @@ export const DelayList = () => {
       toast.error("Veuillez sélectionner un employé");
       return;
     }
-    
+
+    const scheduledTime = "09:00"; // Default scheduled time
     const newDelay = {
-      id: Date.now(),
-      employeeId: selectedEmployee,
-      employeeName: employees.find(e => e.id === selectedEmployee)?.name,
-      date: date,
-      scheduledTime: "09:00",
-      actualTime: time,
-      duration: time,
-      status: "En attente de confirmation",
-      reason: reason
+      employee_id: selectedEmployee,
+      date,
+      scheduled_time: scheduledTime,
+      actual_time: time,
+      duration: `${time}`, // This needs proper duration calculation
+      reason,
+      status: 'pending'
     };
 
-    const updatedDelays = [...delays, newDelay];
-    setDelays(updatedDelays);
-    localStorage.setItem("delays", JSON.stringify(updatedDelays));
-    
-    toast.success("Retard enregistré avec succès");
-    setOpen(false);
-    setDate("");
-    setTime("");
-    setReason("");
-    setSelectedEmployee("");
+    addDelayMutation.mutate(newDelay);
   };
 
-  const handleConfirmDelay = (delayId: number) => {
-    const updatedDelays = delays.map(delay => 
-      delay.id === delayId 
-        ? { ...delay, status: "Confirmé" }
-        : delay
+  if (isLoadingEmployees || isLoadingDelays) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Card>
     );
-    setDelays(updatedDelays);
-    localStorage.setItem("delays", JSON.stringify(updatedDelays));
-    toast.success("Retard confirmé");
-  };
-
-  const handleDeleteDelay = (delayId: number) => {
-    const updatedDelays = delays.filter(delay => delay.id !== delayId);
-    setDelays(updatedDelays);
-    localStorage.setItem("delays", JSON.stringify(updatedDelays));
-    toast.success("Retard supprimé");
-  };
+  }
 
   return (
     <Card className="p-6">
@@ -116,9 +163,9 @@ export const DelayList = () => {
                     <SelectValue placeholder="Sélectionner un employé" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((employee) => (
+                    {employees?.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
+                        {`${employee.first_name} ${employee.last_name}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -153,7 +200,14 @@ export const DelayList = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={addDelayMutation.isPending}
+              >
+                {addDelayMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Enregistrer
               </Button>
             </form>
@@ -161,16 +215,18 @@ export const DelayList = () => {
         </Dialog>
       </div>
       <div className="space-y-4">
-        {delays.map((delay) => (
+        {delays?.map((delay) => (
           <div
             key={delay.id}
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">{delay.employeeName}</p>
+              <p className="font-semibold">
+                {delay.employees?.first_name} {delay.employees?.last_name}
+              </p>
               <p className="text-sm text-gray-600">Date: {delay.date}</p>
               <p className="text-sm text-gray-600">
-                Heure prévue: {delay.scheduledTime} - Arrivée: {delay.actualTime}
+                Heure prévue: {delay.scheduled_time} - Arrivée: {delay.actual_time}
               </p>
               <p className="text-sm text-gray-600">Durée: {delay.duration}</p>
               <p className="text-sm text-gray-600">Motif: {delay.reason}</p>
@@ -178,31 +234,35 @@ export const DelayList = () => {
             <div className="flex flex-col gap-2">
               <Badge
                 variant={
-                  delay.status === "Confirmé"
+                  delay.status === "approved"
                     ? "secondary"
-                    : delay.status === "Rejeté"
+                    : delay.status === "rejected"
                     ? "destructive"
                     : "outline"
                 }
               >
                 {delay.status}
               </Badge>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleConfirmDelay(delay.id)}
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteDelay(delay.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {delay.status === 'pending' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateDelayMutation.mutate({ id: delay.id, status: 'approved' })}
+                    disabled={updateDelayMutation.isPending}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => updateDelayMutation.mutate({ id: delay.id, status: 'rejected' })}
+                    disabled={updateDelayMutation.isPending}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}

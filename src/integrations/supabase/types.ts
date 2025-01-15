@@ -9,6 +9,266 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      delays: {
+        Row: {
+          actual_time: string
+          created_at: string
+          date: string
+          duration: unknown
+          employee_id: string
+          id: string
+          reason: string | null
+          scheduled_time: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          actual_time: string
+          created_at?: string
+          date: string
+          duration: unknown
+          employee_id: string
+          id?: string
+          reason?: string | null
+          scheduled_time: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          actual_time?: string
+          created_at?: string
+          date?: string
+          duration?: unknown
+          employee_id?: string
+          id?: string
+          reason?: string | null
+          scheduled_time?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delays_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          file_path: string
+          id: string
+          title: string
+          type: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          file_path: string
+          id?: string
+          title: string
+          type: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          file_path?: string
+          id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          birth_country: string | null
+          birth_date: string | null
+          birth_place: string | null
+          contract_type: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          position: string | null
+          previous_year_vacation_days: number | null
+          remaining_vacation_days: number | null
+          social_security_number: string | null
+          start_date: string | null
+          updated_at: string
+          used_vacation_days: number | null
+          work_schedule: Json | null
+        }
+        Insert: {
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          contract_type?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone?: string | null
+          position?: string | null
+          previous_year_vacation_days?: number | null
+          remaining_vacation_days?: number | null
+          social_security_number?: string | null
+          start_date?: string | null
+          updated_at?: string
+          used_vacation_days?: number | null
+          work_schedule?: Json | null
+        }
+        Update: {
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          contract_type?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          position?: string | null
+          previous_year_vacation_days?: number | null
+          remaining_vacation_days?: number | null
+          social_security_number?: string | null
+          start_date?: string | null
+          updated_at?: string
+          used_vacation_days?: number | null
+          work_schedule?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          created_at: string
+          day_type: string
+          employee_id: string
+          end_date: string
+          id: string
+          reason: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          type: Database["public"]["Enums"]["leave_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_type: string
+          employee_id: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          type: Database["public"]["Enums"]["leave_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_type?: string
+          employee_id?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          type?: Database["public"]["Enums"]["leave_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_requests: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          end_time: string
+          hours: number
+          id: string
+          reason: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          end_time: string
+          hours: number
+          id?: string
+          reason?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          end_time?: string
+          hours?: number
+          id?: string
+          reason?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -47,6 +307,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      leave_type:
+        | "vacation"
+        | "annual"
+        | "paternity"
+        | "maternity"
+        | "sickChild"
+        | "unpaidUnexcused"
+        | "unpaidExcused"
+        | "unpaid"
+        | "rtt"
+        | "familyEvent"
+      request_status: "pending" | "approved" | "rejected"
       user_role: "employee" | "hr"
     }
     CompositeTypes: {
