@@ -129,12 +129,12 @@ export const AdminPlanning = () => {
     setSelectedEmployee(null);
   };
 
-  const handleEditEmployee = (employee: any) => {
+  const handleEditEmployee = (employee: Employee) => {
     setSelectedEmployee({
       firstName: employee.name.split(' ')[0],
       lastName: employee.name.split(' ')[1],
       email: `${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`,
-      phone: '',
+      phone: '0612345678', // Default value, should be replaced with actual data
       birthDate: new Date(),
       birthPlace: '',
       birthCountry: '',
@@ -157,6 +157,11 @@ export const AdminPlanning = () => {
 
   return (
     <Tabs defaultValue="planning" className="space-y-4">
+      <TabsList className="flex flex-wrap gap-2">
+        <TabsTrigger value="planning">Planning</TabsTrigger>
+        <TabsTrigger value="employees">Gestion des employés</TabsTrigger>
+      </TabsList>
+
       <TabsContent value="employees">
         <Card className="p-6">
           <div className="space-y-6">
@@ -215,6 +220,10 @@ export const AdminPlanning = () => {
             </Table>
           </div>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="planning">
+        {/* Planning content goes here */}
       </TabsContent>
     </Tabs>
   );
