@@ -73,11 +73,16 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
       }
 
       if (mode === 'create') {
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        // Create auth user using signUp
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
-          password: 'Welcome123!', // Temporary password
-          email_confirm: true
+          password: 'Welcome123!',
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName
+            }
+          }
         });
 
         if (authError) {
@@ -88,21 +93,6 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
 
         if (!authData.user) {
           toast.error("Erreur lors de la création du compte utilisateur");
-          return;
-        }
-
-        // Update profile with name
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: formData.firstName,
-            last_name: formData.lastName
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          console.error('Profile Error:', profileError);
-          toast.error("Erreur lors de la mise à jour du profil");
           return;
         }
 
