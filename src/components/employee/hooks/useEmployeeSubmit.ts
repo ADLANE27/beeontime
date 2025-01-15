@@ -10,13 +10,14 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
     setIsSubmitting(true);
     try {
       // 1. Create auth user with a temporary password
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.toLowerCase(),
         password: 'Welcome123!', // Temporary password
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          first_name: formData.firstName,
-          last_name: formData.lastName
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName
+          }
         }
       });
 
@@ -89,9 +90,6 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
         toast.error("Erreur lors de la création de l'employé");
         return;
       }
-
-      // 4. Send welcome email (optional)
-      // You can implement this later if needed
 
       console.log('Employee created successfully');
       toast.success("Employé créé avec succès");
