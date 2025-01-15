@@ -82,7 +82,7 @@ export const EmployeeLeaveList = () => {
       return data;
     },
     staleTime: 0, // Force refetch on every mount
-    cacheTime: 0  // Disable caching
+    gcTime: 0  // Disable garbage collection (previously cacheTime)
   });
 
   const cancelMutation = useMutation({
