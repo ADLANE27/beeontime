@@ -85,6 +85,9 @@ const Auth = () => {
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
             Portail Employé AFTraduction
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Connectez-vous avec les identifiants fournis par votre responsable RH
+          </p>
         </div>
         {errorMessage && (
           <Alert variant="destructive">
@@ -106,6 +109,8 @@ const Auth = () => {
           }}
           providers={[]}
           redirectTo={window.location.origin + "/auth/callback"}
+          showLinks={false}
+          view="sign_in"
           localization={{
             variables: {
               sign_in: {
@@ -113,14 +118,6 @@ const Auth = () => {
                 password_label: "Mot de passe",
                 button_label: "Se connecter",
                 loading_button_label: "Connexion en cours...",
-                link_text: "Vous avez déjà un compte ? Connectez-vous"
-              },
-              sign_up: {
-                email_label: "Email",
-                password_label: "Mot de passe",
-                button_label: "S'inscrire",
-                loading_button_label: "Inscription en cours...",
-                link_text: "Vous n'avez pas de compte ? Inscrivez-vous"
               }
             }
           }}
