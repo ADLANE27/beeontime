@@ -18,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const LeaveRequestForm = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [leaveType, setLeaveType] = useState<string>("");
+  const [leaveType, setLeaveType] = useState<"vacation" | "rtt" | "unpaid" | "familyEvent">("vacation");
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
 
@@ -68,7 +68,7 @@ export const LeaveRequestForm = () => {
       // Reset form
       setStartDate("");
       setEndDate("");
-      setLeaveType("");
+      setLeaveType("vacation");
       setReason("");
       // Refresh the leave requests list
       queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
@@ -107,7 +107,7 @@ export const LeaveRequestForm = () => {
 
         <div className="space-y-2">
           <Label htmlFor="type">Type de congé</Label>
-          <Select value={leaveType} onValueChange={setLeaveType}>
+          <Select value={leaveType} onValueChange={(value: "vacation" | "rtt" | "unpaid" | "familyEvent") => setLeaveType(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionnez un type" />
             </SelectTrigger>

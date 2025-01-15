@@ -112,10 +112,10 @@ export const EmployeeLeaveList = () => {
                 {getStatusText(request.status)}
               </Badge>
             </div>
-            {request.status === 'rejected' && request.rejection_reason && (
+            {request.status === 'rejected' && request.reason && (
               <div className="mt-3 p-3 bg-red-50 rounded-md">
                 <p className="text-sm text-red-800">
-                  Motif du refus : {request.rejection_reason}
+                  Motif du refus : {request.reason}
                 </p>
               </div>
             )}
