@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { OvertimeRequest } from "@/types/hr";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +20,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
@@ -29,54 +30,98 @@ export const OvertimeList = () => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const queryClient = useQueryClient();
 
-  // Exemple de données des employés
-  const employees = [
-    { id: "1", name: "Jean Dupont" },
-    { id: "2", name: "Marie Martin" },
-    { id: "3", name: "Pierre Durant" }
-  ];
-
-  // Exemple de données avec les heures de début et de fin
-  const overtimeRequests: OvertimeRequest[] = [
-    {
-      id: 1,
-      employeeId: 1,
-      date: "2024-03-20",
-      startTime: "18:00",
-      endTime: "20:00",
-      hours: 2,
-      reason: "Projet urgent",
-      status: "En attente de confirmation"
+  const { data: overtimeRequests, isLoading } = useQuery({
+    queryKey: ['overtime_requests'],
+    queryFn: async () => {
+      console.log('Fetching overtime requests...');
+      const { data, error } = await supabase
+        .from('overtime_requests')
+        .select(`
+          *,
+          employees (
+            first_name,
+            last_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching overtime requests:', error);
+        throw error;
+      }
+      console.log('Overtime requests fetched:', data);
+      return data;
     }
-  ];
+  });
+
+  const addOvertimeMutation = useMutation({
+    mutationFn: async (newRequest: {
+      date: string;
+      start_time: string;
+      end_time: string;
+      reason: string;
+      hours: number;
+    }) => {
+      console.log('Adding new overtime request:', newRequest);
+      const { error } = await supabase
+        .from('overtime_requests')
+        .insert([newRequest]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
+      toast.success("Demande d'heures supplémentaires enregistrée");
+      setOpenManual(false);
+      // Reset form
+      setDate("");
+      setStartTime("");
+      setEndTime("");
+      setReason("");
+    },
+    onError: (error) => {
+      console.error('Error adding overtime request:', error);
+      toast.error("Erreur lors de l'enregistrement de la demande");
+    }
+  });
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEmployee) {
-      toast.error("Veuillez sélectionner un employé");
+    if (!date || !startTime || !endTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    
-    toast.success("Heures supplémentaires ajoutées avec succès");
-    setOpenManual(false);
-    // Reset form
-    setDate("");
-    setStartTime("");
-    setEndTime("");
-    setReason("");
-    setSelectedEmployee("");
+
+    // Calculate hours between start and end time
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+    if (hours <= 0) {
+      toast.error("L'heure de fin doit être après l'heure de début");
+      return;
+    }
+
+    addOvertimeMutation.mutate({
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      reason,
+      hours
+    });
   };
 
-  const handleApprove = (requestId: number) => {
-    toast.success("Demande approuvée avec succès");
-  };
-
-  const handleReject = (requestId: number) => {
-    toast.error("Demande rejetée");
-  };
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6">
@@ -94,21 +139,6 @@ export const OvertimeList = () => {
               <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleManualSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="employee">Employé</Label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un employé" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -150,7 +180,14 @@ export const OvertimeList = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={addOvertimeMutation.isPending}
+              >
+                {addOvertimeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Enregistrer
               </Button>
             </form>
@@ -158,49 +195,30 @@ export const OvertimeList = () => {
         </Dialog>
       </div>
       <div className="space-y-4">
-        {overtimeRequests.map((request) => (
+        {overtimeRequests?.map((request) => (
           <div
             key={request.id}
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">
-                {employees.find(e => e.id === String(request.employeeId))?.name}
-              </p>
               <p className="text-sm text-gray-600">{request.date}</p>
               <p className="text-sm text-gray-600">
-                De {request.startTime} à {request.endTime} ({request.hours} heures)
+                De {request.start_time} à {request.end_time} ({request.hours} heures)
               </p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
-            <div className="flex gap-2">
-              {request.status === "En attente de confirmation" && (
-                <>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleReject(request.id)}
-                  >
-                    Refuser
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleApprove(request.id)}
-                  >
-                    Accepter
-                  </Button>
-                </>
-              )}
+            <div>
               <Badge
                 variant={
-                  request.status === "approuvé"
+                  request.status === "approved"
                     ? "secondary"
-                    : request.status === "rejeté"
+                    : request.status === "rejected"
                     ? "destructive"
                     : "outline"
                 }
               >
-                {request.status}
+                {request.status === "pending" ? "En attente" : 
+                 request.status === "approved" ? "Approuvé" : "Refusé"}
               </Badge>
             </div>
           </div>
