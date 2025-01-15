@@ -17,7 +17,7 @@ export const TimeClock = () => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Vérifier si l'employé a déjà pointé aujourd'hui
+    // Check if employee has already checked in today
     const checkTodayAttendance = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
