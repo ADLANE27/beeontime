@@ -13,8 +13,8 @@ export const PayslipManagement = () => {
 
   // Mock data - In a real app, this would come from your backend
   const employees: Employee[] = [
-    { id: 1, name: "Jean Dupont", position: "Traducteur", department: "Traduction" },
-    { id: 2, name: "Marie Martin", position: "Traductrice", department: "Traduction" }
+    { id: 1, name: "Jean Dupont", poste: "Traducteur", department: "Traduction" },
+    { id: 2, name: "Marie Martin", poste: "Traductrice", department: "Traduction" }
   ];
 
   const importantDocuments = [
