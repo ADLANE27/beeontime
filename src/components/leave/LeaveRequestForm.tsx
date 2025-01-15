@@ -20,9 +20,9 @@ import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { Database } from "@/integrations/supabase/types";
 
-type LeaveType = "vacation" | "annual" | "paternity" | "maternity" | "sickChild" | 
-                 "unpaidUnexcused" | "unpaidExcused" | "unpaid" | "rtt" | "familyEvent";
+type LeaveType = Database["public"]["Enums"]["leave_type"];
 
 export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
@@ -111,6 +111,7 @@ export const LeaveRequestForm = () => {
         }
       }
 
+      // Submit leave request
       const { error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
