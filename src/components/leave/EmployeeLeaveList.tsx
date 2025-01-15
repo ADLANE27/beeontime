@@ -151,7 +151,7 @@ export const EmployeeLeaveList = () => {
                   <p className="text-sm text-gray-600">
                     Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
                     {request.day_type === "half" && request.period && (
-                      <span> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                      <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
                     )}
                   </p>
                   <p className="text-sm text-gray-500">
