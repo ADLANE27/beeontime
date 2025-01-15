@@ -72,6 +72,12 @@ export const EmployeesList = () => {
   };
 
   const handleUpdate = async (updatedEmployee: NewEmployee) => {
+    if (!updatedEmployee.id) {
+      console.error('No employee ID provided for update');
+      toast.error("Erreur lors de la mise à jour de l'employé: ID manquant");
+      return;
+    }
+
     console.log('Updated employee:', updatedEmployee);
     
     const { error } = await supabase
