@@ -17,15 +17,19 @@ import {
 import { useState } from "react";
 import { Calendar, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { differenceInHours, differenceInMonths, addHours, addMonths } from "date-fns";
+import { differenceInHours, differenceInMonths } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<string>();
-  const [dayType, setDayType] = useState("full"); // "full" ou "half"
+  const [dayType, setDayType] = useState("full");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const queryClient = useQueryClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const start = new Date(startDate);
@@ -48,7 +52,45 @@ export const LeaveRequestForm = () => {
       }
     }
 
-    toast.success("Demande de congé soumise avec succès");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour soumettre une demande");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('leave_requests')
+        .insert({
+          employee_id: user.id,
+          start_date: startDate,
+          end_date: endDate,
+          type: leaveType,
+          day_type: dayType,
+          reason: reason,
+          status: 'pending'
+        });
+
+      if (error) {
+        console.error('Error submitting leave request:', error);
+        toast.error("Erreur lors de la soumission de la demande");
+        return;
+      }
+
+      toast.success("Demande de congé soumise avec succès");
+      // Reset form
+      setLeaveType(undefined);
+      setDayType("full");
+      setStartDate("");
+      setEndDate("");
+      setReason("");
+      // Refresh the leave requests list
+      queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("Une erreur est survenue");
+    }
   };
 
   return (
@@ -135,7 +177,12 @@ export const LeaveRequestForm = () => {
 
         <div className="space-y-2">
           <Label htmlFor="reason">Motif</Label>
-          <Textarea id="reason" placeholder="Décrivez la raison de votre demande" />
+          <Textarea 
+            id="reason" 
+            placeholder="Décrivez la raison de votre demande"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </div>
 
         <Button type="submit" className="w-full">
