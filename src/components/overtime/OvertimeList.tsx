@@ -24,6 +24,7 @@ import { toast } from "sonner";
 
 export const OvertimeList = () => {
   const [open, setOpen] = useState(false);
+  const [openManual, setOpenManual] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -68,6 +69,24 @@ export const OvertimeList = () => {
     setSelectedEmployee("");
   };
 
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedEmployee) {
+      toast.error("Veuillez sélectionner un employé");
+      return;
+    }
+    
+    toast.success("Heures supplémentaires ajoutées manuellement avec succès");
+    setOpenManual(false);
+    // Reset form
+    setDate("");
+    setStartTime("");
+    setEndTime("");
+    setReason("");
+    setSelectedEmployee("");
+  };
+
   const handleApprove = (requestId: number) => {
     // Logique pour approuver la demande
     toast.success("Demande approuvée avec succès");
@@ -82,15 +101,87 @@ export const OvertimeList = () => {
     <Card className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Heures supplémentaires</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Ajouter des heures supplémentaires</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-x-2">
+          <Dialog open={openManual} onOpenChange={setOpenManual}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Ajouter manuellement</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Ajouter des heures supplémentaires manuellement</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="employee">Employé</Label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un employé" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Heure de début</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">Heure de fin</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reason">Motif</Label>
+                  <Textarea
+                    id="reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Enregistrer
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>Ajouter des heures supplémentaires</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="employee">Employé</Label>
                 <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -150,9 +241,10 @@ export const OvertimeList = () => {
               <Button type="submit" className="w-full">
                 Enregistrer
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       <div className="space-y-4">
         {overtimeRequests.map((request) => (
