@@ -1,15 +1,18 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, FileText, Clock4 } from "lucide-react";
+import { FileText, Clock, Clock4 } from "lucide-react";
 import { LeaveRequestForm } from "@/components/leave/LeaveRequestForm";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { PayslipList } from "@/components/payslip/PayslipList";
 import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
+import { TimeClock } from "@/components/attendance/TimeClock";
 
 const EmployeeDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <TimeClock />
+        
         <Tabs defaultValue="documents" className="space-y-4">
           <TabsList>
             <TabsTrigger value="documents">
