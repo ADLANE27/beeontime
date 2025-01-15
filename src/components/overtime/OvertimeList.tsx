@@ -12,6 +12,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
@@ -21,6 +28,14 @@ export const OvertimeList = () => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+
+  // Exemple de données des employés
+  const employees = [
+    { id: "1", name: "Jean Dupont" },
+    { id: "2", name: "Marie Martin" },
+    { id: "3", name: "Pierre Durant" }
+  ];
 
   // Exemple de données
   const overtimeRequests: OvertimeRequest[] = [
@@ -37,14 +52,20 @@ export const OvertimeList = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!selectedEmployee) {
+      toast.error("Veuillez sélectionner un employé");
+      return;
+    }
+    
     // Ici vous ajouterez la logique pour soumettre la demande
-    toast.success("Demande d'heures supplémentaires soumise avec succès");
+    toast.success("Heures supplémentaires enregistrées avec succès");
     setOpen(false);
     // Reset form
     setDate("");
     setStartTime("");
     setEndTime("");
     setReason("");
+    setSelectedEmployee("");
   };
 
   return (
@@ -53,13 +74,28 @@ export const OvertimeList = () => {
         <h2 className="text-2xl font-bold">Heures supplémentaires</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>Nouvelle demande</Button>
+            <Button>Ajouter des heures supplémentaires</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Nouvelle demande d'heures supplémentaires</DialogTitle>
+              <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee">Employé</Label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un employé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -102,7 +138,7 @@ export const OvertimeList = () => {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Soumettre
+                Enregistrer
               </Button>
             </form>
           </DialogContent>
@@ -115,7 +151,10 @@ export const OvertimeList = () => {
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div>
-              <p className="font-semibold">{request.date}</p>
+              <p className="font-semibold">
+                {employees.find(e => e.id === String(request.employeeId))?.name}
+              </p>
+              <p className="text-sm text-gray-600">{request.date}</p>
               <p className="text-sm text-gray-600">{request.hours} heures</p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
