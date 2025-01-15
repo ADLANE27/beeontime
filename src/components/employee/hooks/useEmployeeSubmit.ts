@@ -30,11 +30,11 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
       const userId = authData.user.id;
       console.log('Auth user created:', userId);
 
-      // 2. Create employee record
+      // 2. Create employee record with the same ID as the auth user
       const { error: employeeError } = await supabase
         .from('employees')
         .insert({
-          id: userId,
+          id: userId, // Use the auth user's ID here
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email.toLowerCase(),
