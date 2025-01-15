@@ -106,7 +106,15 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
           return;
         }
 
-        // Format dates as ISO strings for Supabase
+        // Convert WorkSchedule to a plain object for JSON compatibility
+        const workScheduleJson = {
+          startTime: formData.workSchedule?.startTime || '',
+          endTime: formData.workSchedule?.endTime || '',
+          breakStartTime: formData.workSchedule?.breakStartTime || '',
+          breakEndTime: formData.workSchedule?.breakEndTime || ''
+        };
+
+        // Format data for Supabase
         const formattedData = {
           id: authData.user.id,
           first_name: formData.firstName,
@@ -117,10 +125,10 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
           birth_place: formData.birthPlace,
           birth_country: formData.birthCountry,
           social_security_number: formData.socialSecurityNumber,
-          contract_type: formData.contractType,
+          contract_type: formData.contractType as string,
           start_date: formData.startDate ? new Date(formData.startDate).toISOString() : null,
           position: formData.position,
-          work_schedule: formData.workSchedule,
+          work_schedule: workScheduleJson,
           previous_year_vacation_days: formData.previousYearVacationDays,
           used_vacation_days: formData.usedVacationDays,
           remaining_vacation_days: formData.remainingVacationDays
