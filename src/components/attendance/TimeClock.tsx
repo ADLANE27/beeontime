@@ -68,9 +68,13 @@ export const TimeClock = () => {
           reason: "Pointage arrivée"
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        toast.error("Erreur lors de l'enregistrement du pointage");
+        return;
+      }
 
       setCheckInId(data.id);
       setHasCheckedIn(true);
@@ -98,9 +102,13 @@ export const TimeClock = () => {
         })
         .eq('id', checkInId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        toast.error("Erreur lors de la mise à jour du pointage");
+        return;
+      }
 
       setHasCheckedIn(false);
       setCheckInId(null);
