@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Power } from "lucide-react";
+import { Edit, Key, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -53,6 +53,22 @@ export const EmployeesList = () => {
     };
     setEditingEmployee(mappedEmployee);
     setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting employee:', error);
+      toast.error("Erreur lors de la suppression de l'employé");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    toast.success("Employé supprimé avec succès");
   };
 
   const handleUpdate = async (updatedEmployee: NewEmployee) => {
@@ -120,22 +136,6 @@ export const EmployeesList = () => {
     setIsNewEmployeeModalOpen(false);
   };
 
-  const handleToggleActive = async (employeeId: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ active: !currentStatus })
-      .eq('id', employeeId);
-
-    if (error) {
-      console.error('Error toggling user status:', error);
-      toast.error("Erreur lors de la modification du statut de l'employé");
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
-    toast.success(`Employé ${currentStatus ? 'désactivé' : 'activé'} avec succès`);
-  };
-
   const handleResetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -195,10 +195,10 @@ export const EmployeesList = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleToggleActive(employee.id, employee.profiles?.active)}
+                  onClick={() => handleDelete(employee.id)}
                 >
-                  <Power className="h-4 w-4" />
-                  {employee.profiles?.active ? 'Désactiver' : 'Activer'}
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer
                 </Button>
               </div>
             </div>
