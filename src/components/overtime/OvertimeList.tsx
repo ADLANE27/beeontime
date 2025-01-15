@@ -11,13 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
@@ -36,6 +29,9 @@ export const OvertimeList = () => {
     queryKey: ['overtime_requests'],
     queryFn: async () => {
       console.log('Fetching overtime requests...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
       const { data, error } = await supabase
         .from('overtime_requests')
         .select(`
@@ -45,6 +41,7 @@ export const OvertimeList = () => {
             last_name
           )
         `)
+        .eq('employee_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -63,6 +60,7 @@ export const OvertimeList = () => {
       end_time: string;
       reason: string;
       hours: number;
+      employee_id: string;
     }) => {
       console.log('Adding new overtime request:', newRequest);
       const { error } = await supabase
@@ -86,7 +84,7 @@ export const OvertimeList = () => {
     }
   });
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!date || !startTime || !endTime) {
@@ -104,12 +102,20 @@ export const OvertimeList = () => {
       return;
     }
 
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Vous devez être connecté pour faire une demande");
+      return;
+    }
+
     addOvertimeMutation.mutate({
       date,
       start_time: startTime,
       end_time: endTime,
       reason,
-      hours
+      hours,
+      employee_id: user.id
     });
   };
 
