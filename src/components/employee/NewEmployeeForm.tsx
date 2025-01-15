@@ -106,27 +106,30 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
           return;
         }
 
+        // Format dates as ISO strings for Supabase
+        const formattedData = {
+          id: authData.user.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          birth_date: formData.birthDate ? new Date(formData.birthDate).toISOString() : null,
+          birth_place: formData.birthPlace,
+          birth_country: formData.birthCountry,
+          social_security_number: formData.socialSecurityNumber,
+          contract_type: formData.contractType,
+          start_date: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+          position: formData.position,
+          work_schedule: formData.workSchedule,
+          previous_year_vacation_days: formData.previousYearVacationDays,
+          used_vacation_days: formData.usedVacationDays,
+          remaining_vacation_days: formData.remainingVacationDays
+        };
+
         // Create employee record
         const { error: employeeError } = await supabase
           .from('employees')
-          .insert([{
-            id: authData.user.id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            birth_date: formData.birthDate,
-            birth_place: formData.birthPlace,
-            birth_country: formData.birthCountry,
-            social_security_number: formData.socialSecurityNumber,
-            contract_type: formData.contractType,
-            start_date: formData.startDate,
-            position: formData.position,
-            work_schedule: formData.workSchedule,
-            previous_year_vacation_days: formData.previousYearVacationDays,
-            used_vacation_days: formData.usedVacationDays,
-            remaining_vacation_days: formData.remainingVacationDays
-          }]);
+          .insert(formattedData);
 
         if (employeeError) {
           console.error('Employee Error:', employeeError);
