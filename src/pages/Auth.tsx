@@ -17,6 +17,8 @@ const Auth = () => {
         case 400:
           if (error.message.includes("Invalid login credentials")) {
             return "Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.";
+          } else if (error.message.includes("requested path is invalid")) {
+            return "Erreur de configuration de l'authentification. Veuillez contacter l'administrateur.";
           }
           return "Une erreur s'est produite lors de la connexion. Veuillez réessayer.";
         case 422:
@@ -103,6 +105,7 @@ const Auth = () => {
             }
           }}
           providers={[]}
+          redirectTo={window.location.origin + "/auth/callback"}
           localization={{
             variables: {
               sign_in: {
