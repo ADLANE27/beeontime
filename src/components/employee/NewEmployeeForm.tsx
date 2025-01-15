@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ContractType, Position, NewEmployee, WorkSchedule } from "@/types/hr";
 import { supabase } from "@/integrations/supabase/client";
+import { ContractType, NewEmployee, Position, WorkSchedule } from "@/types/hr";
 
 interface NewEmployeeFormProps {
   isOpen: boolean;
@@ -16,62 +16,95 @@ interface NewEmployeeFormProps {
   mode?: 'create' | 'edit';
 }
 
-export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mode = 'create' }: NewEmployeeFormProps) => {
-  const [formData, setFormData] = useState<Partial<NewEmployee>>({
-    workSchedule: {
-      startTime: '',
-      endTime: '',
-      breakStartTime: '',
-      breakEndTime: ''
+export const NewEmployeeForm = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  employeeToEdit,
+  mode = 'create'
+}: NewEmployeeFormProps) => {
+  const [firstName, setFirstName] = useState(employeeToEdit?.firstName || '');
+  const [lastName, setLastName] = useState(employeeToEdit?.lastName || '');
+  const [email, setEmail] = useState(employeeToEdit?.email || '');
+  const [phone, setPhone] = useState(employeeToEdit?.phone || '');
+  const [birthDate, setBirthDate] = useState(employeeToEdit?.birthDate ? new Date(employeeToEdit.birthDate).toISOString().split('T')[0] : '');
+  const [birthPlace, setBirthPlace] = useState(employeeToEdit?.birthPlace || '');
+  const [birthCountry, setBirthCountry] = useState(employeeToEdit?.birthCountry || '');
+  const [socialSecurityNumber, setSocialSecurityNumber] = useState(employeeToEdit?.socialSecurityNumber || '');
+  const [contractType, setContractType] = useState<ContractType>(employeeToEdit?.contractType || 'CDI');
+  const [startDate, setStartDate] = useState(employeeToEdit?.startDate ? new Date(employeeToEdit.startDate).toISOString().split('T')[0] : '');
+  const [position, setPosition] = useState<Position>(employeeToEdit?.position || 'Traducteur');
+  const [startTime, setStartTime] = useState(employeeToEdit?.workSchedule?.startTime || '09:00');
+  const [endTime, setEndTime] = useState(employeeToEdit?.workSchedule?.endTime || '17:00');
+  const [breakStartTime, setBreakStartTime] = useState(employeeToEdit?.workSchedule?.breakStartTime || '12:00');
+  const [breakEndTime, setBreakEndTime] = useState(employeeToEdit?.workSchedule?.breakEndTime || '13:00');
+  const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
+  const [usedVacationDays, setUsedVacationDays] = useState(employeeToEdit?.usedVacationDays?.toString() || '0');
+  const [remainingVacationDays, setRemainingVacationDays] = useState(employeeToEdit?.remainingVacationDays?.toString() || '0');
+
+  const validateForm = () => {
+    if (!firstName || !lastName || !email || !phone || !birthDate || !birthPlace || 
+        !birthCountry || !socialSecurityNumber || !startDate || !startTime || 
+        !endTime || !breakStartTime || !breakEndTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return false;
     }
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    return true;
+  };
 
-  useEffect(() => {
-    if (mode === 'edit' && employeeToEdit) {
-      setFormData(employeeToEdit);
-    }
-  }, [mode, employeeToEdit]);
-
-  const positions: Position[] = [
-    'Traducteur', 'Traductrice', 'Interprète', 'Coordinatrice',
-    'Cheffe de projets', 'Chef de projets', 'Alternant', 'Alternante',
-    'Stagiaire', 'Directeur', 'Assistante de direction'
-  ];
-
-  const contractTypes: ContractType[] = ['CDI', 'CDD', 'Alternance', 'Stage'];
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setPhone('');
+    setBirthDate('');
+    setBirthPlace('');
+    setBirthCountry('');
+    setSocialSecurityNumber('');
+    setContractType('CDI');
+    setStartDate('');
+    setPosition('Traducteur');
+    setStartTime('09:00');
+    setEndTime('17:00');
+    setBreakStartTime('12:00');
+    setBreakEndTime('13:00');
+    setPreviousYearVacationDays('0');
+    setUsedVacationDays('0');
+    setRemainingVacationDays('0');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const formData = {
+      id: employeeToEdit?.firstName || crypto.randomUUID(),
+      firstName,
+      lastName,
+      email,
+      phone,
+      birthDate: new Date(birthDate).toISOString(),
+      birthPlace,
+      birthCountry,
+      socialSecurityNumber,
+      contractType,
+      startDate: new Date(startDate).toISOString(),
+      position,
+      workSchedule: {
+        startTime,
+        endTime,
+        breakStartTime,
+        breakEndTime
+      },
+      previousYearVacationDays: Number(previousYearVacationDays),
+      usedVacationDays: Number(usedVacationDays),
+      remainingVacationDays: Number(remainingVacationDays)
+    };
+
     try {
-      if (!formData.firstName || !formData.lastName || !formData.position || !formData.email || !formData.phone) {
-        toast.error("Veuillez remplir tous les champs obligatoires");
-        return;
-      }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        toast.error("Format d'email invalide");
-        return;
-      }
-
-      // Validate phone format (French format)
-      const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
-      if (!phoneRegex.test(formData.phone)) {
-        toast.error("Format de téléphone invalide");
-        return;
-      }
-
-      // Validate work schedule
-      const { workSchedule } = formData;
-      if (!workSchedule?.startTime || !workSchedule?.endTime || !workSchedule?.breakStartTime || !workSchedule?.breakEndTime) {
-        toast.error("Veuillez remplir tous les horaires de travail");
-        return;
-      }
-
       if (mode === 'create') {
         // Create auth user using signUp
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -87,7 +120,7 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
 
         if (authError) {
           console.error('Auth Error:', authError);
-          toast.error("Erreur lors de la création du compte: " + authError.message);
+          toast.error("Erreur lors de la création du compte utilisateur");
           return;
         }
 
@@ -96,38 +129,27 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
           return;
         }
 
-        // Convert WorkSchedule to a plain object for JSON compatibility
-        const workScheduleJson = {
-          startTime: formData.workSchedule?.startTime || '',
-          endTime: formData.workSchedule?.endTime || '',
-          breakStartTime: formData.workSchedule?.breakStartTime || '',
-          breakEndTime: formData.workSchedule?.breakEndTime || ''
-        };
-
-        // Format data for Supabase
-        const formattedData = {
-          id: authData.user.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          birth_date: formData.birthDate ? new Date(formData.birthDate).toISOString() : null,
-          birth_place: formData.birthPlace,
-          birth_country: formData.birthCountry,
-          social_security_number: formData.socialSecurityNumber,
-          contract_type: formData.contractType as string,
-          start_date: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-          position: formData.position,
-          work_schedule: workScheduleJson,
-          previous_year_vacation_days: formData.previousYearVacationDays,
-          used_vacation_days: formData.usedVacationDays,
-          remaining_vacation_days: formData.remainingVacationDays
-        };
-
         // Create employee record
         const { error: employeeError } = await supabase
           .from('employees')
-          .insert(formattedData);
+          .insert({
+            id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            birth_date: formData.birthDate,
+            birth_place: formData.birthPlace,
+            birth_country: formData.birthCountry,
+            social_security_number: formData.socialSecurityNumber,
+            contract_type: formData.contractType,
+            start_date: formData.startDate,
+            position: formData.position,
+            work_schedule: formData.workSchedule,
+            previous_year_vacation_days: formData.previousYearVacationDays,
+            used_vacation_days: formData.usedVacationDays,
+            remaining_vacation_days: formData.remainingVacationDays
+          });
 
         if (employeeError) {
           console.error('Employee Error:', employeeError);
@@ -136,278 +158,273 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
         }
 
         toast.success("Employé créé avec succès");
+      } else {
+        const { error: updateError } = await supabase
+          .from('employees')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            birth_date: formData.birthDate,
+            birth_place: formData.birthPlace,
+            birth_country: formData.birthCountry,
+            social_security_number: formData.socialSecurityNumber,
+            contract_type: formData.contractType,
+            start_date: formData.startDate,
+            position: formData.position,
+            work_schedule: formData.workSchedule,
+            previous_year_vacation_days: formData.previousYearVacationDays,
+            used_vacation_days: formData.usedVacationDays,
+            remaining_vacation_days: formData.remainingVacationDays
+          })
+          .eq('id', employeeToEdit?.id);
+
+        if (updateError) {
+          console.error('Update Error:', updateError);
+          toast.error("Erreur lors de la mise à jour de l'employé");
+          return;
+        }
+
+        toast.success("Employé mis à jour avec succès");
       }
 
-      onSubmit(formData as NewEmployee);
+      onSubmit(formData);
+      resetForm();
       onClose();
-      
-      // Reset form if it's create mode
-      if (mode === 'create') {
-        setFormData({
-          workSchedule: {
-            startTime: '',
-            endTime: '',
-            breakStartTime: '',
-            breakEndTime: ''
-          }
-        });
-      }
     } catch (error) {
       console.error('Error:', error);
-      toast.error("Une erreur est survenue lors de la création de l'employé");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Une erreur est survenue");
     }
-  };
-
-  const handleInputChange = (field: keyof NewEmployee, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleWorkScheduleChange = (field: keyof WorkSchedule, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      workSchedule: {
-        ...prev.workSchedule,
-        [field]: value
-      } as WorkSchedule
-    }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? 'Ajouter un nouvel employé' : 'Modifier les informations de l\'employé'}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create' 
-              ? 'Remplissez les informations du nouvel employé. Tous les champs marqués d\'un * sont obligatoires.'
-              : 'Modifiez les informations de l\'employé. Tous les champs marqués d\'un * sont obligatoires.'}
-          </DialogDescription>
+          <DialogTitle>{mode === 'create' ? 'Ajouter un employé' : 'Modifier un employé'}</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom *</Label>
+              <Label htmlFor="firstName">Prénom</Label>
               <Input
                 id="firstName"
-                value={formData.firstName || ''}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nom *</Label>
+              <Label htmlFor="lastName">Nom</Label>
               <Input
                 id="lastName"
-                value={formData.lastName || ''}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
                 required
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                value={formData.email || ''}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone *</Label>
+              <Label htmlFor="phone">Téléphone</Label>
               <Input
                 id="phone"
-                type="tel"
-                value={formData.phone || ''}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="06 12 34 56 78"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="birthDate">Date de naissance</Label>
               <Input
                 id="birthDate"
                 type="date"
-                onChange={(e) => handleInputChange('birthDate', new Date(e.target.value))}
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="birthPlace">Lieu de naissance</Label>
               <Input
                 id="birthPlace"
-                value={formData.birthPlace || ''}
-                onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                value={birthPlace}
+                onChange={(e) => setBirthPlace(e.target.value)}
                 required
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="birthCountry">Pays de naissance</Label>
               <Input
                 id="birthCountry"
-                value={formData.birthCountry || ''}
-                onChange={(e) => handleInputChange('birthCountry', e.target.value)}
+                value={birthCountry}
+                onChange={(e) => setBirthCountry(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="socialSecurityNumber">Numéro de sécurité sociale</Label>
               <Input
                 id="socialSecurityNumber"
-                value={formData.socialSecurityNumber || ''}
-                onChange={(e) => handleInputChange('socialSecurityNumber', e.target.value)}
+                value={socialSecurityNumber}
+                onChange={(e) => setSocialSecurityNumber(e.target.value)}
                 required
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="contractType">Type de contrat</Label>
-              <Select
-                onValueChange={(value: ContractType) => handleInputChange('contractType', value)}
-              >
+              <Select value={contractType} onValueChange={(value: ContractType) => setContractType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un type de contrat" />
                 </SelectTrigger>
                 <SelectContent>
-                  {contractTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="CDI">CDI</SelectItem>
+                  <SelectItem value="CDD">CDD</SelectItem>
+                  <SelectItem value="Alternance">Alternance</SelectItem>
+                  <SelectItem value="Stage">Stage</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="startDate">Date d'entrée</Label>
+              <Label htmlFor="startDate">Date de début</Label>
               <Input
                 id="startDate"
                 type="date"
-                onChange={(e) => handleInputChange('startDate', new Date(e.target.value))}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 required
               />
             </div>
+          </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="position">Poste</Label>
+            <Select value={position} onValueChange={(value: Position) => setPosition(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un poste" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Traducteur">Traducteur</SelectItem>
+                <SelectItem value="Traductrice">Traductrice</SelectItem>
+                <SelectItem value="Interprète">Interprète</SelectItem>
+                <SelectItem value="Coordinatrice">Coordinatrice</SelectItem>
+                <SelectItem value="Cheffe de projets">Cheffe de projets</SelectItem>
+                <SelectItem value="Chef de projets">Chef de projets</SelectItem>
+                <SelectItem value="Alternant">Alternant</SelectItem>
+                <SelectItem value="Alternante">Alternante</SelectItem>
+                <SelectItem value="Stagiaire">Stagiaire</SelectItem>
+                <SelectItem value="Directeur">Directeur</SelectItem>
+                <SelectItem value="Assistante de direction">Assistante de direction</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="position">Poste</Label>
-              <Select
-                onValueChange={(value: Position) => handleInputChange('position', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un poste" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map((position) => (
-                    <SelectItem key={position} value={position}>
-                      {position}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="startTime">Heure d'arrivée</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+              />
             </div>
-
-            <div className="col-span-2 grid grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="workScheduleStart">Heure d'arrivée</Label>
-                <Input
-                  id="workScheduleStart"
-                  type="time"
-                  onChange={(e) => handleWorkScheduleChange('startTime', e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="workScheduleBreakStart">Début pause</Label>
-                <Input
-                  id="workScheduleBreakStart"
-                  type="time"
-                  onChange={(e) => handleWorkScheduleChange('breakStartTime', e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="workScheduleBreakEnd">Fin pause</Label>
-                <Input
-                  id="workScheduleBreakEnd"
-                  type="time"
-                  onChange={(e) => handleWorkScheduleChange('breakEndTime', e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="workScheduleEnd">Heure de départ</Label>
-                <Input
-                  id="workScheduleEnd"
-                  type="time"
-                  onChange={(e) => handleWorkScheduleChange('endTime', e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="previousYearVacationDays">Jours de congés N-1</Label>
+              <Label htmlFor="endTime">Heure de départ</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="breakStartTime">Début pause déjeuner</Label>
+              <Input
+                id="breakStartTime"
+                type="time"
+                value={breakStartTime}
+                onChange={(e) => setBreakStartTime(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="breakEndTime">Fin pause déjeuner</Label>
+              <Input
+                id="breakEndTime"
+                type="time"
+                value={breakEndTime}
+                onChange={(e) => setBreakEndTime(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="previousYearVacationDays">Congés N-1</Label>
               <Input
                 id="previousYearVacationDays"
                 type="number"
-                min="0"
-                value={formData.previousYearVacationDays || ''}
-                onChange={(e) => handleInputChange('previousYearVacationDays', parseInt(e.target.value))}
+                value={previousYearVacationDays}
+                onChange={(e) => setPreviousYearVacationDays(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="usedVacationDays">Jours de congés pris</Label>
+              <Label htmlFor="usedVacationDays">Congés pris</Label>
               <Input
                 id="usedVacationDays"
                 type="number"
-                min="0"
-                value={formData.usedVacationDays || ''}
-                onChange={(e) => handleInputChange('usedVacationDays', parseInt(e.target.value))}
+                value={usedVacationDays}
+                onChange={(e) => setUsedVacationDays(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="remainingVacationDays">Solde de congés</Label>
+              <Label htmlFor="remainingVacationDays">Congés restants</Label>
               <Input
                 id="remainingVacationDays"
                 type="number"
-                min="0"
-                value={formData.remainingVacationDays || ''}
-                onChange={(e) => handleInputChange('remainingVacationDays', parseInt(e.target.value))}
+                value={remainingVacationDays}
+                onChange={(e) => setRemainingVacationDays(e.target.value)}
                 required
               />
             </div>
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting 
-                ? 'Création en cours...' 
-                : mode === 'create' 
-                  ? 'Ajouter l\'employé' 
-                  : 'Enregistrer les modifications'}
+            <Button type="submit">
+              {mode === 'create' ? 'Ajouter' : 'Mettre à jour'}
             </Button>
           </div>
         </form>
