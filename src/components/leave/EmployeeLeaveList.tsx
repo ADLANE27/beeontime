@@ -85,22 +85,26 @@ export const EmployeeLeaveList = () => {
 
   const cancelMutation = useMutation({
     mutationFn: async (leaveId: string) => {
+      console.log('Canceling leave request:', leaveId);
       const { error } = await supabase
         .from('leave_requests')
         .delete()
-        .eq('id', leaveId);
+        .eq('id', leaveId)
+        .eq('status', 'pending'); // Only allow cancellation of pending requests
 
       if (error) {
         console.error('Error canceling leave request:', error);
         throw error;
       }
+      console.log('Leave request canceled successfully');
     },
     onSuccess: () => {
       toast.success("Demande de congé annulée avec succès");
+      // Invalidate and refetch the leave requests query
       queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
     },
     onError: (error) => {
-      console.error('Error canceling leave request:', error);
+      console.error('Error in cancelMutation:', error);
       toast.error("Erreur lors de l'annulation de la demande");
     }
   });
