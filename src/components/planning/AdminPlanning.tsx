@@ -5,7 +5,7 @@ import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -64,6 +64,7 @@ export const AdminPlanning = () => {
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
   const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<NewEmployee | null>(null);
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
@@ -117,16 +118,24 @@ export const AdminPlanning = () => {
   };
 
   const handleAddEmployee = (employee: NewEmployee) => {
-    toast.success("Employé ajouté avec succès");
+    toast.success(selectedEmployee ? "Employé modifié avec succès" : "Employé ajouté avec succès");
     setShowNewEmployeeForm(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleEditEmployee = (employee: NewEmployee) => {
+    setSelectedEmployee(employee);
+    setShowNewEmployeeForm(true);
   };
 
   return (
     <Tabs defaultValue="planning" className="space-y-4">
       <TabsList>
         <TabsTrigger value="planning">Planning</TabsTrigger>
-        <TabsTrigger value="employees">Gestion des employés</TabsTrigger>
-        <TabsTrigger value="stats">Statistiques</TabsTrigger>
+        <TabsTrigger value="leave">Demandes de congés</TabsTrigger>
+        <TabsTrigger value="overtime">Heures supplémentaires</TabsTrigger>
+        <TabsTrigger value="lateness">Retards</TabsTrigger>
+        <TabsTrigger value="payslips">Documents</TabsTrigger>
       </TabsList>
 
       <TabsContent value="planning">
@@ -165,6 +174,7 @@ export const AdminPlanning = () => {
                         {format(date, 'dd/MM')}
                       </TableHead>
                     ))}
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -203,6 +213,37 @@ export const AdminPlanning = () => {
                           </TableCell>
                         );
                       })}
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditEmployee({
+                            firstName: employee.name.split(' ')[0],
+                            lastName: employee.name.split(' ')[1],
+                            email: `${employee.name.toLowerCase().replace(' ', '.')}@entreprise.com`,
+                            phone: '',
+                            birthDate: new Date(),
+                            birthPlace: '',
+                            birthCountry: '',
+                            socialSecurityNumber: '',
+                            contractType: 'CDI',
+                            startDate: new Date(),
+                            position: 'Traducteur',
+                            workSchedule: {
+                              startTime: '09:00',
+                              endTime: '17:00',
+                              breakStartTime: '12:00',
+                              breakEndTime: '13:00'
+                            },
+                            previousYearVacationDays: 0,
+                            usedVacationDays: 0,
+                            remainingVacationDays: 0
+                          })}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Modifier
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -289,6 +330,16 @@ export const AdminPlanning = () => {
           </div>
         </Card>
       </TabsContent>
+
+      <NewEmployeeForm
+        isOpen={showNewEmployeeForm}
+        onClose={() => {
+          setShowNewEmployeeForm(false);
+          setSelectedEmployee(null);
+        }}
+        onSubmit={handleAddEmployee}
+        employee={selectedEmployee}
+      />
     </Tabs>
   );
 };
