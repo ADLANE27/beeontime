@@ -28,6 +28,33 @@ const getStatusText = (status: string) => {
   }
 };
 
+const getLeaveTypeText = (type: string) => {
+  switch (type) {
+    case "vacation":
+      return "Congés payés";
+    case "annual":
+      return "Congé annuel";
+    case "paternity":
+      return "Congé paternité";
+    case "maternity":
+      return "Congé maternité";
+    case "sickChild":
+      return "Congé enfant malade";
+    case "unpaidUnexcused":
+      return "Absence injustifiée non rémunérée";
+    case "unpaidExcused":
+      return "Absence justifiée non rémunérée";
+    case "unpaid":
+      return "Absence non rémunérée";
+    case "rtt":
+      return "RTT";
+    case "familyEvent":
+      return "Absences pour événements familiaux";
+    default:
+      return type;
+  }
+};
+
 export const EmployeeLeaveList = () => {
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['employee-leave-requests'],
@@ -69,7 +96,7 @@ export const EmployeeLeaveList = () => {
         {leaveRequests?.map((request) => (
           <Card key={request.id} className="p-4">
             <div className="flex justify-between items-start">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold">
                     Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
@@ -78,12 +105,14 @@ export const EmployeeLeaveList = () => {
                     au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
                   </p>
                 </div>
-                <p className="text-sm text-gray-600">Type: {request.type}</p>
+                <p className="text-sm text-gray-600">
+                  Type: {getLeaveTypeText(request.type)}
+                </p>
                 {request.reason && (
                   <p className="text-sm text-gray-600">Motif: {request.reason}</p>
                 )}
                 <p className="text-sm text-gray-600">
-                  Type de journée: {request.day_type === "complete" ? "Journée complète" : "Demi-journée"}
+                  Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
                 </p>
                 <p className="text-sm text-gray-500">
                   Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
@@ -95,7 +124,7 @@ export const EmployeeLeaveList = () => {
             </div>
           </Card>
         ))}
-        {leaveRequests?.length === 0 && (
+        {(!leaveRequests || leaveRequests.length === 0) && (
           <p className="text-center text-gray-500">Aucune demande de congés</p>
         )}
       </div>
