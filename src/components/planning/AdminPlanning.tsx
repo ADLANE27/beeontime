@@ -14,8 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NewEmployeeForm } from "@/components/employee/NewEmployeeForm";
-import { EmployeesList } from "@/components/employee/EmployeesList";
 import { NewEmployee, Position } from "@/types/hr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -68,9 +66,6 @@ export const AdminPlanning = () => {
     to: new Date(),
   });
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'custom'>('month');
-  const [showNewEmployeeForm, setShowNewEmployeeForm] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<NewEmployee | null>(null);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
@@ -123,28 +118,10 @@ export const AdminPlanning = () => {
     return true;
   };
 
-  const handleAddEmployee = (employee: NewEmployee) => {
-    toast.success(formMode === 'create' ? "Employé ajouté avec succès" : "Informations de l'employé mises à jour avec succès");
-    setShowNewEmployeeForm(false);
-    setSelectedEmployee(null);
-    setFormMode('create');
-  };
-
-  const handleEditEmployee = (employee: NewEmployee) => {
-    setSelectedEmployee({
-      ...employee,
-      birthDate: new Date().toISOString(),  // Convert to ISO string
-      startDate: new Date().toISOString(),  // Convert to ISO string
-    });
-    setFormMode('edit');
-    setShowNewEmployeeForm(true);
-  };
-
   return (
     <Tabs defaultValue="planning" className="space-y-4">
       <TabsList>
         <TabsTrigger value="planning">Planning</TabsTrigger>
-        <TabsTrigger value="employees">Gestion des employés</TabsTrigger>
         <TabsTrigger value="stats">Statistiques</TabsTrigger>
       </TabsList>
 
@@ -227,14 +204,6 @@ export const AdminPlanning = () => {
                 </TableBody>
               </Table>
             </ScrollArea>
-          </div>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="employees">
-        <Card className="p-6">
-          <div className="space-y-6">
-            <EmployeesList />
           </div>
         </Card>
       </TabsContent>
