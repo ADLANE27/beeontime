@@ -108,7 +108,7 @@ export const LeaveRequestsList = () => {
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
 
-      <div className="space-y-6">
+      <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Employé</Label>

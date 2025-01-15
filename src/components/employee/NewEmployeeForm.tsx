@@ -100,7 +100,7 @@ export const NewEmployeeForm = ({ isOpen, onClose, onSubmit, employeeToEdit, mod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Ajouter un nouvel employé' : 'Modifier les informations de l\'employé'}
