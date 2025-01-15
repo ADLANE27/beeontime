@@ -8,32 +8,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { DelayForm } from "./DelayForm";
 import { DelayItem } from "./DelayItem";
-
-type Delay = Database['public']['Tables']['delays']['Row'] & {
-  employees: {
-    first_name: string;
-    last_name: string;
-  } | null;
-};
-
-const formatDuration = (duration: unknown): string => {
-  console.log('Formatting duration:', duration);
-  if (!duration || typeof duration !== 'string') return 'N/A';
-  const formattedDuration = duration.split('.')[0];
-  console.log('Formatted duration:', formattedDuration);
-  return formattedDuration;
-};
+import { useDelayMutations } from "./useDelayMutations";
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
+  const { addDelayMutation, updateDelayMutation } = useDelayMutations({ 
+    onSuccess: () => setOpen(false) 
+  });
 
   const { data: employees, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employees'],
@@ -69,68 +55,16 @@ export const DelayList = () => {
         throw error;
       }
       console.log('Delays fetched:', data);
-      return data as Delay[];
+      return data;
     }
   });
 
-  const addDelayMutation = useMutation({
-    mutationFn: async (newDelay: any) => {
-      console.log('Adding new delay:', newDelay);
-      const { error } = await supabase
-        .from('delays')
-        .insert(newDelay);
-      if (error) {
-        console.error('Error adding delay:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard enregistré avec succès");
-      setOpen(false);
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de l'enregistrement du retard");
-      console.error('Error adding delay:', error);
-    }
-  });
-
-  const updateDelayMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => {
-      console.log('Updating delay status:', { id, status });
-      const { error } = await supabase
-        .from('delays')
-        .update({ status })
-        .eq('id', id);
-      if (error) {
-        console.error('Error updating delay status:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Statut mis à jour avec succès");
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la mise à jour du statut");
-      console.error('Error updating delay status:', error);
-    }
-  });
-
-  const handleSubmit = (data: any) => {
-    const scheduledTime = "09:00";
-    const newDelay = {
-      employee_id: data.employee_id,
-      date: data.date,
-      scheduled_time: scheduledTime,
-      actual_time: data.time,
-      duration: `${data.time}`,
-      reason: data.reason,
-      status: 'pending'
-    };
-
-    console.log('Submitting new delay:', newDelay);
-    addDelayMutation.mutate(newDelay);
+  const formatDuration = (duration: unknown): string => {
+    console.log('Formatting duration:', duration);
+    if (!duration || typeof duration !== 'string') return 'N/A';
+    const formattedDuration = duration.split('.')[0];
+    console.log('Formatted duration:', formattedDuration);
+    return formattedDuration;
   };
 
   if (isLoadingEmployees || isLoadingDelays) {
@@ -160,7 +94,7 @@ export const DelayList = () => {
             </DialogHeader>
             <DelayForm 
               employees={employees}
-              onSubmit={handleSubmit}
+              onSubmit={addDelayMutation.mutate}
               isSubmitting={addDelayMutation.isPending}
             />
           </DialogContent>
