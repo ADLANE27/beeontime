@@ -37,6 +37,8 @@ export interface OvertimeRequest {
   id: number;
   employeeId: number;
   date: string;
+  startTime: string;
+  endTime: string;
   hours: number;
   reason: string;
   status: 'En attente de confirmation' | 'approuvé' | 'rejeté';

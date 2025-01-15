@@ -38,12 +38,14 @@ export const OvertimeList = () => {
     { id: "3", name: "Pierre Durant" }
   ];
 
-  // Exemple de données
+  // Exemple de données avec les heures de début et de fin
   const overtimeRequests: OvertimeRequest[] = [
     {
       id: 1,
       employeeId: 1,
       date: "2024-03-20",
+      startTime: "18:00",
+      endTime: "20:00",
       hours: 2,
       reason: "Projet urgent",
       status: "En attente de confirmation"
@@ -166,7 +168,9 @@ export const OvertimeList = () => {
                 {employees.find(e => e.id === String(request.employeeId))?.name}
               </p>
               <p className="text-sm text-gray-600">{request.date}</p>
-              <p className="text-sm text-gray-600">{request.hours} heures</p>
+              <p className="text-sm text-gray-600">
+                De {request.startTime} à {request.endTime} ({request.hours} heures)
+              </p>
               <p className="text-sm text-gray-600">{request.reason}</p>
             </div>
             <div className="flex gap-2">
