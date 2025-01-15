@@ -216,14 +216,13 @@ export const EmployeesList = () => {
                   <Power className="h-4 w-4" />
                   {employee.profiles?.active ? 'Désactiver' : 'Activer'}
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(employee.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Supprimer
-                </Button>
+</lov-replace>
+
+<lov-search>
+  Statut: {employee.profiles?.active ? 'Actif' : 'Inactif'}
+</lov-search>
+<lov-replace>
+  {employee.profiles?.active ? 'Actif' : ''}
               </div>
             </div>
           </Card>
