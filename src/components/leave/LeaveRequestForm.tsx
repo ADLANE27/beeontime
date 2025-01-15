@@ -68,6 +68,42 @@ export const LeaveRequestForm = () => {
         return;
       }
 
+      // Check if employee record exists
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      // If no employee record exists, create one
+      if (!employee) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile) {
+          toast.error("Erreur lors de la récupération du profil");
+          return;
+        }
+
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .insert({
+            id: user.id,
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            email: profile.email
+          });
+
+        if (employeeError) {
+          console.error('Error creating employee record:', employeeError);
+          toast.error("Erreur lors de la création du profil employé");
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('leave_requests')
         .insert({
