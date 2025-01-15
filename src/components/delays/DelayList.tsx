@@ -32,6 +32,12 @@ type Delay = Database['public']['Tables']['delays']['Row'] & {
   } | null;
 };
 
+const formatDuration = (duration: unknown): string => {
+  if (!duration || typeof duration !== 'string') return 'N/A';
+  // Postgres interval comes in format like "HH:MM:SS"
+  return duration.split('.')[0]; // Take only the time part
+};
+
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
@@ -236,7 +242,7 @@ export const DelayList = () => {
               <p className="text-sm text-gray-600">
                 Heure prévue: {delay.scheduled_time} - Arrivée: {delay.actual_time}
               </p>
-              <p className="text-sm text-gray-600">Durée: {delay.duration}</p>
+              <p className="text-sm text-gray-600">Durée: {formatDuration(delay.duration)}</p>
               <p className="text-sm text-gray-600">Motif: {delay.reason}</p>
             </div>
             <div className="flex flex-col gap-2">
