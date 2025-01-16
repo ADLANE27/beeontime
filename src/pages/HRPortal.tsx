@@ -29,7 +29,7 @@ const HRPortal = () => {
             }
           }}
           providers={[]}
-          redirectTo={window.location.origin + "/hr-portal"}
+          redirectTo={`${window.location.origin}/hr`}
           localization={{
             variables: {
               sign_in: {
