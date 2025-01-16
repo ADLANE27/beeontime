@@ -224,7 +224,7 @@ export const PayslipManagement = () => {
 
           <div className="space-y-4">
             {employees?.map((employee) => (
-              <div key={employee.id} className="border rounded-lg p-4">
+              <div key={employee.id}>
                 <h3 className="font-semibold mb-2">{`${employee.first_name} ${employee.last_name}`}</h3>
                 <div className="space-y-2">
                   {documents?.filter(doc => doc.employee_id === employee.id && doc.type === 'payslip').map((doc) => (
