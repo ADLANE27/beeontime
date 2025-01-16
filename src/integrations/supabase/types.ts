@@ -184,6 +184,7 @@ export type Database = {
           id: string
           period: string | null
           reason: string | null
+          rejection_reason: string | null
           start_date: string
           status: Database["public"]["Enums"]["request_status"] | null
           type: Database["public"]["Enums"]["leave_type"]
@@ -197,6 +198,7 @@ export type Database = {
           id?: string
           period?: string | null
           reason?: string | null
+          rejection_reason?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["request_status"] | null
           type: Database["public"]["Enums"]["leave_type"]
@@ -210,6 +212,7 @@ export type Database = {
           id?: string
           period?: string | null
           reason?: string | null
+          rejection_reason?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["request_status"] | null
           type?: Database["public"]["Enums"]["leave_type"]

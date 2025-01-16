@@ -16,68 +16,44 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Database } from "@/integrations/supabase/types";
 
-interface LeaveRequest {
-  id: number;
-  employeeId: number;
-  employeeName: string;
-  startDate: Date;
-  endDate: Date;
-  type: string;
-  status: "En attente" | "Acceptée" | "Refusée";
-  dayType: "complete" | "demi";
-  approvalDate?: Date;
-  refusalDate?: Date;
-  daysCount: number;
-}
-
-// Exemple de données (à remplacer par les vraies données)
-const mockLeaveRequests: LeaveRequest[] = [
-  {
-    id: 1,
-    employeeId: 1,
-    employeeName: "Jean Dupont",
-    startDate: new Date(2024, 3, 15),
-    endDate: new Date(2024, 3, 20),
-    type: "Congés payés",
-    status: "En attente",
-    dayType: "complete",
-    daysCount: 5
-  },
-  {
-    id: 2,
-    employeeId: 2,
-    employeeName: "Marie Martin",
-    startDate: new Date(2024, 3, 10),
-    endDate: new Date(2024, 3, 10),
-    type: "RTT",
-    status: "Acceptée",
-    approvalDate: new Date(2024, 3, 5),
-    dayType: "demi",
-    daysCount: 0.5
-  },
-  {
-    id: 3,
-    employeeId: 3,
-    employeeName: "Pierre Durant",
-    startDate: new Date(2024, 3, 1),
-    endDate: new Date(2024, 3, 5),
-    type: "Congés payés",
-    status: "Refusée",
-    refusalDate: new Date(2024, 3, 1),
-    dayType: "complete",
-    daysCount: 5
-  }
-];
+type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
+  employees: {
+    first_name: string;
+    last_name: string;
+  };
+};
 
 const getStatusColor = (status: LeaveRequest["status"]) => {
   switch (status) {
-    case "Acceptée":
+    case "approved":
       return "bg-green-100 text-green-800";
-    case "Refusée":
+    case "rejected":
       return "bg-red-100 text-red-800";
     default:
       return "bg-yellow-100 text-yellow-800";
+  }
+};
+
+const getStatusLabel = (status: LeaveRequest["status"]) => {
+  switch (status) {
+    case "approved":
+      return "Acceptée";
+    case "rejected":
+      return "Refusée";
+    default:
+      return "En attente";
   }
 };
 
@@ -96,33 +72,94 @@ const leaveTypes = [
 ];
 
 export const LeaveRequestsList = () => {
-  const [loadingRequestId, setLoadingRequestId] = useState<number | null>(null);
+  const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const queryClient = useQueryClient();
 
-  const handleApprove = async (requestId: number) => {
-    setLoadingRequestId(requestId);
+  const { data: leaveRequests, isLoading } = useQuery({
+    queryKey: ['leave-requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          employees (
+            first_name,
+            last_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching leave requests:', error);
+        throw error;
+      }
+
+      return data as LeaveRequest[];
+    }
+  });
+
+  const handleApprove = async (request: LeaveRequest) => {
+    setLoadingRequestId(request.id);
     try {
-      // Simulate API call with setTimeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ 
+          status: 'approved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', request.id);
+
+      if (error) throw error;
+      
       toast.success("Demande approuvée avec succès");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
     } catch (error) {
+      console.error('Error approving request:', error);
       toast.error("Une erreur est survenue");
     } finally {
       setLoadingRequestId(null);
     }
   };
 
-  const handleReject = async (requestId: number) => {
-    setLoadingRequestId(requestId);
+  const handleReject = async () => {
+    if (!selectedRequest) return;
+    
+    setLoadingRequestId(selectedRequest.id);
     try {
-      // Simulate API call with setTimeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ 
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+      
       toast.error("Demande refusée");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      setRejectionDialogOpen(false);
+      setRejectionReason("");
+      setSelectedRequest(null);
     } catch (error) {
+      console.error('Error rejecting request:', error);
       toast.error("Une erreur est survenue");
     } finally {
       setLoadingRequestId(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Card className="p-6">
@@ -138,9 +175,14 @@ export const LeaveRequestsList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les employés</SelectItem>
-                <SelectItem value="1">Jean Dupont</SelectItem>
-                <SelectItem value="2">Marie Martin</SelectItem>
-                <SelectItem value="3">Pierre Durant</SelectItem>
+                {leaveRequests?.map((request) => (
+                  <SelectItem 
+                    key={request.employee_id} 
+                    value={request.employee_id}
+                  >
+                    {request.employees.first_name} {request.employees.last_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -179,52 +221,47 @@ export const LeaveRequestsList = () => {
           {["all", "pending", "approved", "rejected"].map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="space-y-4">
-                {mockLeaveRequests
-                  .filter((request) => {
+                {leaveRequests
+                  ?.filter((request) => {
                     if (tab === "all") return true;
-                    switch (tab) {
-                      case "pending":
-                        return request.status === "En attente";
-                      case "approved":
-                        return request.status === "Acceptée";
-                      case "rejected":
-                        return request.status === "Refusée";
-                      default:
-                        return true;
-                    }
+                    return request.status === tab;
                   })
                   .map((request) => (
                     <Card key={request.id} className="p-4">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="space-y-1">
-                          <h3 className="font-semibold">{request.employeeName}</h3>
+                          <h3 className="font-semibold">
+                            {request.employees.first_name} {request.employees.last_name}
+                          </h3>
                           <p className="text-sm text-gray-600">
-                            {request.type} - {request.daysCount} jour{request.daysCount > 1 ? "s" : ""}
+                            {leaveTypes.find(t => t.value === request.type)?.label}
                           </p>
                           <p className="text-sm">
-                            Du {format(request.startDate, "dd MMMM yyyy", { locale: fr })} au{" "}
-                            {format(request.endDate, "dd MMMM yyyy", { locale: fr })}
+                            Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })} au{" "}
+                            {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {request.dayType === "complete" ? "Journée complète" : "Demi-journée"}
+                            {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                            {request.period && ` (${request.period === "morning" ? "Matin" : "Après-midi"})`}
                           </p>
-                          {(request.approvalDate || request.refusalDate) && (
+                          {request.reason && (
                             <p className="text-sm text-gray-600">
-                              {request.status === "Acceptée"
-                                ? `Acceptée le ${format(request.approvalDate!, "dd/MM/yyyy")}`
-                                : request.status === "Refusée"
-                                ? `Refusée le ${format(request.refusalDate!, "dd/MM/yyyy")}`
-                                : null}
+                              Motif : {request.reason}
+                            </p>
+                          )}
+                          {request.rejection_reason && (
+                            <p className="text-sm text-red-600">
+                              Motif du refus : {request.rejection_reason}
                             </p>
                           )}
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2 items-end">
-                          {request.status === "En attente" && (
+                          {request.status === "pending" && (
                             <>
                               <Button
                                 variant="outline"
                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => handleApprove(request.id)}
+                                onClick={() => handleApprove(request)}
                                 disabled={loadingRequestId === request.id}
                               >
                                 {loadingRequestId === request.id ? (
@@ -235,7 +272,10 @@ export const LeaveRequestsList = () => {
                               <Button
                                 variant="outline"
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleReject(request.id)}
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setRejectionDialogOpen(true);
+                                }}
                                 disabled={loadingRequestId === request.id}
                               >
                                 {loadingRequestId === request.id ? (
@@ -246,7 +286,7 @@ export const LeaveRequestsList = () => {
                             </>
                           )}
                           <Badge className={getStatusColor(request.status)}>
-                            {request.status}
+                            {getStatusLabel(request.status)}
                           </Badge>
                         </div>
                       </div>
@@ -257,6 +297,43 @@ export const LeaveRequestsList = () => {
           ))}
         </Tabs>
       </div>
+
+      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Motif du refus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Veuillez indiquer le motif du refus</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Saisissez le motif du refus..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectionDialogOpen(false);
+                setRejectionReason("");
+                setSelectedRequest(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!rejectionReason.trim()}
+            >
+              Confirmer le refus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
