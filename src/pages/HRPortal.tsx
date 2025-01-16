@@ -118,7 +118,7 @@ const HRPortal = () => {
             },
             className: {
               button: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important',
-              loadingButton: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important'
+              loader: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important'
             }
           }}
           providers={[]}
