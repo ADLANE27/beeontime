@@ -12,18 +12,14 @@ const Portal = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Vérifier le rôle de l'utilisateur
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.role === 'employee') {
           navigate('/employee');
-        } else {
-          // Si ce n'est pas un employé, rediriger vers la page d'accueil
-          navigate('/');
         }
       }
     };
@@ -36,12 +32,10 @@ const Portal = () => {
           .from('profiles')
           .select('role')
           .eq('id', session?.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.role === 'employee') {
           navigate('/employee');
-        } else {
-          navigate('/');
         }
       }
     });
