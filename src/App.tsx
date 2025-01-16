@@ -5,12 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
 import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
-import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +69,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
 
   if (requiredRole && userRole !== requiredRole) {
@@ -88,8 +86,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Navigate to="/portal" replace />} />
           <Route path="/portal" element={<Portal />} />
           <Route path="/hr-portal" element={<HRPortal />} />
           <Route 

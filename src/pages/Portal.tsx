@@ -1,31 +1,128 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
 const Portal = () => {
+  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+            setErrorMessage("Erreur lors de la vérification des autorisations.");
+            return;
+          }
+
+          if (profile?.role === "employee") {
+            navigate("/employee");
+          } else {
+            setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN") {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session?.user?.id)
+          .single();
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          setErrorMessage("Erreur lors de la vérification des autorisations.");
+          return;
+        }
+
+        if (profile?.role === "employee") {
+          navigate("/employee");
+        } else {
+          setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
+          await supabase.auth.signOut();
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md space-y-8 p-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Portail AFTraduction
+            Portail Employé AFTraduction
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Choisissez votre portail de connexion
+            Connectez-vous avec vos identifiants
           </p>
         </div>
-        <div className="flex flex-col space-y-4">
-          <Link to="/hr-portal">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700">
-              Accès RH
-            </Button>
-          </Link>
-          <Link to="/auth">
-            <Button className="w-full bg-green-600 hover:bg-green-700">
-              Accès Employé
-            </Button>
-          </Link>
-        </div>
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        <SupabaseAuth
+          supabaseClient={supabase}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#2563eb',
+                  brandAccent: '#1d4ed8'
+                }
+              }
+            }
+          }}
+          providers={[]}
+          view="sign_in"
+          showLinks={false}
+          redirectTo={window.location.origin + "/portal"}
+          localization={{
+            variables: {
+              sign_in: {
+                email_label: "Email",
+                password_label: "Mot de passe",
+                button_label: "Se connecter",
+                loading_button_label: "Connexion en cours..."
+              }
+            }
+          }}
+        />
       </Card>
     </div>
   );
