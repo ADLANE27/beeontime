@@ -97,7 +97,9 @@ export const AdminPlanning = () => {
 
   const getDaysToShow = () => {
     const days: Date[] = [];
-    for (let i = 1; i <= daysInMonth; i++) {
+    const lastDayOfMonth = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth() + 1, 0);
+    
+    for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
       const date = new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i);
       days.push(date);
     }
