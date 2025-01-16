@@ -5,16 +5,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { AuthError } from "@supabase/supabase-js";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
+  const getErrorMessage = (error: AuthError) => {
+    console.error("Auth error details:", error);
+    
+    if (error.message.includes("invalid_credentials")) {
+      return "Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.";
+    }
+    
+    return "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setErrorMessage(getErrorMessage(sessionError));
+          setIsLoading(false);
+          return;
+        }
+
         if (session?.user) {
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
@@ -23,8 +41,9 @@ const HRPortal = () => {
             .single();
 
           if (profileError) {
-            console.error("Error fetching profile:", profileError);
-            setErrorMessage("Erreur lors de la vérification des autorisations.");
+            console.error("Profile error:", profileError);
+            setErrorMessage("Erreur lors de la vérification du profil.");
+            setIsLoading(false);
             return;
           }
 
@@ -35,10 +54,10 @@ const HRPortal = () => {
             await supabase.auth.signOut();
           }
         }
+        setIsLoading(false);
       } catch (error) {
         console.error("Session check error:", error);
         setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
-      } finally {
         setIsLoading(false);
       }
     };
@@ -46,16 +65,18 @@ const HRPortal = () => {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN") {
+      console.log("Auth state change:", event, session);
+      
+      if (event === "SIGNED_IN" && session) {
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", session?.user?.id)
+          .eq("id", session.user.id)
           .single();
 
         if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          setErrorMessage("Erreur lors de la vérification des autorisations.");
+          console.error("Profile error:", profileError);
+          setErrorMessage("Erreur lors de la vérification du profil.");
           return;
         }
 

@@ -29,6 +29,7 @@ const Portal = () => {
         if (sessionError) {
           console.error("Session error:", sessionError);
           setErrorMessage(getErrorMessage(sessionError));
+          setIsLoading(false);
           return;
         }
 
@@ -42,6 +43,7 @@ const Portal = () => {
           if (profileError) {
             console.error("Profile error:", profileError);
             setErrorMessage("Erreur lors de la vérification du profil.");
+            setIsLoading(false);
             return;
           }
 
@@ -52,10 +54,10 @@ const Portal = () => {
             await supabase.auth.signOut();
           }
         }
+        setIsLoading(false);
       } catch (error) {
         console.error("Session check error:", error);
         setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
-      } finally {
         setIsLoading(false);
       }
     };
