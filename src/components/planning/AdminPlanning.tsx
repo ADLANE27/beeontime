@@ -5,26 +5,92 @@ import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { CompanyStats } from "@/components/stats/CompanyStats";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Employee {
-  id: number;
-  name: string;
-  poste: string;
+interface TimeRecord {
+  morning_in: string | null;
+  lunch_out: string | null;
+  lunch_in: string | null;
+  evening_out: string | null;
 }
 
-const employees: Employee[] = [
-  { id: 1, name: "Adlane DEBASSI", poste: "Traducteur" }
-];
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  position: string;
+}
+
+interface DailyRecord {
+  [key: string]: TimeRecord;
+}
+
+interface EmployeeRecords {
+  [key: string]: DailyRecord;
+}
 
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [timeRecords, setTimeRecords] = useState<EmployeeRecords>({});
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, position');
+
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+        return;
+      }
+
+      setEmployees(employeesData || []);
+
+      // Fetch time records for the current month
+      const startDate = format(firstDayOfMonth, 'yyyy-MM-dd');
+      const endDate = format(
+        new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth() + 1, 0),
+        'yyyy-MM-dd'
+      );
+
+      const { data: recordsData, error: recordsError } = await supabase
+        .from('time_records')
+        .select('*')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (recordsError) {
+        console.error('Error fetching time records:', recordsError);
+        return;
+      }
+
+      // Organize records by employee and date
+      const organizedRecords: EmployeeRecords = {};
+      recordsData?.forEach(record => {
+        if (!organizedRecords[record.employee_id]) {
+          organizedRecords[record.employee_id] = {};
+        }
+        organizedRecords[record.employee_id][record.date] = {
+          morning_in: record.morning_in,
+          lunch_out: record.lunch_out,
+          lunch_in: record.lunch_in,
+          evening_out: record.evening_out
+        };
+      });
+
+      setTimeRecords(organizedRecords);
+    };
+
+    fetchEmployees();
+  }, [currentDate]);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
@@ -33,6 +99,16 @@ export const AdminPlanning = () => {
     return Array.from({ length: daysInMonth }, (_, i) => 
       new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1)
     );
+  };
+
+  const formatTimeRecord = (record?: TimeRecord) => {
+    if (!record) return '';
+    const times = [];
+    if (record.morning_in) times.push(`A:${record.morning_in}`);
+    if (record.lunch_out) times.push(`P↑:${record.lunch_out}`);
+    if (record.lunch_in) times.push(`P↓:${record.lunch_in}`);
+    if (record.evening_out) times.push(`D:${record.evening_out}`);
+    return times.join('\n');
   };
 
   return (
@@ -69,7 +145,7 @@ export const AdminPlanning = () => {
                         <TableHead 
                           key={i} 
                           className={cn(
-                            "text-center w-[40px] p-2",
+                            "text-center min-w-[100px] p-2 whitespace-pre-line",
                             {
                               "bg-blue-50": isToday(date),
                               "bg-gray-100": isWeekend(date)
@@ -87,22 +163,26 @@ export const AdminPlanning = () => {
                     {employees.map((employee) => (
                       <TableRow key={employee.id}>
                         <TableCell className="sticky left-0 bg-white font-medium w-[200px]">
-                          {employee.name}
+                          {`${employee.first_name} ${employee.last_name}`}
                         </TableCell>
-                        {getDaysToShow().map((date, i) => (
-                          <TableCell
-                            key={i}
-                            className={cn(
-                              "text-center p-2 w-[40px]",
-                              {
-                                "bg-blue-50": isToday(date),
-                                "bg-gray-100": isWeekend(date)
-                              }
-                            )}
-                          >
-                            {/* Empty cell - time tracking will be handled in employee dashboard */}
-                          </TableCell>
-                        ))}
+                        {getDaysToShow().map((date, i) => {
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const record = timeRecords[employee.id]?.[dateStr];
+                          return (
+                            <TableCell
+                              key={i}
+                              className={cn(
+                                "text-center p-2 min-w-[100px] whitespace-pre-line text-xs",
+                                {
+                                  "bg-blue-50": isToday(date),
+                                  "bg-gray-100": isWeekend(date)
+                                }
+                              )}
+                            >
+                              {formatTimeRecord(record)}
+                            </TableCell>
+                          );
+                        })}
                       </TableRow>
                     ))}
                   </TableBody>

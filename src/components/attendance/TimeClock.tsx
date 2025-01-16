@@ -9,8 +9,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const TimeClock = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [hasCheckedIn, setHasCheckedIn] = useState(false);
-  const [checkInId, setCheckInId] = useState<string | null>(null);
+  const [timeRecord, setTimeRecord] = useState<{
+    id: string | null;
+    morning_in: string | null;
+    lunch_out: string | null;
+    lunch_in: string | null;
+    evening_out: string | null;
+  }>({
+    id: null,
+    morning_in: null,
+    lunch_out: null,
+    lunch_in: null,
+    evening_out: null
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -18,32 +29,56 @@ export const TimeClock = () => {
     }, 1000);
 
     // Check if employee has already checked in today
-    const checkTodayAttendance = async () => {
+    const checkTodayTimeRecord = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: attendance } = await supabase
-        .from("delays")
-        .select("id, actual_time")
+      const { data: record } = await supabase
+        .from("time_records")
+        .select("*")
         .eq("employee_id", user.id)
         .eq("date", today)
         .maybeSingle();
 
-      if (attendance) {
-        setHasCheckedIn(true);
-        setCheckInId(attendance.id);
+      if (record) {
+        setTimeRecord({
+          id: record.id,
+          morning_in: record.morning_in,
+          lunch_out: record.lunch_out,
+          lunch_in: record.lunch_in,
+          evening_out: record.evening_out
+        });
       }
     };
 
-    checkTodayAttendance();
+    checkTodayTimeRecord();
     return () => clearInterval(timer);
   }, []);
 
   const formattedDate = format(currentTime, "EEEE d MMMM yyyy", { locale: fr });
   const formattedTime = format(currentTime, "HH:mm:ss");
 
-  const handleCheckIn = async () => {
+  const getNextAction = () => {
+    if (!timeRecord.morning_in) return "morning_in";
+    if (!timeRecord.lunch_out) return "lunch_out";
+    if (!timeRecord.lunch_in) return "lunch_in";
+    if (!timeRecord.evening_out) return "evening_out";
+    return null;
+  };
+
+  const getButtonLabel = () => {
+    const action = getNextAction();
+    switch (action) {
+      case "morning_in": return "Pointer arrivée";
+      case "lunch_out": return "Pointer départ pause";
+      case "lunch_in": return "Pointer retour pause";
+      case "evening_out": return "Pointer départ";
+      default: return "Journée terminée";
+    }
+  };
+
+  const handleTimeRecord = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -51,58 +86,72 @@ export const TimeClock = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("delays")
-        .insert({
-          employee_id: user.id,
-          date: format(currentTime, "yyyy-MM-dd"),
-          scheduled_time: "09:00",
-          actual_time: format(currentTime, "HH:mm"),
-          duration: "0",
-          reason: "Pointage arrivée"
-        })
-        .select()
-        .maybeSingle();
+      const currentTimeStr = format(currentTime, "HH:mm");
+      const today = format(currentTime, "yyyy-MM-dd");
+      const nextAction = getNextAction();
 
-      if (error) throw error;
-      if (!data) {
-        toast.error("Erreur lors de l'enregistrement du pointage");
+      if (!nextAction) {
+        toast.error("Tous les pointages ont déjà été effectués aujourd'hui");
         return;
       }
 
-      setCheckInId(data.id);
-      setHasCheckedIn(true);
-      toast.success("Arrivée enregistrée avec succès");
+      if (!timeRecord.id) {
+        // First check-in of the day
+        const { data, error } = await supabase
+          .from("time_records")
+          .insert({
+            employee_id: user.id,
+            date: today,
+            [nextAction]: currentTimeStr
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setTimeRecord({
+          id: data.id,
+          morning_in: data.morning_in,
+          lunch_out: data.lunch_out,
+          lunch_in: data.lunch_in,
+          evening_out: data.evening_out
+        });
+
+        // If it's morning check-in, also record in delays table
+        if (nextAction === "morning_in") {
+          await supabase
+            .from("delays")
+            .insert({
+              employee_id: user.id,
+              date: today,
+              scheduled_time: "09:00",
+              actual_time: currentTimeStr,
+              duration: "0",
+              reason: "Pointage arrivée"
+            });
+        }
+      } else {
+        // Update existing record
+        const { data, error } = await supabase
+          .from("time_records")
+          .update({ [nextAction]: currentTimeStr })
+          .eq("id", timeRecord.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setTimeRecord({
+          id: data.id,
+          morning_in: data.morning_in,
+          lunch_out: data.lunch_out,
+          lunch_in: data.lunch_in,
+          evening_out: data.evening_out
+        });
+      }
+
+      toast.success("Pointage enregistré avec succès");
     } catch (error) {
       console.error("Erreur lors du pointage:", error);
       toast.error("Erreur lors de l'enregistrement du pointage");
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!checkInId) {
-      toast.error("Aucun pointage d'entrée trouvé");
-      return;
-    }
-
-    try {
-      const checkOutTime = format(currentTime, "HH:mm");
-      const { error } = await supabase
-        .from("delays")
-        .update({
-          reason: `Pointage arrivée-sortie (${checkOutTime})`,
-          status: 'approved'
-        })
-        .eq('id', checkInId);
-
-      if (error) throw error;
-
-      setHasCheckedIn(false);
-      setCheckInId(null);
-      toast.success("Départ enregistré avec succès");
-    } catch (error) {
-      console.error("Erreur lors du pointage de sortie:", error);
-      toast.error("Erreur lors de l'enregistrement du pointage de sortie");
     }
   };
 
@@ -115,24 +164,38 @@ export const TimeClock = () => {
         </div>
         
         <div className="flex gap-4">
-          {!hasCheckedIn ? (
+          {getNextAction() ? (
             <Button
               size="lg"
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleCheckIn}
+              className={getNextAction() === "evening_out" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+              onClick={handleTimeRecord}
             >
-              <ArrowRight className="mr-2 h-5 w-5" />
-              Pointer arrivée
+              {getNextAction() === "evening_out" ? (
+                <ArrowLeft className="mr-2 h-5 w-5" />
+              ) : (
+                <ArrowRight className="mr-2 h-5 w-5" />
+              )}
+              {getButtonLabel()}
             </Button>
           ) : (
-            <Button
-              size="lg"
-              className="bg-red-600 hover:bg-red-700"
-              onClick={handleCheckOut}
-            >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              Pointer sortie
+            <Button size="lg" disabled>
+              Journée terminée
             </Button>
+          )}
+        </div>
+
+        <div className="text-sm text-gray-500 space-y-1">
+          {timeRecord.morning_in && (
+            <p>Arrivée : {timeRecord.morning_in}</p>
+          )}
+          {timeRecord.lunch_out && (
+            <p>Départ pause : {timeRecord.lunch_out}</p>
+          )}
+          {timeRecord.lunch_in && (
+            <p>Retour pause : {timeRecord.lunch_in}</p>
+          )}
+          {timeRecord.evening_out && (
+            <p>Départ : {timeRecord.evening_out}</p>
           )}
         </div>
       </div>

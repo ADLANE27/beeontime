@@ -308,6 +308,50 @@ export type Database = {
         }
         Relationships: []
       }
+      time_records: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          evening_out: string | null
+          id: string
+          lunch_in: string | null
+          lunch_out: string | null
+          morning_in: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          evening_out?: string | null
+          id?: string
+          lunch_in?: string | null
+          lunch_out?: string | null
+          morning_in?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          evening_out?: string | null
+          id?: string
+          lunch_in?: string | null
+          lunch_out?: string | null
+          morning_in?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
