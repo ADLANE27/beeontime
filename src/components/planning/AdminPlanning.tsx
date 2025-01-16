@@ -96,9 +96,11 @@ export const AdminPlanning = () => {
   const previousMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
   const getDaysToShow = () => {
-    return Array.from({ length: daysInMonth }, (_, i) => 
-      new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i + 1)
-    );
+    const days = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), i));
+    }
+    return days;
   };
 
   const formatTimeRecord = (record?: TimeRecord) => {
