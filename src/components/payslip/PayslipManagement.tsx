@@ -223,7 +223,11 @@ export const PayslipManagement = () => {
           </div>
 
           <div className="space-y-4">
-            {employees?.map((employee) => (
+            {employees?.filter(employee => 
+              documents?.some(doc => 
+                doc.employee_id === employee.id && doc.type === 'payslip'
+              )
+            ).map((employee) => (
               <div key={employee.id}>
                 <h3 className="font-semibold mb-2">{`${employee.first_name} ${employee.last_name}`}</h3>
                 <div className="space-y-2">
