@@ -10,20 +10,25 @@ import { AuthError } from "@supabase/supabase-js";
 const HRPortal = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const getErrorMessage = (error: AuthError) => {
     console.error("Auth error details:", error);
     
-    if (error.message.includes("invalid_credentials")) {
-      return "Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.";
+    switch (error.message) {
+      case "Invalid login credentials":
+        return "Email ou mot de passe incorrect.";
+      case "Email not confirmed":
+        return "Veuillez vérifier votre email avant de vous connecter.";
+      default:
+        return "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
     }
-    
-    return "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
   };
 
   useEffect(() => {
     const checkSession = async () => {
       try {
+        setIsLoading(true);
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -55,6 +60,8 @@ const HRPortal = () => {
       } catch (error) {
         console.error("Session check error:", error);
         setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -64,29 +71,44 @@ const HRPortal = () => {
       console.log("Auth state change:", event, session);
       
       if (event === "SIGNED_IN" && session) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
 
-        if (profileError) {
-          console.error("Profile error:", profileError);
-          setErrorMessage("Erreur lors de la vérification du profil.");
-          return;
-        }
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setErrorMessage("Erreur lors de la vérification du profil.");
+            return;
+          }
 
-        if (profile?.role === "hr") {
-          navigate("/hr");
-        } else {
-          setErrorMessage("Accès non autorisé. Ce portail est réservé aux RH.");
-          await supabase.auth.signOut();
+          if (profile?.role === "hr") {
+            navigate("/hr");
+          } else {
+            setErrorMessage("Accès non autorisé. Ce portail est réservé aux RH.");
+            await supabase.auth.signOut();
+          }
+        } catch (error) {
+          console.error("Profile check error:", error);
+          setErrorMessage("Une erreur est survenue lors de la vérification du profil.");
         }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
