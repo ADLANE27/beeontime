@@ -20,13 +20,30 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setIsAuthenticated(false);
+          setUserRole(null);
+          setIsLoading(false);
+          return;
+        }
+
         if (session?.user) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", session.user.id)
             .single();
+
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setIsAuthenticated(false);
+            setUserRole(null);
+            setIsLoading(false);
+            return;
+          }
 
           setIsAuthenticated(true);
           setUserRole(profile?.role || null);
@@ -46,12 +63,21 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session);
+      
       if (event === "SIGNED_IN" && session) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", session.user.id)
           .single();
+
+        if (profileError) {
+          console.error("Profile error:", profileError);
+          setIsAuthenticated(false);
+          setUserRole(null);
+          return;
+        }
 
         setIsAuthenticated(true);
         setUserRole(profile?.role || null);
@@ -65,7 +91,9 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   }, []);
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <p>Chargement...</p>
+    </div>;
   }
 
   if (!isAuthenticated) {
@@ -90,7 +118,7 @@ const App = () => (
           <Route path="/portal" element={<Portal />} />
           <Route path="/hr-portal" element={<HRPortal />} />
           <Route 
-            path="/employee" 
+            path="/employee/*" 
             element={
               <ProtectedRoute requiredRole="employee">
                 <EmployeeDashboard />
@@ -98,13 +126,14 @@ const App = () => (
             } 
           />
           <Route 
-            path="/hr" 
+            path="/hr/*" 
             element={
               <ProtectedRoute requiredRole="hr">
                 <HRDashboard />
               </ProtectedRoute>
             } 
           />
+          <Route path="*" element={<Navigate to="/portal" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
