@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
@@ -7,16 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import { CompanyStats } from "@/components/stats/CompanyStats";
 import { supabase } from "@/integrations/supabase/client";
+import { LeaveTypeLegend } from "./LeaveTypeLegend";
+import { PlanningCell } from "./PlanningCell";
+import { Database } from "@/integrations/supabase/types";
 
-interface TimeRecord {
-  morning_in: string | null;
-  lunch_out: string | null;
-  lunch_in: string | null;
-  evening_out: string | null;
-}
+type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 
 interface Employee {
   id: string;
@@ -25,24 +22,16 @@ interface Employee {
   position: string;
 }
 
-interface DailyRecord {
-  [key: string]: TimeRecord;
-}
-
-interface EmployeeRecords {
-  [key: string]: DailyRecord;
-}
-
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [timeRecords, setTimeRecords] = useState<EmployeeRecords>({});
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
 
-  const daysInMonth = getDaysInMonth(currentDate);
   const firstDayOfMonth = startOfMonth(currentDate);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
+      // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select('id, first_name, last_name, position');
@@ -54,42 +43,29 @@ export const AdminPlanning = () => {
 
       setEmployees(employeesData || []);
 
-      // Fetch time records for the current month
+      // Fetch approved leave requests for the current month
       const startDate = format(firstDayOfMonth, 'yyyy-MM-dd');
       const endDate = format(
         new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth() + 1, 0),
         'yyyy-MM-dd'
       );
 
-      const { data: recordsData, error: recordsError } = await supabase
-        .from('time_records')
+      const { data: leaveData, error: leaveError } = await supabase
+        .from('leave_requests')
         .select('*')
-        .gte('date', startDate)
-        .lte('date', endDate);
+        .eq('status', 'approved')
+        .gte('start_date', startDate)
+        .lte('end_date', endDate);
 
-      if (recordsError) {
-        console.error('Error fetching time records:', recordsError);
+      if (leaveError) {
+        console.error('Error fetching leave requests:', leaveError);
         return;
       }
 
-      // Organize records by employee and date
-      const organizedRecords: EmployeeRecords = {};
-      recordsData?.forEach(record => {
-        if (!organizedRecords[record.employee_id]) {
-          organizedRecords[record.employee_id] = {};
-        }
-        organizedRecords[record.employee_id][record.date] = {
-          morning_in: record.morning_in,
-          lunch_out: record.lunch_out,
-          lunch_in: record.lunch_in,
-          evening_out: record.evening_out
-        };
-      });
-
-      setTimeRecords(organizedRecords);
+      setLeaveRequests(leaveData || []);
     };
 
-    fetchEmployees();
+    fetchData();
   }, [currentDate]);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -106,14 +82,15 @@ export const AdminPlanning = () => {
     return days;
   };
 
-  const formatTimeRecord = (record?: TimeRecord) => {
-    if (!record) return '';
-    const times = [];
-    if (record.morning_in) times.push(`A:${record.morning_in}`);
-    if (record.lunch_out) times.push(`P↑:${record.lunch_out}`);
-    if (record.lunch_in) times.push(`P↓:${record.lunch_in}`);
-    if (record.evening_out) times.push(`D:${record.evening_out}`);
-    return times.join('\n');
+  const getLeaveRequestForDay = (employeeId: string, date: Date) => {
+    return leaveRequests.find(request => {
+      const currentDate = format(date, 'yyyy-MM-dd');
+      return (
+        request.employee_id === employeeId &&
+        currentDate >= request.start_date &&
+        currentDate <= request.end_date
+      );
+    });
   };
 
   return (
@@ -139,6 +116,8 @@ export const AdminPlanning = () => {
                 </Button>
               </div>
             </div>
+
+            <LeaveTypeLegend />
             
             <ScrollArea className="h-[500px] w-full" orientation="both">
               <div className="min-w-max border rounded-lg">
@@ -149,13 +128,7 @@ export const AdminPlanning = () => {
                       {getDaysToShow().map((date, i) => (
                         <TableHead 
                           key={i} 
-                          className={cn(
-                            "text-center min-w-[100px] p-2 whitespace-pre-line",
-                            {
-                              "bg-blue-50": isToday(date),
-                              "bg-gray-100": isWeekend(date)
-                            }
-                          )}
+                          className="text-center min-w-[100px] p-2 whitespace-pre-line"
                         >
                           <div className="text-xs font-medium">
                             {format(date, 'dd')}
@@ -167,27 +140,18 @@ export const AdminPlanning = () => {
                   <TableBody>
                     {employees.map((employee) => (
                       <TableRow key={employee.id}>
-                        <TableCell className="sticky left-0 bg-white font-medium w-[200px]">
+                        <TableHead className="sticky left-0 bg-white font-medium w-[200px]">
                           {`${employee.first_name} ${employee.last_name}`}
-                        </TableCell>
-                        {getDaysToShow().map((date, i) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          const record = timeRecords[employee.id]?.[dateStr];
-                          return (
-                            <TableCell
-                              key={i}
-                              className={cn(
-                                "text-center p-2 min-w-[100px] whitespace-pre-line text-xs",
-                                {
-                                  "bg-blue-50": isToday(date),
-                                  "bg-gray-100": isWeekend(date)
-                                }
-                              )}
-                            >
-                              {formatTimeRecord(record)}
-                            </TableCell>
-                          );
-                        })}
+                        </TableHead>
+                        {getDaysToShow().map((date, i) => (
+                          <PlanningCell
+                            key={i}
+                            date={date}
+                            leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                            isWeekend={isWeekend(date)}
+                            isToday={isToday(date)}
+                          />
+                        ))}
                       </TableRow>
                     ))}
                   </TableBody>
