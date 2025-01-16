@@ -1,16 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
-import { Payslip } from "@/types/hr";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const PayslipList = () => {
-  const { data: payslips = [], isLoading } = useQuery({
+  const { data: payslips = [], isLoading: isLoadingPayslips } = useQuery({
     queryKey: ['payslips'],
     queryFn: async () => {
+      console.log('Fetching payslips...');
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
@@ -25,6 +25,27 @@ export const PayslipList = () => {
         throw error;
       }
 
+      console.log('Payslips fetched:', data);
+      return data || [];
+    }
+  });
+
+  const { data: importantDocuments = [], isLoading: isLoadingDocs } = useQuery({
+    queryKey: ['important_documents'],
+    queryFn: async () => {
+      console.log('Fetching important documents...');
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .is('employee_id', null)
+        .eq('type', 'important_document');
+
+      if (error) {
+        console.error('Error fetching important documents:', error);
+        throw error;
+      }
+
+      console.log('Important documents fetched:', data);
       return data || [];
     }
   });
@@ -58,13 +79,11 @@ export const PayslipList = () => {
     }
   };
 
-  const importantDocuments = [];
-
-  if (isLoading) {
+  if (isLoadingPayslips || isLoadingDocs) {
     return (
       <Card className="p-6">
         <div className="flex items-center justify-center py-8">
-          <p className="text-muted-foreground">Chargement des bulletins de paie...</p>
+          <p className="text-muted-foreground">Chargement des documents...</p>
         </div>
       </Card>
     );
@@ -121,7 +140,7 @@ export const PayslipList = () => {
                 Aucun document important disponible
               </p>
             ) : (
-              importantDocuments.map((doc: any) => (
+              importantDocuments.map((doc) => (
                 <div
                   key={doc.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -130,9 +149,6 @@ export const PayslipList = () => {
                     <FileText className="h-6 w-6 text-muted-foreground" />
                     <div>
                       <p className="font-semibold">{doc.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {doc.type} - {doc.size}
-                      </p>
                     </div>
                   </div>
                   <Button 
