@@ -63,7 +63,6 @@ export const EmployeeLeaveList = () => {
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['employee-leave-requests'],
     queryFn: async () => {
-      console.log('Fetching leave requests...');
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -71,7 +70,7 @@ export const EmployeeLeaveList = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('Authenticated user ID:', user.id);
+      console.log('Fetching leave requests for user:', user.id);
 
       const { data, error } = await supabase
         .from('leave_requests')
@@ -84,21 +83,17 @@ export const EmployeeLeaveList = () => {
         throw error;
       }
 
-      console.log('Leave requests fetched successfully:', data);
+      console.log('Leave requests fetched:', data);
       return data;
     },
-    retry: 1,
-    staleTime: 0,
-    gcTime: 0
+    retry: false
   });
 
   const cancelMutation = useMutation({
     mutationFn: async (leaveId: string) => {
-      console.log('Canceling leave request:', leaveId);
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.error('No authenticated user found during cancellation');
         throw new Error('User not authenticated');
       }
 
@@ -106,21 +101,17 @@ export const EmployeeLeaveList = () => {
         .from('leave_requests')
         .delete()
         .eq('id', leaveId)
-        .eq('employee_id', user.id)  // Added security check
+        .eq('employee_id', user.id)
         .eq('status', 'pending');
 
       if (error) {
-        console.error('Error canceling leave request:', error);
         throw error;
       }
-      console.log('Leave request canceled successfully');
     },
     onSuccess: () => {
       toast.success("Demande de congé annulée avec succès");
       queryClient.invalidateQueries({ 
-        queryKey: ['employee-leave-requests'],
-        exact: true,
-        refetchType: 'active'
+        queryKey: ['employee-leave-requests']
       });
     },
     onError: (error) => {
