@@ -5,17 +5,29 @@ import { Download, FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
-import { Employee, Payslip } from "@/types/hr";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const PayslipManagement = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
 
-  // Mock data - In a real app, this would come from your backend
-  const employees: Employee[] = [
-    { id: 1, name: "Jean Dupont", poste: "Traducteur", department: "Traduction" },
-    { id: 2, name: "Marie Martin", poste: "Traductrice", department: "Traduction" }
-  ];
+  // Fetch employees from Supabase
+  const { data: employees, isLoading } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name');
+      
+      if (error) {
+        console.error('Error fetching employees:', error);
+        throw error;
+      }
+      
+      return data;
+    }
+  });
 
   const importantDocuments = [
     {
@@ -88,9 +100,9 @@ export const PayslipManagement = () => {
                 onChange={(e) => setSelectedEmployee(e.target.value)}
               >
                 <option value="">Sélectionner un employé</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.name}>
-                    {employee.name}
+                {employees?.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {`${employee.first_name} ${employee.last_name}`}
                   </option>
                 ))}
               </select>
@@ -108,9 +120,9 @@ export const PayslipManagement = () => {
           </div>
 
           <div className="space-y-4">
-            {employees.map((employee) => (
+            {employees?.map((employee) => (
               <div key={employee.id} className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">{employee.name}</h3>
+                <h3 className="font-semibold mb-2">{`${employee.first_name} ${employee.last_name}`}</h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2 hover:bg-accent/50 rounded-lg px-2">
                     <div className="flex items-center">
