@@ -25,6 +25,7 @@ const HRPortal = () => {
     const checkSession = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
         if (sessionError) {
           console.error("Session error:", sessionError);
           setErrorMessage(getErrorMessage(sessionError));
@@ -114,6 +115,10 @@ const HRPortal = () => {
                   brandAccent: '#1d4ed8'
                 }
               }
+            },
+            className: {
+              button: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important',
+              loadingButton: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important'
             }
           }}
           providers={[]}
