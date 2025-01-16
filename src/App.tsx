@@ -21,30 +21,14 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          setIsAuthenticated(false);
-          setUserRole(null);
-          setIsLoading(false);
-          return;
-        }
-
         if (session?.user) {
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", session.user.id)
             .single();
-
-          if (profileError) {
-            console.error("Profile error:", profileError);
-            setIsAuthenticated(false);
-            setUserRole(null);
-            setIsLoading(false);
-            return;
-          }
 
           setIsAuthenticated(true);
           setUserRole(profile?.role || null);
@@ -67,18 +51,11 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       console.log("Auth state change:", event, session);
       
       if (event === "SIGNED_IN" && session) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", session.user.id)
           .single();
-
-        if (profileError) {
-          console.error("Profile error:", profileError);
-          setIsAuthenticated(false);
-          setUserRole(null);
-          return;
-        }
 
         setIsAuthenticated(true);
         setUserRole(profile?.role || null);
