@@ -10,6 +10,7 @@ import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -19,29 +20,50 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const [userRole, setUserRole] = useState<"hr" | "employee" | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw sessionError;
+        }
+
         if (session?.user) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", session.user.id)
             .single();
 
-          setIsAuthenticated(true);
-          setUserRole(profile?.role || null);
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            throw profileError;
+          }
+
+          if (mounted) {
+            setIsAuthenticated(true);
+            setUserRole(profile?.role || null);
+          }
         } else {
-          setIsAuthenticated(false);
-          setUserRole(null);
+          if (mounted) {
+            setIsAuthenticated(false);
+            setUserRole(null);
+          }
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        setIsAuthenticated(false);
-        setUserRole(null);
+        toast.error("Erreur lors de la vérification de l'authentification");
+        if (mounted) {
+          setIsAuthenticated(false);
+          setUserRole(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -51,21 +73,39 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       console.log("Auth state change:", event, session);
       
       if (event === "SIGNED_IN" && session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
 
-        setIsAuthenticated(true);
-        setUserRole(profile?.role || null);
+          if (profileError) throw profileError;
+
+          if (mounted) {
+            setIsAuthenticated(true);
+            setUserRole(profile?.role || null);
+          }
+        } catch (error) {
+          console.error("Profile fetch error:", error);
+          toast.error("Erreur lors de la récupération du profil");
+          if (mounted) {
+            setIsAuthenticated(false);
+            setUserRole(null);
+          }
+        }
       } else if (event === "SIGNED_OUT") {
-        setIsAuthenticated(false);
-        setUserRole(null);
+        if (mounted) {
+          setIsAuthenticated(false);
+          setUserRole(null);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (isLoading) {
