@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { AuthError } from "@supabase/supabase-js";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Portal = () => {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ const Portal = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Chargement...</p>
+        <LoadingSpinner />
       </div>
     );
   }
