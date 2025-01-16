@@ -13,7 +13,7 @@ export const PayslipManagement = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
 
   // Fetch employees from Supabase
-  const { data: employees, isLoading } = useQuery({
+  const { data: employees } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -27,6 +27,25 @@ export const PayslipManagement = () => {
       
       return data;
     }
+  });
+
+  // Fetch documents for each employee
+  const { data: documents, refetch: refetchDocuments } = useQuery({
+    queryKey: ['documents', selectedEmployee],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('employee_id', selectedEmployee);
+      
+      if (error) {
+        console.error('Error fetching documents:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!selectedEmployee
   });
 
   const importantDocuments = [
@@ -53,32 +72,131 @@ export const PayslipManagement = () => {
     }
   };
 
-  const handlePayslipUpload = () => {
+  const handlePayslipUpload = async () => {
     if (!selectedFile || !selectedEmployee) {
       toast.error("Veuillez sélectionner un employé et un fichier");
       return;
     }
-    
-    // Here you would handle the actual upload to your backend
-    toast.success(`Fiche de paie téléversée pour ${selectedEmployee}`);
-    setSelectedFile(null);
-    setSelectedEmployee("");
+
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `payslips/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Save document metadata to the documents table
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          employee_id: selectedEmployee,
+          title: selectedFile.name,
+          type: 'payslip',
+          file_path: filePath,
+        });
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      toast.success(`Fiche de paie téléversée pour ${selectedEmployee}`);
+      setSelectedFile(null);
+      refetchDocuments();
+    } catch (error) {
+      console.error('Error uploading payslip:', error);
+      toast.error("Erreur lors du téléversement du fichier");
+    }
   };
 
-  const handleDocumentUpload = () => {
+  const handleDocumentUpload = async () => {
     if (!selectedFile) {
       toast.error("Veuillez sélectionner un fichier");
       return;
     }
-    
-    // Here you would handle the actual upload to your backend
-    toast.success("Document important téléversé");
-    setSelectedFile(null);
+
+    try {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `documents/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          title: selectedFile.name,
+          type: 'important_document',
+          file_path: filePath,
+        });
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      toast.success("Document important téléversé");
+      setSelectedFile(null);
+      refetchDocuments();
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error("Erreur lors du téléversement du fichier");
+    }
   };
 
-  const handleDelete = (type: 'payslip' | 'document', id: number) => {
-    // Here you would handle the actual deletion from your backend
-    toast.success(`${type === 'payslip' ? 'Fiche de paie' : 'Document'} supprimé`);
+  const handleDelete = async (type: 'payslip' | 'document', id: string) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`${type === 'payslip' ? 'Fiche de paie' : 'Document'} supprimé`);
+      refetchDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error("Erreur lors de la suppression du document");
+    }
+  };
+
+  const handleDownload = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create a download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error("Erreur lors du téléchargement du fichier");
+    }
   };
 
   return (
@@ -120,24 +238,29 @@ export const PayslipManagement = () => {
           </div>
 
           <div className="space-y-4">
-            {employees?.map((employee) => (
-              <div key={employee.id} className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">{`${employee.first_name} ${employee.last_name}`}</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between py-2 hover:bg-accent/50 rounded-lg px-2">
-                    <div className="flex items-center">
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Mars 2024</span>
-                    </div>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-4 w-4" />
-                        Télécharger
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete('payslip', 1)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            {documents?.map((doc) => (
+              <div key={doc.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between py-2 hover:bg-accent/50 rounded-lg px-2">
+                  <div className="flex items-center">
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>{doc.title}</span>
+                  </div>
+                  <div className="space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDownload(doc.file_path)}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Télécharger
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDelete('payslip', doc.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
