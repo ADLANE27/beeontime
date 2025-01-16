@@ -10,7 +10,6 @@ import { AuthError } from "@supabase/supabase-js";
 const Portal = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
 
   const getErrorMessage = (error: AuthError) => {
     console.error("Auth error details:", error);
@@ -29,7 +28,6 @@ const Portal = () => {
         if (sessionError) {
           console.error("Session error:", sessionError);
           setErrorMessage(getErrorMessage(sessionError));
-          setIsLoading(false);
           return;
         }
 
@@ -43,7 +41,6 @@ const Portal = () => {
           if (profileError) {
             console.error("Profile error:", profileError);
             setErrorMessage("Erreur lors de la vérification du profil.");
-            setIsLoading(false);
             return;
           }
 
@@ -54,11 +51,9 @@ const Portal = () => {
             await supabase.auth.signOut();
           }
         }
-        setIsLoading(false);
       } catch (error) {
         console.error("Session check error:", error);
         setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
-        setIsLoading(false);
       }
     };
 
@@ -91,14 +86,6 @@ const Portal = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Chargement...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
