@@ -38,6 +38,9 @@ const HRPortal = () => {
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
             Portail RH AFTraduction
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Connectez-vous avec vos identifiants RH
+          </p>
         </div>
         {errorMessage && (
           <Alert variant="destructive">
@@ -58,21 +61,16 @@ const HRPortal = () => {
             }
           }}
           providers={[]}
+          view="sign_in"
+          showLinks={false}
+          redirectTo={window.location.origin + "/hr-portal"}
           localization={{
             variables: {
               sign_in: {
                 email_label: "Email",
                 password_label: "Mot de passe",
                 button_label: "Se connecter",
-                loading_button_label: "Connexion en cours...",
-                link_text: "Vous avez déjà un compte ? Connectez-vous"
-              },
-              sign_up: {
-                email_label: "Email",
-                password_label: "Mot de passe",
-                button_label: "S'inscrire",
-                loading_button_label: "Inscription en cours...",
-                link_text: "Vous n'avez pas de compte ? Inscrivez-vous"
+                loading_button_label: "Connexion en cours..."
               }
             }
           }}
