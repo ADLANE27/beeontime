@@ -10,16 +10,20 @@ const Portal = () => {
 
   useEffect(() => {
     const checkUser = async () => {
+      console.log("Checking employee access...");
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .maybeSingle();
+          .single();
 
         if (profile?.role === 'employee') {
           navigate('/employee');
+        } else {
+          // Si ce n'est pas un employé, rediriger vers la page d'accueil
+          navigate('/');
         }
       }
     };
@@ -28,14 +32,17 @@ const Portal = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
+        console.log("User signed in, checking role...");
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session?.user.id)
-          .maybeSingle();
+          .single();
 
         if (profile?.role === 'employee') {
           navigate('/employee');
+        } else {
+          navigate('/');
         }
       }
     });
