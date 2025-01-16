@@ -66,7 +66,12 @@ export const EmployeeLeaveList = () => {
       console.log('Fetching leave requests...');
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Authenticated user ID:', user.id);
 
       const { data, error } = await supabase
         .from('leave_requests')
@@ -78,20 +83,30 @@ export const EmployeeLeaveList = () => {
         console.error('Error fetching leave requests:', error);
         throw error;
       }
-      console.log('Leave requests fetched:', data);
+
+      console.log('Leave requests fetched successfully:', data);
       return data;
     },
-    staleTime: 0, // Force refetch on every mount
-    gcTime: 0  // Disable garbage collection (previously cacheTime)
+    retry: 1,
+    staleTime: 0,
+    gcTime: 0
   });
 
   const cancelMutation = useMutation({
     mutationFn: async (leaveId: string) => {
       console.log('Canceling leave request:', leaveId);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('No authenticated user found during cancellation');
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('leave_requests')
         .delete()
         .eq('id', leaveId)
+        .eq('employee_id', user.id)  // Added security check
         .eq('status', 'pending');
 
       if (error) {
@@ -102,7 +117,6 @@ export const EmployeeLeaveList = () => {
     },
     onSuccess: () => {
       toast.success("Demande de congé annulée avec succès");
-      // Force an immediate refetch of the leave requests
       queryClient.invalidateQueries({ 
         queryKey: ['employee-leave-requests'],
         exact: true,
@@ -135,68 +149,74 @@ export const EmployeeLeaveList = () => {
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Mes demandes de congés</h2>
       <div className="space-y-4">
-        {leaveRequests?.map((request) => {
-          const startDate = new Date(request.start_date);
-          const endDate = new Date(request.end_date);
-          const numberOfDays = differenceInDays(endDate, startDate) + 1;
-          
-          return (
-            <Card key={request.id} className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">
-                      Du {format(startDate, "dd MMMM yyyy", { locale: fr })}
+        {leaveRequests && leaveRequests.length > 0 ? (
+          leaveRequests.map((request) => {
+            const startDate = new Date(request.start_date);
+            const endDate = new Date(request.end_date);
+            const numberOfDays = differenceInDays(endDate, startDate) + 1;
+            
+            return (
+              <Card key={request.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">
+                        Du {format(startDate, "dd MMMM yyyy", { locale: fr })}
+                      </p>
+                      <p className="font-semibold">
+                        au {format(endDate, "dd MMMM yyyy", { locale: fr })}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Durée : {numberOfDays} jour{numberOfDays > 1 ? 's' : ''}
                     </p>
-                    <p className="font-semibold">
-                      au {format(endDate, "dd MMMM yyyy", { locale: fr })}
+                    <p className="text-sm text-gray-600">
+                      Type: {getLeaveTypeText(request.type)}
+                    </p>
+                    {request.reason && (
+                      <p className="text-sm text-gray-600">Motif: {request.reason}</p>
+                    )}
+                    <p className="text-sm text-gray-600">
+                      Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                      {request.day_type === "half" && request.period && (
+                        <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                      )}
+                    </p>
+                    {request.rejection_reason && (
+                      <p className="text-sm text-red-600">
+                        Motif du refus: {request.rejection_reason}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-500">
+                      Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Durée : {numberOfDays} jour{numberOfDays > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Type: {getLeaveTypeText(request.type)}
-                  </p>
-                  {request.reason && (
-                    <p className="text-sm text-gray-600">Motif: {request.reason}</p>
-                  )}
-                  <p className="text-sm text-gray-600">
-                    Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                    {request.day_type === "half" && request.period && (
-                      <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={getStatusColor(request.status)}>
+                      {getStatusText(request.status)}
+                    </Badge>
+                    {request.status === 'pending' && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleCancel(request.id)}
+                        className="mt-2"
+                        disabled={cancelMutation.isPending}
+                      >
+                        {cancelMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-1" />
+                        )}
+                        Annuler
+                      </Button>
                     )}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
-                  </p>
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className={getStatusColor(request.status)}>
-                    {getStatusText(request.status)}
-                  </Badge>
-                  {request.status === 'pending' && (
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleCancel(request.id)}
-                      className="mt-2"
-                      disabled={cancelMutation.isPending}
-                    >
-                      {cancelMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-1" />
-                      )}
-                      Annuler
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-        {(!leaveRequests || leaveRequests.length === 0) && (
+              </Card>
+            );
+          })
+        ) : (
           <p className="text-center text-gray-500">Aucune demande de congés</p>
         )}
       </div>
