@@ -108,6 +108,16 @@ const HRPortal = () => {
           supabaseClient={supabase}
           appearance={{
             theme: ThemeSupa,
+            style: {
+              button: {
+                background: '#2563eb',
+                color: 'white',
+                fontWeight: '600',
+              },
+              anchor: {
+                color: '#2563eb',
+              },
+            },
             variables: {
               default: {
                 colors: {
@@ -115,10 +125,6 @@ const HRPortal = () => {
                   brandAccent: '#1d4ed8'
                 }
               }
-            },
-            className: {
-              button: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important',
-              loader: 'bg-blue-600 hover:bg-blue-700 text-white font-semibold !important'
             }
           }}
           providers={[]}
