@@ -140,8 +140,8 @@ export const AdminPlanning = () => {
               </div>
             </div>
             
-            <ScrollArea className="h-[500px]">
-              <div className="border rounded-lg overflow-hidden">
+            <ScrollArea className="h-[500px] w-full" orientation="both">
+              <div className="min-w-max border rounded-lg">
                 <Table>
                   <TableHeader>
                     <TableRow>
