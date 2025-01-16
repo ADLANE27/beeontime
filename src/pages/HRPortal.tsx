@@ -15,14 +15,13 @@ const HRPortal = () => {
   const getErrorMessage = (error: AuthError) => {
     console.error("Auth error details:", error);
     
-    switch (error.message) {
-      case "Invalid login credentials":
-        return "Email ou mot de passe incorrect.";
-      case "Email not confirmed":
-        return "Veuillez vérifier votre email avant de vous connecter.";
-      default:
-        return "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
+    if (error.message.includes("Invalid login credentials")) {
+      return "Email ou mot de passe incorrect.";
     }
+    if (error.message.includes("Email not confirmed")) {
+      return "Veuillez vérifier votre email avant de vous connecter.";
+    }
+    return "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
   };
 
   useEffect(() => {
@@ -140,8 +139,6 @@ const HRPortal = () => {
             }
           }}
           providers={[]}
-          view="sign_in"
-          showLinks={false}
           redirectTo={window.location.origin + "/hr-portal"}
           localization={{
             variables: {
