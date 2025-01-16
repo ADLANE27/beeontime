@@ -9,55 +9,35 @@ import { Card } from "@/components/ui/card";
 const Portal = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
 
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-            setErrorMessage("Erreur lors de la vérification des autorisations.");
-            return;
-          }
-
-          if (profile?.role === "employee") {
-            navigate("/employee");
-          } else {
-            setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
-            await supabase.auth.signOut();
-          }
+        if (profile?.role === "employee") {
+          navigate("/employee");
+        } else {
+          setErrorMessage("Accès non autorisé. Ce portail est réservé aux employés.");
+          await supabase.auth.signOut();
         }
-      } catch (error) {
-        console.error("Session check error:", error);
-        setErrorMessage("Une erreur est survenue lors de la vérification de la session.");
-      } finally {
-        setIsLoading(false);
       }
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN") {
-        const { data: profile, error: profileError } = await supabase
+      if (event === "SIGNED_IN" && session) {
+        const { data: profile } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", session?.user?.id)
+          .eq("id", session.user.id)
           .single();
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          setErrorMessage("Erreur lors de la vérification des autorisations.");
-          return;
-        }
 
         if (profile?.role === "employee") {
           navigate("/employee");
@@ -70,14 +50,6 @@ const Portal = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Chargement...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
