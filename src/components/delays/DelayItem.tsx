@@ -18,6 +18,19 @@ interface DelayItemProps {
   formatDuration: (duration: unknown) => string;
 }
 
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case "approved":
+      return "Approuvé";
+    case "rejected":
+      return "Rejeté";
+    case "pending":
+      return "En attente";
+    default:
+      return status;
+  }
+};
+
 export const DelayItem = ({ 
   delay, 
   onApprove, 
@@ -48,7 +61,7 @@ export const DelayItem = ({
               : "outline"
           }
         >
-          {delay.status}
+          {getStatusLabel(delay.status)}
         </Badge>
         {delay.status === 'pending' && (
           <div className="flex gap-2">
