@@ -33,7 +33,7 @@ export const CompanyStats = () => {
       
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('start_date, end_date, day_type')
+        .select('start_date, end_date, day_type, period')
         .eq('status', 'approved')
         .gte('start_date', startDate.toISOString().split('T')[0])
         .lte('end_date', endDate.toISOString().split('T')[0]);
@@ -55,13 +55,17 @@ export const CompanyStats = () => {
           // Vérifier si le jour est dans le mois sélectionné
           if (currentDate.getMonth() === parseInt(selectedMonth) && 
               currentDate.getFullYear() === parseInt(selectedYear)) {
-            // Ajouter 1 ou 0.5 selon le type de journée
-            totalDays += leave.day_type === 'full' ? 1 : 0.5;
+            // Ajouter 1 pour une journée complète ou 0.5 pour une demi-journée
+            if (leave.day_type === 'full') {
+              totalDays += 1;
+            } else if (leave.day_type === 'half') {
+              totalDays += 0.5;
+            }
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
       });
-      
+
       return totalDays;
     }
   });
