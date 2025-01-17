@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { differenceInDays, parseISO } from "date-fns";
 
 const LEAVE_TYPES_FR = {
   vacation: "Congés payés",
@@ -56,13 +57,20 @@ export const LeaveStatistics = () => {
           status: request.status
         });
         
-        // Pour une journée complète, on compte 1, pour une demi-journée 0.5
-        const daysCount = request.day_type === 'half' ? 0.5 : 1;
-        console.log('Nombre de jours pour cette demande:', daysCount);
+        // Calculer le nombre de jours entre start_date et end_date
+        const startDate = parseISO(request.start_date);
+        const endDate = parseISO(request.end_date);
+        const daysCount = differenceInDays(endDate, startDate) + 1; // +1 car on compte le jour de début
+
+        // Pour une journée complète, on multiplie par le nombre de jours
+        // Pour une demi-journée, on divise par 2
+        const totalDays = request.day_type === 'half' ? 0.5 : daysCount;
+        
+        console.log('Nombre de jours pour cette demande:', totalDays);
 
         // Ajouter au total par type
-        statsByType[request.type] = (statsByType[request.type] || 0) + daysCount;
-        total += daysCount;
+        statsByType[request.type] = (statsByType[request.type] || 0) + totalDays;
+        total += totalDays;
 
         console.log(`Total pour le type ${request.type}:`, statsByType[request.type]);
         console.log('Total général:', total);
