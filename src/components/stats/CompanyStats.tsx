@@ -31,19 +31,23 @@ export const CompanyStats = () => {
       const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
       const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
       
+      console.log('Fetching leaves for period:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('start_date, end_date, day_type, period')
+        .select('*')
         .eq('status', 'approved')
-        .gte('start_date', startDate.toISOString().split('T')[0])
-        .lte('end_date', endDate.toISOString().split('T')[0]);
+        .overlaps('start_date', 'end_date', startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
       
       if (error) {
         console.error('Error fetching leaves:', error);
         throw error;
       }
 
-      console.log('Raw leave requests:', data); // Log raw data
+      console.log('Found approved leave requests:', data);
 
       let totalDays = 0;
 
@@ -51,9 +55,8 @@ export const CompanyStats = () => {
         const start = new Date(leave.start_date);
         const end = new Date(leave.end_date);
         
-        console.log(`Processing leave request:`, {
-          start_date: leave.start_date,
-          end_date: leave.end_date,
+        console.log(`Processing leave request for dates ${leave.start_date} to ${leave.end_date}:`, {
+          type: leave.type,
           day_type: leave.day_type,
           period: leave.period
         });
@@ -65,23 +68,16 @@ export const CompanyStats = () => {
           if (currentDate.getMonth() === parseInt(selectedMonth) && 
               currentDate.getFullYear() === parseInt(selectedYear)) {
             
-            console.log(`Adding day for ${currentDate.toISOString().split('T')[0]}:`, {
-              day_type: leave.day_type,
-              adding: leave.day_type === 'full' ? 1 : 0.5
-            });
+            const dayToAdd = leave.day_type === 'full' ? 1 : 0.5;
+            totalDays += dayToAdd;
             
-            // Ajouter 1 pour une journée complète ou 0.5 pour une demi-journée
-            if (leave.day_type === 'full') {
-              totalDays += 1;
-            } else if (leave.day_type === 'half') {
-              totalDays += 0.5;
-            }
+            console.log(`Adding ${dayToAdd} day(s) for ${currentDate.toISOString().split('T')[0]}`);
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
       });
 
-      console.log('Final total days:', totalDays);
+      console.log('Final total days of leave for the month:', totalDays);
       return totalDays;
     }
   });
