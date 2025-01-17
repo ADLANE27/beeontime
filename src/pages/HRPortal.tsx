@@ -87,6 +87,13 @@ const HRPortal = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
+        <div className="flex justify-center mb-8">
+          <img 
+            src="/lovable-uploads/ebd70f88-aacb-40cd-b225-d94a0c0f1903.png" 
+            alt="AFTraduction Logo" 
+            className="h-16 w-auto"
+          />
+        </div>
         <h1 className="text-2xl font-bold text-center mb-8">Portail RH</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
