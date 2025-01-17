@@ -249,66 +249,65 @@ export const LeaveRequestsList = () => {
                   })
                   .map((request) => (
                     <Card key={request.id} className="p-4">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">
-                            {request.employees.first_name} {request.employees.last_name}
-                          </h3>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold">
+                          {request.employees.first_name} {request.employees.last_name}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {leaveTypes.find(t => t.value === request.type)?.label}
+                        </p>
+                        <p className="text-sm">
+                          Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })} au{" "}
+                          {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                          {request.period && ` (${request.period === "morning" ? "Matin" : "Après-midi"})`}
+                        </p>
+                        {request.reason && (
                           <p className="text-sm text-gray-600">
-                            {leaveTypes.find(t => t.value === request.type)?.label}
+                            Motif : {request.reason}
                           </p>
-                          <p className="text-sm">
-                            Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })} au{" "}
-                            {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                        )}
+                        {request.rejection_reason && (
+                          <p className="text-sm text-red-600">
+                            Motif du refus : {request.rejection_reason}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                            {request.period && ` (${request.period === "morning" ? "Matin" : "Après-midi"})`}
-                          </p>
-                          {request.reason && (
-                            <p className="text-sm text-gray-600">
-                              Motif : {request.reason}
-                            </p>
-                          )}
-                          {request.rejection_reason && (
-                            <p className="text-sm text-red-600">
-                              Motif du refus : {request.rejection_reason}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2 items-end">
-                          {request.status === "pending" && (
-                            <>
-                              <Button
-                                variant="outline"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => handleApprove(request)}
-                                disabled={loadingRequestId === request.id}
-                              >
-                                {loadingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
-                                Accepter
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setRejectionDialogOpen(true);
-                                }}
-                                disabled={loadingRequestId === request.id}
-                              >
-                                {loadingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
-                                Refuser
-                              </Button>
-                            </>
-                          )}
-                          <Badge className={getStatusColor(request.status)}>
-                            {getStatusLabel(request.status)}
-                          </Badge>
-                        </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2 items-end">
+                        {request.status === "pending" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={() => handleApprove(request)}
+                              disabled={loadingRequestId === request.id}
+                            >
+                              {loadingRequestId === request.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Accepter
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setRejectionDialogOpen(true);
+                              }}
+                              disabled={loadingRequestId === request.id}
+                            >
+                              {loadingRequestId === request.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Refuser
+                            </Button>
+                          </>
+                        )}
+                        <Badge className={getStatusColor(request.status)}>
+                          {getStatusLabel(request.status)}
+                        </Badge>
                       </div>
                     </Card>
                   ))}
