@@ -45,22 +45,26 @@ export const CompanyStats = () => {
         throw error;
       }
 
-      // Compter le nombre total de jours de congés en tenant compte des demi-journées
+      // Compter le nombre total de jours de congés
       let totalDays = 0;
       data?.forEach(leave => {
         const start = new Date(leave.start_date);
         const end = new Date(leave.end_date);
         
-        // Calculer le nombre de jours entre start_date et end_date
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le jour de début
-        
-        // Ajuster en fonction du type de journée (complète ou demi)
-        if (leave.day_type === 'half') {
-          diffDays = diffDays * 0.5;
+        // Si la date de début est égale à la date de fin, c'est un jour unique
+        if (start.getTime() === end.getTime()) {
+          totalDays += leave.day_type === 'half' ? 0.5 : 1;
+          return;
         }
         
-        totalDays += diffDays;
+        // Pour chaque jour entre start_date et end_date
+        const currentDate = new Date(start);
+        while (currentDate <= end) {
+          if (currentDate.getMonth() === parseInt(selectedMonth)) {
+            totalDays += leave.day_type === 'half' ? 0.5 : 1;
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
       });
       
       console.log('Total leave days:', totalDays);
@@ -95,7 +99,6 @@ export const CompanyStats = () => {
       
       if (error) throw error;
 
-      // Créer un objet pour compter les employés par poste
       const positions = data.reduce((acc: { [key: string]: number }, curr) => {
         if (curr.position) {
           acc[curr.position] = (acc[curr.position] || 0) + 1;
@@ -103,10 +106,8 @@ export const CompanyStats = () => {
         return acc;
       }, {});
 
-      // Calculer le total des employés
       const totalEmployees = Object.values(positions).reduce((sum, count) => sum + count, 0);
 
-      // Convertir en pourcentages
       return Object.entries(positions).map(([name, count]) => ({
         name,
         value: (count / totalEmployees) * 100
@@ -162,7 +163,7 @@ export const CompanyStats = () => {
                     isLoadingPositions || isLoadingMonthly;
 
   // Calcul du taux de présence moyen
-  const averagePresence = monthlyStats.length > 0 
+  const averagePresence = monthlyStats?.length > 0 
     ? (monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length).toFixed(2)
     : "0";
 
