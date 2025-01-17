@@ -35,7 +35,7 @@ export const CompanyStats = () => {
       
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('start_date, end_date, day_type, period')
+        .select('start_date, end_date, day_type')
         .eq('status', 'approved')
         .gte('start_date', startDate.toISOString().split('T')[0])
         .lte('end_date', endDate.toISOString().split('T')[0]);
@@ -45,29 +45,33 @@ export const CompanyStats = () => {
         throw error;
       }
 
-      // Compter le nombre total de jours de congés
+      // Compter uniquement les jours individuels dans le mois sélectionné
       let totalDays = 0;
+      const daysInMonth = new Set(); // Utiliser un Set pour éviter les doublons
+
       data?.forEach(leave => {
         const start = new Date(leave.start_date);
         const end = new Date(leave.end_date);
         
-        // Si la date de début est égale à la date de fin, c'est un jour unique
-        if (start.getTime() === end.getTime()) {
-          totalDays += leave.day_type === 'half' ? 0.5 : 1;
-          return;
-        }
-        
         // Pour chaque jour entre start_date et end_date
         const currentDate = new Date(start);
         while (currentDate <= end) {
-          if (currentDate.getMonth() === parseInt(selectedMonth)) {
-            totalDays += leave.day_type === 'half' ? 0.5 : 1;
+          // Vérifier si le jour est dans le mois sélectionné
+          if (currentDate.getMonth() === parseInt(selectedMonth) && 
+              currentDate.getFullYear() === parseInt(selectedYear)) {
+            // Ajouter la date au Set (format YYYY-MM-DD)
+            const dateStr = currentDate.toISOString().split('T')[0];
+            daysInMonth.add(dateStr);
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
       });
+
+      // Convertir le Set en nombre de jours
+      totalDays = daysInMonth.size;
       
       console.log('Total leave days:', totalDays);
+      console.log('Days in month:', Array.from(daysInMonth));
       return totalDays;
     }
   });
