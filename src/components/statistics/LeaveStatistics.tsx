@@ -41,13 +41,19 @@ export const LeaveStatistics = () => {
         throw error;
       }
 
-      console.log('Données brutes des congés:', data);
+      console.log('Toutes les demandes de congés approuvées:', data);
 
       const statsByType: { [key: string]: number } = {};
       let total = 0;
 
       data?.forEach(request => {
-        console.log(`\nAnalyse de la demande de congé:`, request);
+        console.log('\nAnalyse de la demande de congé:', {
+          start_date: request.start_date,
+          end_date: request.end_date,
+          type: request.type,
+          day_type: request.day_type,
+          status: request.status
+        });
         
         // Pour une journée complète, on compte 1, pour une demi-journée 0.5
         const daysCount = request.day_type === 'half' ? 0.5 : 1;
