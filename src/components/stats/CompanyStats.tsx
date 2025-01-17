@@ -43,11 +43,20 @@ export const CompanyStats = () => {
         throw error;
       }
 
+      console.log('Raw leave requests:', data); // Log raw data
+
       let totalDays = 0;
 
       data?.forEach(leave => {
         const start = new Date(leave.start_date);
         const end = new Date(leave.end_date);
+        
+        console.log(`Processing leave request:`, {
+          start_date: leave.start_date,
+          end_date: leave.end_date,
+          day_type: leave.day_type,
+          period: leave.period
+        });
         
         // Pour chaque jour entre start_date et end_date
         const currentDate = new Date(start);
@@ -55,6 +64,12 @@ export const CompanyStats = () => {
           // Vérifier si le jour est dans le mois sélectionné
           if (currentDate.getMonth() === parseInt(selectedMonth) && 
               currentDate.getFullYear() === parseInt(selectedYear)) {
+            
+            console.log(`Adding day for ${currentDate.toISOString().split('T')[0]}:`, {
+              day_type: leave.day_type,
+              adding: leave.day_type === 'full' ? 1 : 0.5
+            });
+            
             // Ajouter 1 pour une journée complète ou 0.5 pour une demi-journée
             if (leave.day_type === 'full') {
               totalDays += 1;
@@ -66,7 +81,7 @@ export const CompanyStats = () => {
         }
       });
 
-      console.log('Total days calculated:', totalDays); // Ajout d'un log pour déboguer
+      console.log('Final total days:', totalDays);
       return totalDays;
     }
   });
