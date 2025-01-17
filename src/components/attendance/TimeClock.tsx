@@ -87,20 +87,38 @@ export const TimeClock = () => {
 
   const checkForDelay = async (userId: string, actualTime: string) => {
     try {
+      console.log("Checking for delay - User ID:", userId);
+      console.log("Actual arrival time:", actualTime);
+
       // Récupérer l'emploi du temps de l'employé
-      const { data: employee } = await supabase
+      const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('work_schedule')
         .eq('id', userId)
         .maybeSingle();
 
-      if (!employee?.work_schedule) return;
+      if (employeeError) {
+        console.error("Erreur lors de la récupération de l'emploi du temps:", employeeError);
+        return;
+      }
+
+      if (!employee?.work_schedule) {
+        console.log("Pas d'emploi du temps trouvé pour l'employé");
+        return;
+      }
+
+      console.log("Emploi du temps récupéré:", employee.work_schedule);
 
       // Vérifier que work_schedule a la bonne structure
       const workSchedule = employee.work_schedule as unknown as WorkSchedule;
-      if (!workSchedule.startTime) return;
+      if (!workSchedule.startTime) {
+        console.log("Heure de début non définie dans l'emploi du temps");
+        return;
+      }
 
       const scheduledTime = workSchedule.startTime;
+      console.log("Heure prévue:", scheduledTime);
+
       const today = format(new Date(), "yyyy-MM-dd");
 
       // Comparer l'heure d'arrivée avec l'heure prévue
@@ -113,6 +131,9 @@ export const TimeClock = () => {
       const actualDate = new Date();
       actualDate.setHours(actualHour, actualMinute, 0);
 
+      console.log("Date prévue:", scheduledDate);
+      console.log("Date réelle:", actualDate);
+
       // Si l'employé est en retard, créer une entrée dans la table delays
       if (actualDate > scheduledDate) {
         const duration = (actualDate.getTime() - scheduledDate.getTime()) / (1000 * 60); // en minutes
@@ -120,7 +141,10 @@ export const TimeClock = () => {
         const minutes = duration % 60;
         const formattedDuration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 
-        await supabase
+        console.log("Retard détecté!");
+        console.log("Durée du retard:", formattedDuration);
+
+        const { error: delayError } = await supabase
           .from('delays')
           .insert({
             employee_id: userId,
@@ -131,10 +155,20 @@ export const TimeClock = () => {
             reason: "Pointage arrivée"
           });
 
+        if (delayError) {
+          console.error("Erreur lors de l'enregistrement du retard:", delayError);
+          toast.error("Erreur lors de l'enregistrement du retard");
+          return;
+        }
+
         toast.info("Retard détecté et enregistré pour validation par les RH");
+        console.log("Retard enregistré avec succès");
+      } else {
+        console.log("Pas de retard détecté");
       }
     } catch (error) {
       console.error("Erreur lors de la vérification du retard:", error);
+      toast.error("Erreur lors de la vérification du retard");
     }
   };
 
