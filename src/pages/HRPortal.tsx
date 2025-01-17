@@ -97,12 +97,38 @@ const HRPortal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail RH</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
+              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
+              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
+            </AlertDescription>
           </Alert>
         )}
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{ 
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#0F172A',
+                  brandAccent: '#1E293B'
+                }
+              }
+            }
+          }}
+          localization={{
+            variables: {
+              sign_in: {
+                email_label: 'Adresse email',
+                password_label: 'Mot de passe',
+                button_label: 'Se connecter',
+                loading_button_label: 'Connexion en cours...',
+                email_input_placeholder: 'Votre adresse email',
+                password_input_placeholder: 'Votre mot de passe'
+              }
+            }
+          }}
           theme="light"
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
