@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, AlertTriangle, Clock4, FileText, Calendar, Download, Users } from "lucide-react";
+import { Clock, AlertTriangle, Clock4, FileText, Calendar, Download, Users, BarChart } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
 import { OvertimeList } from "@/components/overtime/OvertimeList";
@@ -8,6 +8,7 @@ import { DelayList } from "@/components/delays/DelayList";
 import { ExportDataTab } from "@/components/export/ExportDataTab";
 import { LeaveRequestsList } from "@/components/leave/LeaveRequestsList";
 import { EmployeesList } from "@/components/employee/EmployeesList";
+import { StatisticsTab } from "@/components/statistics/StatisticsTab";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -78,6 +79,10 @@ const HRDashboard = () => {
               <FileText className="mr-2 h-4 w-4" />
               Documents
             </TabsTrigger>
+            <TabsTrigger value="statistics">
+              <BarChart className="mr-2 h-4 w-4" />
+              Statistiques
+            </TabsTrigger>
             <TabsTrigger value="export">
               <Download className="mr-2 h-4 w-4" />
               Export
@@ -106,6 +111,10 @@ const HRDashboard = () => {
 
           <TabsContent value="payslips">
             <PayslipManagement />
+          </TabsContent>
+
+          <TabsContent value="statistics">
+            <StatisticsTab />
           </TabsContent>
 
           <TabsContent value="export">
