@@ -7,6 +7,13 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+interface WorkSchedule {
+  startTime: string;
+  endTime: string;
+  breakStartTime: string;
+  breakEndTime: string;
+}
+
 export const TimeClock = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [timeRecord, setTimeRecord] = useState<{
@@ -85,11 +92,12 @@ export const TimeClock = () => {
         .from('employees')
         .select('work_schedule')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!employee?.work_schedule) return;
 
-      const scheduledTime = employee.work_schedule.startTime;
+      const workSchedule = employee.work_schedule as WorkSchedule;
+      const scheduledTime = workSchedule.startTime;
       const today = format(new Date(), "yyyy-MM-dd");
 
       // Comparer l'heure d'arrivée avec l'heure prévue
