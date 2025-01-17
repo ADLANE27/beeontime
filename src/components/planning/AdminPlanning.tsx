@@ -23,6 +23,20 @@ interface Employee {
   position: string;
 }
 
+// Ajout des traductions des types de congés
+const leaveTypeTranslations: { [key: string]: string } = {
+  "vacation": "Congés payés",
+  "annual": "Congé annuel",
+  "rtt": "RTT",
+  "paternity": "Congé paternité",
+  "maternity": "Congé maternité",
+  "sickChild": "Congé enfant malade",
+  "unpaidUnexcused": "Absence injustifiée non rémunérée",
+  "unpaidExcused": "Absence justifiée non rémunérée",
+  "unpaid": "Absence non rémunérée",
+  "familyEvent": "Absences pour événements familiaux"
+};
+
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -135,7 +149,7 @@ export const AdminPlanning = () => {
             endDate.getMonth() + 1,
             endDate.getDate()
           ] as [number, number, number],
-          title: `Absence: ${request.type} - ${employee?.first_name} ${employee?.last_name}`,
+          title: `Absence: ${leaveTypeTranslations[request.type]} - ${employee?.first_name} ${employee?.last_name}`,
           description: request.reason || '',
           status: 'CONFIRMED' as const
         };
