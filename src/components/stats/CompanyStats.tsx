@@ -66,6 +66,7 @@ export const CompanyStats = () => {
         }
       });
 
+      console.log('Total days calculated:', totalDays); // Ajout d'un log pour déboguer
       return totalDays;
     }
   });
