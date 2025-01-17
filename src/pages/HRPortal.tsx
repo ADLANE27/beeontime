@@ -106,6 +106,7 @@ const HRPortal = () => {
           theme="light"
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
+          showLinks={false}
         />
       </Card>
     </div>

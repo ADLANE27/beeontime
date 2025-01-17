@@ -108,6 +108,7 @@ const Portal = () => {
           theme="light"
           providers={[]}
           redirectTo={`${window.location.origin}/employee`}
+          showLinks={false}
         />
       </Card>
     </div>
