@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { differenceInDays, parseISO, isWeekend } from "date-fns";
+import { differenceInDays, parseISO, isWeekend, isSameMonth, setMonth, startOfMonth, endOfMonth } from "date-fns";
 
 const LEAVE_TYPES_FR = {
   vacation: "Congés payés",
@@ -25,8 +25,8 @@ export const LeaveStatistics = () => {
     queryKey: ['leave-statistics', selectedMonth],
     queryFn: async () => {
       const year = new Date().getFullYear();
-      const firstDay = new Date(year, selectedMonth - 1, 1).toISOString().split('T')[0];
-      const lastDay = new Date(year, selectedMonth, 0).toISOString().split('T')[0];
+      const firstDay = startOfMonth(new Date(year, selectedMonth - 1)).toISOString().split('T')[0];
+      const lastDay = endOfMonth(new Date(year, selectedMonth - 1)).toISOString().split('T')[0];
 
       console.log('Période sélectionnée:', firstDay, 'à', lastDay);
 
@@ -34,8 +34,7 @@ export const LeaveStatistics = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .gte('start_date', firstDay)
-        .lte('end_date', lastDay); // On prend tous les congés qui se terminent dans le mois
+        .or(`and(start_date.gte.${firstDay},start_date.lte.${lastDay}),and(end_date.gte.${firstDay},end_date.lte.${lastDay}),and(start_date.lte.${firstDay},end_date.gte.${lastDay})`);
 
       if (error) {
         console.error('Error fetching leave stats:', error);
@@ -57,20 +56,19 @@ export const LeaveStatistics = () => {
           status: request.status
         });
         
-        // Calculer le nombre de jours entre start_date et end_date
         const startDate = parseISO(request.start_date);
         const endDate = parseISO(request.end_date);
         let daysCount = 0;
         
-        // Compter les jours en excluant les week-ends
-        for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
-          if (!isWeekend(d)) {
+        // Pour chaque jour de la période
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          // Ne compter que les jours du mois sélectionné et qui ne sont pas des week-ends
+          if (isSameMonth(d, new Date(year, selectedMonth - 1)) && !isWeekend(d)) {
             daysCount++;
           }
         }
         
-        // Pour une journée complète, on multiplie par le nombre de jours
-        // Pour une demi-journée, on divise par 2
+        // Pour une demi-journée, diviser par 2
         const totalDays = request.day_type === 'half' ? 0.5 : daysCount;
         
         console.log('Nombre de jours pour cette demande:', totalDays);
