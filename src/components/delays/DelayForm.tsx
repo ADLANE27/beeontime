@@ -17,7 +17,8 @@ interface DelayFormProps {
   onSubmit: (data: {
     employee_id: string;
     date: string;
-    time: string;
+    scheduled_time: string;
+    actual_time: string;
     reason: string;
   }) => void;
   isSubmitting: boolean;
@@ -25,7 +26,8 @@ interface DelayFormProps {
 
 export const DelayForm = ({ employees, onSubmit, isSubmitting }: DelayFormProps) => {
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("09:00");
+  const [actualTime, setActualTime] = useState("");
   const [reason, setReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
 
@@ -34,7 +36,8 @@ export const DelayForm = ({ employees, onSubmit, isSubmitting }: DelayFormProps)
     onSubmit({
       employee_id: selectedEmployee,
       date,
-      time,
+      scheduled_time: scheduledTime,
+      actual_time: actualTime,
       reason
     });
   };
@@ -67,12 +70,22 @@ export const DelayForm = ({ employees, onSubmit, isSubmitting }: DelayFormProps)
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="time">Heure d'arrivée</Label>
+        <Label htmlFor="scheduledTime">Heure prévue</Label>
         <Input
-          id="time"
+          id="scheduledTime"
           type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
+          value={scheduledTime}
+          onChange={(e) => setScheduledTime(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="actualTime">Heure d'arrivée réelle</Label>
+        <Input
+          id="actualTime"
+          type="time"
+          value={actualTime}
+          onChange={(e) => setActualTime(e.target.value)}
           required
         />
       </div>
