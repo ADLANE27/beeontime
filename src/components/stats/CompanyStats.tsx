@@ -44,11 +44,15 @@ export const CompanyStats = () => {
   const { data: totalOvertime = 0, isLoading: isLoadingOvertime } = useQuery({
     queryKey: ['total-overtime', selectedMonth, selectedYear],
     queryFn: async () => {
+      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1).toISOString().split('T')[0];
+      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0).toISOString().split('T')[0];
+      
       const { data, error } = await supabase
         .from('overtime_requests')
         .select('hours')
         .eq('status', 'approved')
-        .eq('date', new Date(parseInt(selectedYear), parseInt(selectedMonth)).toISOString().split('T')[0]);
+        .gte('date', startDate)
+        .lte('date', endDate);
       
       if (error) throw error;
       return data.reduce((acc, curr) => acc + Number(curr.hours), 0);
@@ -93,7 +97,7 @@ export const CompanyStats = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .overlaps('start_date', 'end_date', startDate.toISOString(), endDate.toISOString());
+        .overlaps('start_date', 'end_date', [startDate.toISOString(), endDate.toISOString()]);
 
       if (leaveError) throw leaveError;
 
