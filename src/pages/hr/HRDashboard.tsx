@@ -9,45 +9,81 @@ import { ExportDataTab } from "@/components/export/ExportDataTab";
 import { LeaveRequestsList } from "@/components/leave/LeaveRequestsList";
 import { EmployeesList } from "@/components/employee/EmployeesList";
 import { StatisticsTab } from "@/components/statistics/StatisticsTab";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const HRDashboard = () => {
+  const [pendingLeaves, setPendingLeaves] = useState(0);
+  const [pendingOvertimes, setPendingOvertimes] = useState(0);
+  const [pendingDelays, setPendingDelays] = useState(0);
+
   useEffect(() => {
-    const checkAccess = async () => {
-      console.log('Checking HR access...');
+    // Initial fetch of pending counts
+    const fetchPendingCounts = async () => {
+      console.log('Fetching pending counts...');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Current session:', session);
+      const [leaveRes, overtimeRes, delayRes] = await Promise.all([
+        supabase
+          .from('leave_requests')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending'),
+        supabase
+          .from('overtime_requests')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending'),
+        supabase
+          .from('delays')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending')
+      ]);
 
-      if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
-
-        console.log('User profile:', profile);
-
-        const { data: employees, error: employeesError } = await supabase
-          .from('employees')
-          .select('*');
-
-        if (employeesError) {
-          console.error('Error fetching employees:', employeesError);
-          return;
-        }
-
-        console.log('Fetched employees:', employees);
-      }
+      if (leaveRes.count !== null) setPendingLeaves(leaveRes.count);
+      if (overtimeRes.count !== null) setPendingOvertimes(overtimeRes.count);
+      if (delayRes.count !== null) setPendingDelays(delayRes.count);
+      
+      console.log('Pending counts:', {
+        leaves: leaveRes.count,
+        overtimes: overtimeRes.count,
+        delays: delayRes.count
+      });
     };
 
-    checkAccess();
+    fetchPendingCounts();
+
+    // Subscribe to real-time updates
+    const leaveChannel = supabase
+      .channel('leave-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leave_requests' },
+        () => fetchPendingCounts()
+      )
+      .subscribe();
+
+    const overtimeChannel = supabase
+      .channel('overtime-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'overtime_requests' },
+        () => fetchPendingCounts()
+      )
+      .subscribe();
+
+    const delayChannel = supabase
+      .channel('delay-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'delays' },
+        () => fetchPendingCounts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(leaveChannel);
+      supabase.removeChannel(overtimeChannel);
+      supabase.removeChannel(delayChannel);
+    };
   }, []);
 
   return (
@@ -63,17 +99,32 @@ const HRDashboard = () => {
               <Calendar className="mr-2 h-4 w-4" />
               Planning
             </TabsTrigger>
-            <TabsTrigger value="leave">
+            <TabsTrigger value="leave" className="relative">
               <Clock className="mr-2 h-4 w-4" />
               Demandes de congés
+              {pendingLeaves > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                  {pendingLeaves}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="overtime">
+            <TabsTrigger value="overtime" className="relative">
               <Clock4 className="mr-2 h-4 w-4" />
               Heures supplémentaires
+              {pendingOvertimes > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                  {pendingOvertimes}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="lateness">
+            <TabsTrigger value="lateness" className="relative">
               <AlertTriangle className="mr-2 h-4 w-4" />
               Retards
+              {pendingDelays > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                  {pendingDelays}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="payslips">
               <FileText className="mr-2 h-4 w-4" />
