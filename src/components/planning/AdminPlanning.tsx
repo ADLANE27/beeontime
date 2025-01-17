@@ -205,7 +205,16 @@ export const AdminPlanning = () => {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-xl font-semibold">
-              {format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })}
+              {format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { 
+                locale: fr,
+                // Utiliser une fonction de formatage personnalisée pour capitaliser le premier caractère
+                formatters: {
+                  MMMM: (date, options) => {
+                    const month = format(date, 'MMMM', { locale: options?.locale });
+                    return month.charAt(0).toUpperCase() + month.slice(1);
+                  }
+                }
+              })}
             </h2>
             <Button variant="outline" size="icon" onClick={nextPeriod}>
               <ChevronRight className="h-4 w-4" />
