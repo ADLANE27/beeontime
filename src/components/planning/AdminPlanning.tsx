@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,18 +138,38 @@ export const AdminPlanning = () => {
         const endDate = parse(request.end_date, 'yyyy-MM-dd', new Date());
         const employee = employees.find(e => e.id === request.employee_id);
         
+        // Définir les heures de début et de fin en fonction du type de journée
+        let startHour = 9; // Heure de début par défaut
+        let endHour = 18; // Heure de fin par défaut
+        
+        if (request.day_type === 'half') {
+          if (request.period === 'morning') {
+            endHour = 13;
+          } else {
+            startHour = 14;
+          }
+        }
+
+        const periodText = request.day_type === 'half' 
+          ? request.period === 'morning' ? ' (Matin)' : ' (Après-midi)'
+          : '';
+        
         return {
           start: [
             startDate.getFullYear(),
             startDate.getMonth() + 1,
-            startDate.getDate()
-          ] as [number, number, number],
+            startDate.getDate(),
+            startHour,
+            0
+          ] as [number, number, number, number, number],
           end: [
             endDate.getFullYear(),
             endDate.getMonth() + 1,
-            endDate.getDate()
-          ] as [number, number, number],
-          title: `Absence: ${leaveTypeTranslations[request.type]} - ${employee?.first_name} ${employee?.last_name}`,
+            endDate.getDate(),
+            endHour,
+            0
+          ] as [number, number, number, number, number],
+          title: `Absence: ${leaveTypeTranslations[request.type]}${periodText} - ${employee?.first_name} ${employee?.last_name}`,
           description: request.reason || '',
           status: 'CONFIRMED' as const
         };
