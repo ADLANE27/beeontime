@@ -1,109 +1,107 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
 
 const Portal = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        console.log("Checking employee access...");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setError("Error checking authentication status");
+          return;
+        }
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+        if (session) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-      if (error) throw error;
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setError("Error checking user role");
+            return;
+          }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profile?.role === 'hr') {
-        navigate('/hr');
-      } else {
-        navigate('/employee');
+          if (profile?.role === 'employee') {
+            navigate('/employee');
+          } else {
+            navigate('/');
+          }
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setError("An unexpected error occurred");
       }
+    };
 
-      toast.success("Connexion réussie");
-    } catch (error: any) {
-      console.error('Error:', error);
-      setError(error.message);
-      toast.error("Erreur lors de la connexion");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    checkUser();
 
-  const handleHRPortal = () => {
-    navigate('/hr-portal');
-  };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
+      
+      if (event === 'SIGNED_IN') {
+        try {
+          console.log("User signed in, checking role...");
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session?.user.id)
+            .single();
+
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setError("Error checking user role");
+            return;
+          }
+
+          if (profile?.role === 'employee') {
+            navigate('/employee');
+          } else {
+            navigate('/');
+          }
+        } catch (err) {
+          console.error("Error during role check:", err);
+          setError("Error checking user role");
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setError(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
-        <div className="flex justify-center mb-8">
-          <img 
-            src="/lovable-uploads/4f5c8054-d5b8-404c-a835-a5cb1329ba20.png" 
-            alt="AFTraduction Logo" 
-            className="h-16 w-auto"
-          />
-        </div>
+        <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Input
-              type="password"
-              placeholder="Mot de passe"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Connexion..." : "Se connecter"}
-          </Button>
-        </form>
-        <div className="mt-4 text-center">
-          <Button
-            variant="link"
-            onClick={handleHRPortal}
-            className="text-sm text-gray-600 hover:text-gray-800"
-          >
-            Accéder au portail RH
-          </Button>
-        </div>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          theme="light"
+          providers={[]}
+          redirectTo={`${window.location.origin}/employee`}
+        />
       </Card>
     </div>
   );
