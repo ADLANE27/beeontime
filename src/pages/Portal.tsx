@@ -104,10 +104,20 @@ const Portal = () => {
         )}
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{ 
+            theme: ThemeSupa,
+            extend: {
+              components: {
+                anchor: {
+                  display: 'none',
+                },
+              },
+            },
+          }}
           theme="light"
           providers={[]}
           redirectTo={`${window.location.origin}/employee`}
+          showLinks={false}
         />
       </Card>
     </div>

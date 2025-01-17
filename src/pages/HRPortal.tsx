@@ -102,10 +102,20 @@ const HRPortal = () => {
         )}
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{ 
+            theme: ThemeSupa,
+            extend: {
+              components: {
+                anchor: {
+                  display: 'none',
+                },
+              },
+            },
+          }}
           theme="light"
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
+          showLinks={false}
         />
       </Card>
     </div>
