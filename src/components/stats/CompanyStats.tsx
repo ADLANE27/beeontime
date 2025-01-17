@@ -2,8 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { useState } from "react";
-import { Position } from "@/types/hr";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 export const CompanyStats = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
@@ -11,23 +13,119 @@ export const CompanyStats = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#666'];
 
-  // Updated data to use positions instead of departments
-  const positionData = [
-    { name: 'Traducteur/Traductrice', value: 35 },
-    { name: 'Interprète', value: 25 },
-    { name: 'Chef(fe) de projets', value: 15 },
-    { name: 'Coordinateur/Coordinatrice', value: 10 },
-    { name: 'Directeur', value: 5 },
-    { name: 'Assistante de direction', value: 5 },
-    { name: 'Alternant(e)', value: 3 },
-    { name: 'Stagiaire', value: 2 },
-  ];
+  // Requête pour obtenir le nombre total d'employés actifs
+  const { data: totalEmployees = 0, isLoading: isLoadingEmployees } = useQuery({
+    queryKey: ['total-employees'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact' });
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
 
-  const monthlyStats = [
-    { month: 'Jan', presence: 97, absences: 3 },
-    { month: 'Fév', presence: 95, absences: 5 },
-    { month: 'Mar', presence: 96, absences: 4 },
-  ];
+  // Requête pour obtenir les congés en cours
+  const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
+    queryKey: ['current-leaves', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { count, error } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact' })
+        .eq('status', 'approved')
+        .lte('start_date', today)
+        .gte('end_date', today);
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
+
+  // Requête pour obtenir le total des heures supplémentaires
+  const { data: totalOvertime = 0, isLoading: isLoadingOvertime } = useQuery({
+    queryKey: ['total-overtime', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('overtime_requests')
+        .select('hours')
+        .eq('status', 'approved')
+        .eq('date', new Date(parseInt(selectedYear), parseInt(selectedMonth)).toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      return data.reduce((acc, curr) => acc + Number(curr.hours), 0);
+    }
+  });
+
+  // Requête pour obtenir la répartition par poste
+  const { data: positionData = [], isLoading: isLoadingPositions } = useQuery({
+    queryKey: ['position-distribution'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('position');
+      
+      if (error) throw error;
+
+      const positions = data.reduce((acc: { [key: string]: number }, curr) => {
+        if (curr.position) {
+          acc[curr.position] = (acc[curr.position] || 0) + 1;
+        }
+        return acc;
+      }, {});
+
+      return Object.entries(positions).map(([name, value]) => ({ name, value }));
+    }
+  });
+
+  // Requête pour obtenir les statistiques de présence/absence
+  const { data: monthlyStats = [], isLoading: isLoadingMonthly } = useQuery({
+    queryKey: ['monthly-stats', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
+      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
+
+      const { data: timeRecords, error: timeError } = await supabase
+        .from('time_records')
+        .select('*')
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
+
+      if (timeError) throw timeError;
+
+      const { data: leaveRecords, error: leaveError } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('status', 'approved')
+        .overlaps('start_date', startDate.toISOString(), endDate.toISOString());
+
+      if (leaveError) throw leaveError;
+
+      // Calculer les statistiques par jour
+      const stats = Array.from({ length: endDate.getDate() }, (_, i) => {
+        const date = new Date(startDate);
+        date.setDate(i + 1);
+        const timeRecord = timeRecords?.filter(r => new Date(r.date).getDate() === (i + 1));
+        const leaveRecord = leaveRecords?.filter(r => {
+          const start = new Date(r.start_date);
+          const end = new Date(r.end_date);
+          return date >= start && date <= end;
+        });
+
+        return {
+          month: date.toLocaleDateString('fr-FR', { day: 'numeric' }),
+          presence: timeRecord?.length ? 100 : 0,
+          absences: leaveRecord?.length ? 100 : 0
+        };
+      });
+
+      return stats;
+    }
+  });
+
+  const isLoading = isLoadingEmployees || isLoadingLeaves || isLoadingOvertime || 
+                    isLoadingPositions || isLoadingMonthly;
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
@@ -48,6 +146,14 @@ export const CompanyStats = () => {
       </text>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -90,22 +196,24 @@ export const CompanyStats = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-2">Effectif total</h3>
-          <p className="text-3xl font-bold text-primary">42</p>
+          <p className="text-3xl font-bold text-primary">{totalEmployees}</p>
         </Card>
         
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-2">Taux de présence moyen</h3>
-          <p className="text-3xl font-bold text-green-600">96%</p>
+          <p className="text-3xl font-bold text-green-600">
+            {monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length}%
+          </p>
         </Card>
         
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-2">Congés en cours</h3>
-          <p className="text-3xl font-bold text-blue-600">5</p>
+          <p className="text-3xl font-bold text-blue-600">{currentLeaves}</p>
         </Card>
         
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-2">Total heures supp.</h3>
-          <p className="text-3xl font-bold text-purple-600">127h</p>
+          <p className="text-3xl font-bold text-purple-600">{totalOvertime}h</p>
         </Card>
       </div>
 
