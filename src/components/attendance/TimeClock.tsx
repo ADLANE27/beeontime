@@ -96,7 +96,10 @@ export const TimeClock = () => {
 
       if (!employee?.work_schedule) return;
 
-      const workSchedule = employee.work_schedule as WorkSchedule;
+      // Vérifier que work_schedule a la bonne structure
+      const workSchedule = employee.work_schedule as unknown as WorkSchedule;
+      if (!workSchedule.startTime) return;
+
       const scheduledTime = workSchedule.startTime;
       const today = format(new Date(), "yyyy-MM-dd");
 
