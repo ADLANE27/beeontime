@@ -40,7 +40,8 @@ export const CompanyStats = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .overlaps('start_date', 'end_date', [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]]);
+        .filter('start_date', 'lte', endDate.toISOString().split('T')[0])
+        .filter('end_date', 'gte', startDate.toISOString().split('T')[0]);
       
       if (error) {
         console.error('Error fetching leaves:', error);
