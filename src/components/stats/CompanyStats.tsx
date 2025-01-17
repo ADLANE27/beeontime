@@ -28,15 +28,25 @@ export const CompanyStats = () => {
   const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
     queryKey: ['current-leaves', selectedMonth, selectedYear],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      // Calculer le premier et le dernier jour du mois sélectionné
+      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
+      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
+      
+      console.log('Fetching leaves between:', startDate.toISOString(), 'and', endDate.toISOString());
+      
       const { count, error } = await supabase
         .from('leave_requests')
         .select('*', { count: 'exact' })
         .eq('status', 'approved')
-        .lte('start_date', today)
-        .gte('end_date', today);
+        .gte('start_date', startDate.toISOString().split('T')[0])
+        .lte('end_date', endDate.toISOString().split('T')[0]);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching leaves:', error);
+        throw error;
+      }
+      
+      console.log('Found leaves:', count);
       return count || 0;
     }
   });
@@ -88,8 +98,8 @@ export const CompanyStats = () => {
       const { data: timeRecords, error: timeError } = await supabase
         .from('time_records')
         .select('*')
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString());
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
 
       if (timeError) throw timeError;
 
@@ -97,8 +107,8 @@ export const CompanyStats = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .gte('start_date', startDate.toISOString())
-        .lte('end_date', endDate.toISOString());
+        .gte('start_date', startDate.toISOString().split('T')[0])
+        .lte('end_date', endDate.toISOString().split('T')[0]);
 
       if (leaveError) throw leaveError;
 
