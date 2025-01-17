@@ -153,6 +153,32 @@ export const CompanyStats = () => {
   const isLoading = isLoadingEmployees || isLoadingLeaves || isLoadingOvertime || 
                     isLoadingPositions || isLoadingMonthly;
 
+  // Calcul du taux de présence moyen
+  const averagePresence = monthlyStats.length > 0 
+    ? (monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length).toFixed(2)
+    : "0";
+
+  // Configuration pour le rendu des labels du graphique circulaire
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+    const radius = outerRadius * 1.4;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#000"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        fontSize={12}
+      >
+        {`${name} (${(percent * 100).toFixed(0)}%)`}
+      </text>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
