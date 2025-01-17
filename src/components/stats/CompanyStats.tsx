@@ -35,7 +35,7 @@ export const CompanyStats = () => {
       
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('start_date, end_date')
+        .select('start_date, end_date, day_type, period')
         .eq('status', 'approved')
         .gte('start_date', startDate.toISOString().split('T')[0])
         .lte('end_date', endDate.toISOString().split('T')[0]);
@@ -45,13 +45,21 @@ export const CompanyStats = () => {
         throw error;
       }
 
-      // Compter le nombre total de jours de congés
+      // Compter le nombre total de jours de congés en tenant compte des demi-journées
       let totalDays = 0;
       data?.forEach(leave => {
         const start = new Date(leave.start_date);
         const end = new Date(leave.end_date);
+        
+        // Calculer le nombre de jours entre start_date et end_date
         const diffTime = Math.abs(end.getTime() - start.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le jour de début
+        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le jour de début
+        
+        // Ajuster en fonction du type de journée (complète ou demi)
+        if (leave.day_type === 'half') {
+          diffDays = diffDays * 0.5;
+        }
+        
         totalDays += diffDays;
       });
       
