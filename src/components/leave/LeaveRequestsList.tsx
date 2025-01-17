@@ -76,6 +76,7 @@ export const LeaveRequestsList = () => {
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -100,6 +101,23 @@ export const LeaveRequestsList = () => {
       return data as LeaveRequest[];
     }
   });
+
+  // Get unique employees from leave requests
+  const uniqueEmployees = leaveRequests 
+    ? Array.from(new Set(leaveRequests.map(request => request.employee_id)))
+        .map(employeeId => {
+          const request = leaveRequests.find(r => r.employee_id === employeeId);
+          return {
+            id: employeeId,
+            name: `${request?.employees.first_name} ${request?.employees.last_name}`
+          };
+        })
+    : [];
+
+  // Filter leave requests based on selected employee
+  const filteredLeaveRequests = leaveRequests?.filter(request => 
+    selectedEmployee === "all" || request.employee_id === selectedEmployee
+  );
 
   const handleApprove = async (request: LeaveRequest) => {
     setLoadingRequestId(request.id);
@@ -169,18 +187,21 @@ export const LeaveRequestsList = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Employé</Label>
-            <Select>
+            <Select
+              value={selectedEmployee}
+              onValueChange={setSelectedEmployee}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Tous les employés" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les employés</SelectItem>
-                {leaveRequests?.map((request) => (
+                {uniqueEmployees.map((employee) => (
                   <SelectItem 
-                    key={request.employee_id} 
-                    value={request.employee_id}
+                    key={employee.id} 
+                    value={employee.id}
                   >
-                    {request.employees.first_name} {request.employees.last_name}
+                    {employee.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -221,14 +242,13 @@ export const LeaveRequestsList = () => {
           {["all", "pending", "approved", "rejected"].map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="space-y-4">
-                {leaveRequests
+                {filteredLeaveRequests
                   ?.filter((request) => {
                     if (tab === "all") return true;
                     return request.status === tab;
                   })
                   .map((request) => (
                     <Card key={request.id} className="p-4">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="space-y-1">
                           <h3 className="font-semibold">
                             {request.employees.first_name} {request.employees.last_name}
