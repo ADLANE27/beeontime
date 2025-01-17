@@ -25,7 +25,6 @@ export const CompanyStats = () => {
     }
   });
 
-  // Requête pour obtenir les congés en cours
   const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
     queryKey: ['current-leaves', selectedMonth, selectedYear],
     queryFn: async () => {
@@ -42,7 +41,6 @@ export const CompanyStats = () => {
     }
   });
 
-  // Requête pour obtenir le total des heures supplémentaires
   const { data: totalOvertime = 0, isLoading: isLoadingOvertime } = useQuery({
     queryKey: ['total-overtime', selectedMonth, selectedYear],
     queryFn: async () => {
@@ -57,7 +55,6 @@ export const CompanyStats = () => {
     }
   });
 
-  // Requête pour obtenir la répartition par poste
   const { data: positionData = [], isLoading: isLoadingPositions } = useQuery({
     queryKey: ['position-distribution'],
     queryFn: async () => {
@@ -78,7 +75,6 @@ export const CompanyStats = () => {
     }
   });
 
-  // Requête pour obtenir les statistiques de présence/absence
   const { data: monthlyStats = [], isLoading: isLoadingMonthly } = useQuery({
     queryKey: ['monthly-stats', selectedMonth, selectedYear],
     queryFn: async () => {
@@ -97,11 +93,10 @@ export const CompanyStats = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .overlaps('start_date', 'end_date', [startDate.toISOString(), endDate.toISOString()]);
+        .overlaps('start_date', 'end_date', startDate.toISOString(), endDate.toISOString());
 
       if (leaveError) throw leaveError;
 
-      // Calculer les statistiques par jour
       const stats = Array.from({ length: endDate.getDate() }, (_, i) => {
         const date = new Date(startDate);
         date.setDate(i + 1);
