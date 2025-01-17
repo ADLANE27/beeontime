@@ -16,6 +16,20 @@ import {
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 
+// Ajout des traductions des types de congés
+const leaveTypeTranslations: { [key: string]: string } = {
+  "vacation": "Congés payés",
+  "annual": "Congé annuel",
+  "rtt": "RTT",
+  "paternity": "Congé paternité",
+  "maternity": "Congé maternité",
+  "sickChild": "Congé enfant malade",
+  "unpaidUnexcused": "Absence injustifiée non rémunérée",
+  "unpaidExcused": "Absence justifiée non rémunérée",
+  "unpaid": "Absence non rémunérée",
+  "familyEvent": "Absences pour événements familiaux"
+};
+
 export const ExportDataTab = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [isExporting, setIsExporting] = useState(false);
@@ -51,7 +65,7 @@ export const ExportDataTab = () => {
             "Prénom": request.employees?.first_name || 'N/A',
             "Date de début": format(parseISO(request.start_date), 'dd/MM/yyyy'),
             "Date de fin": format(parseISO(request.end_date), 'dd/MM/yyyy'),
-            "Type de congé": request.type,
+            "Type de congé": leaveTypeTranslations[request.type] || request.type,
             "Nombre de jours": request.day_type === 'full' ? 1 : 0.5
           }));
           break;
