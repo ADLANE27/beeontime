@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -13,7 +13,6 @@ export const CompanyStats = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#666'];
 
-  // Requête pour obtenir le nombre total d'employés actifs
   const { data: totalEmployees = 0, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['total-employees'],
     queryFn: async () => {
@@ -52,106 +51,6 @@ export const CompanyStats = () => {
         .select('hours')
         .eq('status', 'approved')
         .eq('date', new Date(parseInt(selectedYear), parseInt(selectedMonth)).toISOString().split('T')[0]);
-      
-      if (error) throw error;
-      return data.reduce((acc, curr) => acc + Number(curr.hours), 0);
-    }
-  });
-
-  // Requête pour obtenir la répartition par poste
-  const { data: positionData = [], isLoading: isLoadingPositions } = useQuery({
-    queryKey: ['position-distribution'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('position');
-      
-      if (error) throw error;
-
-      const positions = data.reduce((acc: { [key: string]: number }, curr) => {
-        if (curr.position) {
-          acc[curr.position] = (acc[curr.position] || 0) + 1;
-        }
-        return acc;
-      }, {});
-
-      return Object.entries(positions).map(([name, value]) => ({ name, value }));
-    }
-  });
-
-  // Requête pour obtenir les statistiques de présence/absence
-  const { data: monthlyStats = [], isLoading: isLoadingMonthly } = useQuery({
-    queryKey: ['monthly-stats', selectedMonth, selectedYear],
-    queryFn: async () => {
-      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
-      const endDate = new Date(parseInt(selectedYear), parseInt(selecte
-
-Je vois l'erreur. Elle provient de la ligne 101 dans CompanyStats.tsx où nous passons 3 arguments à la méthode `overlaps()` de Supabase, mais cette méthode n'accepte que 2 arguments.
-
-La méthode `overlaps()` attend seulement une date de début et une date de fin, pas 3 arguments. Voici comment nous allons corriger cela :
-
-<lov-code>
-Modifions le fichier CompanyStats.tsx pour corriger l'appel à overlaps() :
-
-<lov-write file_path="src/components/stats/CompanyStats.tsx">
-import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-
-export const CompanyStats = () => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#666'];
-
-  // Requête pour obtenir le nombre total d'employés actifs
-  const { data: totalEmployees = 0, isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ['total-employees'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('employees')
-        .select('*', { count: 'exact' });
-      
-      if (error) throw error;
-      return count || 0;
-    }
-  });
-
-  // Requête pour obtenir les congés en cours
-  const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
-    queryKey: ['current-leaves', selectedMonth, selectedYear],
-    queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const { count, error } = await supabase
-        .from('leave_requests')
-        .select('*', { count: 'exact' })
-        .eq('status', 'approved')
-        .lte('start_date', today)
-        .gte('end_date', today);
-      
-      if (error) throw error;
-      return count || 0;
-    }
-  });
-
-  // Requête pour obtenir le total des heures supplémentaires
-  const { data: totalOvertime = 0, isLoading: isLoadingOvertime } = useQuery({
-    queryKey: ['total-overtime', selectedMonth, selectedYear],
-    queryFn: async () => {
-      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1).toISOString().split('T')[0];
-      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0).toISOString().split('T')[0];
-      
-      const { data, error } = await supabase
-        .from('overtime_requests')
-        .select('hours')
-        .eq('status', 'approved')
-        .gte('date', startDate)
-        .lte('date', endDate);
       
       if (error) throw error;
       return data.reduce((acc, curr) => acc + Number(curr.hours), 0);
