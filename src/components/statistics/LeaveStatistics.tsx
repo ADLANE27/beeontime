@@ -32,7 +32,7 @@ export const LeaveStatistics = () => {
 
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('type, day_type, start_date, end_date, status')
+        .select('*')
         .eq('status', 'approved')
         .gte('start_date', firstDay)
         .lte('end_date', lastDay);
@@ -66,18 +66,24 @@ export const LeaveStatistics = () => {
         // Multiplier par 1 pour journée complète ou 0.5 pour demi-journée
         const adjustedDays = daysDiff * days;
 
-        console.log(`Request from ${request.start_date} to ${request.end_date}:`, {
+        console.log(`Analyzing request:`, {
+          startDate: request.start_date,
+          endDate: request.end_date,
           dayType: request.day_type,
-          daysDiff,
-          adjustedDays,
-          type: request.type
+          period: request.period,
+          type: request.type,
+          calculatedDays: {
+            daysDiff,
+            days,
+            adjustedDays
+          }
         });
 
         statsByType[request.type] = (statsByType[request.type] || 0) + adjustedDays;
         total += adjustedDays;
       });
 
-      console.log('Calculated stats:', { statsByType, total });
+      console.log('Final calculated stats:', { statsByType, total });
 
       return { statsByType, total };
     }
