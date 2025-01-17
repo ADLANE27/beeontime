@@ -78,6 +78,55 @@ export const TimeClock = () => {
     }
   };
 
+  const checkForDelay = async (userId: string, actualTime: string) => {
+    try {
+      // Récupérer l'emploi du temps de l'employé
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('work_schedule')
+        .eq('id', userId)
+        .single();
+
+      if (!employee?.work_schedule) return;
+
+      const scheduledTime = employee.work_schedule.startTime;
+      const today = format(new Date(), "yyyy-MM-dd");
+
+      // Comparer l'heure d'arrivée avec l'heure prévue
+      const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
+      const [actualHour, actualMinute] = actualTime.split(':').map(Number);
+
+      const scheduledDate = new Date();
+      scheduledDate.setHours(scheduledHour, scheduledMinute, 0);
+
+      const actualDate = new Date();
+      actualDate.setHours(actualHour, actualMinute, 0);
+
+      // Si l'employé est en retard, créer une entrée dans la table delays
+      if (actualDate > scheduledDate) {
+        const duration = (actualDate.getTime() - scheduledDate.getTime()) / (1000 * 60); // en minutes
+        const hours = Math.floor(duration / 60);
+        const minutes = duration % 60;
+        const formattedDuration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+
+        await supabase
+          .from('delays')
+          .insert({
+            employee_id: userId,
+            date: today,
+            scheduled_time: scheduledTime,
+            actual_time: actualTime,
+            duration: formattedDuration,
+            reason: "Pointage arrivée"
+          });
+
+        toast.info("Retard détecté et enregistré pour validation par les RH");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification du retard:", error);
+    }
+  };
+
   const handleTimeRecord = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -116,18 +165,9 @@ export const TimeClock = () => {
           evening_out: data.evening_out
         });
 
-        // If it's morning check-in, also record in delays table
+        // Si c'est le pointage du matin, vérifier s'il y a un retard
         if (nextAction === "morning_in") {
-          await supabase
-            .from("delays")
-            .insert({
-              employee_id: user.id,
-              date: today,
-              scheduled_time: "09:00",
-              actual_time: currentTimeStr,
-              duration: "0",
-              reason: "Pointage arrivée"
-            });
+          await checkForDelay(user.id, currentTimeStr);
         }
       } else {
         // Update existing record
