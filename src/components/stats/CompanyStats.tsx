@@ -6,6 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { isWithinInterval, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export const CompanyStats = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
@@ -28,8 +29,8 @@ export const CompanyStats = () => {
   const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
     queryKey: ['current-leaves', selectedMonth, selectedYear],
     queryFn: async () => {
-      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
-      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
+      const startDate = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
+      const endDate = endOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
       
       console.log('Fetching leaves for period:', {
         startDate: startDate.toISOString(),
@@ -53,26 +54,18 @@ export const CompanyStats = () => {
       let totalDays = 0;
 
       data?.forEach(leave => {
-        const start = new Date(leave.start_date);
-        const end = new Date(leave.end_date);
-        
-        console.log(`Processing leave request for dates ${leave.start_date} to ${leave.end_date}:`, {
-          type: leave.type,
-          day_type: leave.day_type,
-          period: leave.period
-        });
+        const start = parseISO(leave.start_date);
+        const end = parseISO(leave.end_date);
         
         // Pour chaque jour entre start_date et end_date
         const currentDate = new Date(start);
         while (currentDate <= end) {
           // Vérifier si le jour est dans le mois sélectionné
-          if (currentDate.getMonth() === parseInt(selectedMonth) && 
-              currentDate.getFullYear() === parseInt(selectedYear)) {
-            
+          if (isWithinInterval(currentDate, { start: startDate, end: endDate })) {
             const dayToAdd = leave.day_type === 'full' ? 1 : 0.5;
             totalDays += dayToAdd;
             
-            console.log(`Adding ${dayToAdd} day(s) for ${currentDate.toISOString().split('T')[0]}`);
+            console.log(`Adding ${dayToAdd} day(s) for ${currentDate.toISOString().split('T')[0]} - Type: ${leave.day_type}`);
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
