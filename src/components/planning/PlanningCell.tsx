@@ -21,7 +21,7 @@ export const PlanningCell = ({
     return (
       <td
         className={cn(
-          "text-center p-2 min-w-[100px] whitespace-pre-line text-xs",
+          "text-center p-2 min-w-[100px] whitespace-pre-line text-xs relative",
           {
             "bg-blue-50": isToday,
             "bg-gray-100": isWeekend
@@ -65,27 +65,42 @@ export const PlanningCell = ({
     }
   };
 
+  const backgroundColor = getLeaveColor(leaveRequest.type);
+
   return (
     <td
       className={cn(
-        "text-center p-2 min-w-[100px] whitespace-pre-line text-xs",
+        "text-center p-2 min-w-[100px] whitespace-pre-line text-xs relative",
         {
           "bg-blue-50": isToday,
           "bg-gray-100": isWeekend
         }
       )}
-      style={{
-        backgroundColor: getLeaveColor(leaveRequest.type)
-      }}
     >
-      <div className="flex flex-col gap-1">
-        <span className="font-medium">{getLeaveLabel(leaveRequest.type)}</span>
-        {leaveRequest.day_type === "half" && (
-          <span className="text-xs">
-            {leaveRequest.period === "morning" ? "Matin" : "Après-midi"}
-          </span>
-        )}
-      </div>
+      {leaveRequest.day_type === "half" ? (
+        <div className="relative w-full h-full min-h-[40px]">
+          <div 
+            className={cn(
+              "absolute inset-0",
+              leaveRequest.period === "morning" ? "clip-path-left" : "clip-path-right"
+            )}
+            style={{ backgroundColor }}
+          />
+          <div className="relative z-10">
+            <span className="font-medium">{getLeaveLabel(leaveRequest.type)}</span>
+            <span className="text-xs block">
+              {leaveRequest.period === "morning" ? "Matin" : "Après-midi"}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="w-full h-full min-h-[40px] flex flex-col items-center justify-center"
+          style={{ backgroundColor }}
+        >
+          <span className="font-medium">{getLeaveLabel(leaveRequest.type)}</span>
+        </div>
+      )}
     </td>
   );
 };
