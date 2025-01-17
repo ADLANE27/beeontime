@@ -97,7 +97,8 @@ export const CompanyStats = () => {
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .overlaps('start_date,end_date', [startDate.toISOString(), endDate.toISOString()]);
+        .gte('start_date', startDate.toISOString())
+        .lte('end_date', endDate.toISOString());
 
       if (leaveError) throw leaveError;
 
