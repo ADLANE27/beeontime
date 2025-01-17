@@ -32,7 +32,7 @@ export const LeaveStatistics = () => {
 
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('type, day_type, start_date, end_date')
+        .select('type, day_type, start_date, end_date, status')
         .eq('status', 'approved')
         .gte('start_date', firstDay)
         .lte('end_date', lastDay);
@@ -60,12 +60,24 @@ export const LeaveStatistics = () => {
         const effectiveStart = start < monthStart ? monthStart : start;
         const effectiveEnd = end > monthEnd ? monthEnd : end;
 
+        // Calculer le nombre de jours entre les dates (inclus)
         const daysDiff = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Multiplier par 1 pour journée complète ou 0.5 pour demi-journée
         const adjustedDays = daysDiff * days;
+
+        console.log(`Request from ${request.start_date} to ${request.end_date}:`, {
+          dayType: request.day_type,
+          daysDiff,
+          adjustedDays,
+          type: request.type
+        });
 
         statsByType[request.type] = (statsByType[request.type] || 0) + adjustedDays;
         total += adjustedDays;
       });
+
+      console.log('Calculated stats:', { statsByType, total });
 
       return { statsByType, total };
     }
