@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, isWeekend } from "date-fns";
 
 const LEAVE_TYPES_FR = {
   vacation: "Congés payés",
@@ -35,7 +35,7 @@ export const LeaveStatistics = () => {
         .select('*')
         .eq('status', 'approved')
         .gte('start_date', firstDay)
-        .lte('start_date', lastDay); // Changé de end_date à start_date pour ne compter que les congés qui commencent dans le mois
+        .lte('end_date', lastDay); // On prend tous les congés qui se terminent dans le mois
 
       if (error) {
         console.error('Error fetching leave stats:', error);
@@ -60,7 +60,14 @@ export const LeaveStatistics = () => {
         // Calculer le nombre de jours entre start_date et end_date
         const startDate = parseISO(request.start_date);
         const endDate = parseISO(request.end_date);
-        const daysCount = differenceInDays(endDate, startDate) + 1; // +1 car on compte le jour de début
+        let daysCount = 0;
+        
+        // Compter les jours en excluant les week-ends
+        for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
+          if (!isWeekend(d)) {
+            daysCount++;
+          }
+        }
         
         // Pour une journée complète, on multiplie par le nombre de jours
         // Pour une demi-journée, on divise par 2
