@@ -35,7 +35,7 @@ export const LeaveStatistics = () => {
         .select('*')
         .eq('status', 'approved')
         .gte('start_date', firstDay)
-        .lte('end_date', lastDay);
+        .lte('start_date', lastDay); // Changé de end_date à start_date pour ne compter que les congés qui commencent dans le mois
 
       if (error) {
         console.error('Error fetching leave stats:', error);
@@ -61,7 +61,7 @@ export const LeaveStatistics = () => {
         const startDate = parseISO(request.start_date);
         const endDate = parseISO(request.end_date);
         const daysCount = differenceInDays(endDate, startDate) + 1; // +1 car on compte le jour de début
-
+        
         // Pour une journée complète, on multiplie par le nombre de jours
         // Pour une demi-journée, on divise par 2
         const totalDays = request.day_type === 'half' ? 0.5 : daysCount;
