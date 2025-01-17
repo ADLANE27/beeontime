@@ -44,15 +44,15 @@ export const CompanyStats = () => {
   const { data: totalOvertime = 0, isLoading: isLoadingOvertime } = useQuery({
     queryKey: ['total-overtime', selectedMonth, selectedYear],
     queryFn: async () => {
-      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1).toISOString().split('T')[0];
-      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0).toISOString().split('T')[0];
+      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
+      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
       
       const { data, error } = await supabase
         .from('overtime_requests')
         .select('hours')
         .eq('status', 'approved')
-        .gte('date', startDate)
-        .lte('date', endDate);
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
       
       if (error) throw error;
       return data.reduce((acc, curr) => acc + Number(curr.hours), 0);
@@ -125,6 +125,11 @@ export const CompanyStats = () => {
 
   const isLoading = isLoadingEmployees || isLoadingLeaves || isLoadingOvertime || 
                     isLoadingPositions || isLoadingMonthly;
+
+  // Calcul du taux de présence moyen avec 2 décimales
+  const averagePresence = monthlyStats.length > 0 
+    ? (monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length).toFixed(2)
+    : 0;
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
@@ -200,9 +205,7 @@ export const CompanyStats = () => {
         
         <Card className="p-4">
           <h3 className="text-lg font-semibold mb-2">Taux de présence moyen</h3>
-          <p className="text-3xl font-bold text-green-600">
-            {monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length}%
-          </p>
+          <p className="text-3xl font-bold text-green-600">{averagePresence}%</p>
         </Card>
         
         <Card className="p-4">
@@ -249,7 +252,7 @@ export const CompanyStats = () => {
               <BarChart data={monthlyStats}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
+                <YAxis domain={[0, 100]} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="presence" fill="#4F46E5" name="Présence %" />
