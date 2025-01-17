@@ -4,12 +4,13 @@ import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, is
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
 import { PlanningCell } from "./PlanningCell";
 import { Database } from "@/integrations/supabase/types";
+import { generatePlanningPDF } from "@/utils/pdf";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 
@@ -91,6 +92,10 @@ export const AdminPlanning = () => {
     });
   };
 
+  const handleExportPDF = () => {
+    generatePlanningPDF(employees, currentDate, leaveRequests);
+  };
+
   return (
     <Card className="p-4">
       <div className="space-y-4">
@@ -106,6 +111,10 @@ export const AdminPlanning = () => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Exporter en PDF
+          </Button>
         </div>
 
         <LeaveTypeLegend />
