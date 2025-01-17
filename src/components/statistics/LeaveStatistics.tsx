@@ -30,12 +30,12 @@ export const LeaveStatistics = () => {
 
       console.log('Fetching leaves for period:', firstDay, 'to', lastDay);
 
+      // Récupérer toutes les demandes qui chevauchent le mois sélectionné
       const { data, error } = await supabase
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .gte('start_date', firstDay)
-        .lte('end_date', lastDay);
+        .or(`start_date.lte.${lastDay},end_date.gte.${firstDay}`);
 
       if (error) {
         console.error('Error fetching leave stats:', error);
@@ -47,7 +47,7 @@ export const LeaveStatistics = () => {
       const statsByType: { [key: string]: number } = {};
       let total = 0;
 
-      data.forEach(request => {
+      data?.forEach(request => {
         // Calculer le nombre de jours pour cette demande
         const start = new Date(request.start_date);
         const end = new Date(request.end_date);
