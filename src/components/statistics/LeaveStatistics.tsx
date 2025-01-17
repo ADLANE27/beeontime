@@ -23,67 +23,43 @@ export const LeaveStatistics = () => {
   const { data: leaveStats, isLoading } = useQuery({
     queryKey: ['leave-statistics', selectedMonth],
     queryFn: async () => {
-      // Calculer le premier et dernier jour du mois sélectionné
       const year = new Date().getFullYear();
       const firstDay = new Date(year, selectedMonth - 1, 1).toISOString().split('T')[0];
       const lastDay = new Date(year, selectedMonth, 0).toISOString().split('T')[0];
 
-      console.log('Fetching leaves for period:', firstDay, 'to', lastDay);
+      console.log('Période sélectionnée:', firstDay, 'à', lastDay);
 
-      // Récupérer toutes les demandes qui chevauchent le mois sélectionné
       const { data, error } = await supabase
         .from('leave_requests')
         .select('*')
         .eq('status', 'approved')
-        .or(`start_date.lte.${lastDay},end_date.gte.${firstDay}`);
+        .gte('start_date', firstDay)
+        .lte('end_date', lastDay);
 
       if (error) {
         console.error('Error fetching leave stats:', error);
         throw error;
       }
 
-      console.log('Raw leave data:', data);
+      console.log('Données brutes des congés:', data);
 
       const statsByType: { [key: string]: number } = {};
       let total = 0;
 
       data?.forEach(request => {
-        // Calculer le nombre de jours pour cette demande
-        const start = new Date(request.start_date);
-        const end = new Date(request.end_date);
-        const days = request.day_type === 'half' ? 0.5 : 1;
+        console.log(`\nAnalyse de la demande de congé:`, request);
+        
+        // Pour une journée complète, on compte 1, pour une demi-journée 0.5
+        const daysCount = request.day_type === 'half' ? 0.5 : 1;
+        console.log('Nombre de jours pour cette demande:', daysCount);
 
-        // Si la demande chevauche plusieurs mois, ne compter que les jours du mois sélectionné
-        const monthStart = new Date(year, selectedMonth - 1, 1);
-        const monthEnd = new Date(year, selectedMonth, 0);
+        // Ajouter au total par type
+        statsByType[request.type] = (statsByType[request.type] || 0) + daysCount;
+        total += daysCount;
 
-        const effectiveStart = start < monthStart ? monthStart : start;
-        const effectiveEnd = end > monthEnd ? monthEnd : end;
-
-        // Calculer le nombre de jours entre les dates (inclus)
-        const daysDiff = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-        // Multiplier par 1 pour journée complète ou 0.5 pour demi-journée
-        const adjustedDays = daysDiff * days;
-
-        console.log(`Analyzing request:`, {
-          startDate: request.start_date,
-          endDate: request.end_date,
-          dayType: request.day_type,
-          period: request.period,
-          type: request.type,
-          calculatedDays: {
-            daysDiff,
-            days,
-            adjustedDays
-          }
-        });
-
-        statsByType[request.type] = (statsByType[request.type] || 0) + adjustedDays;
-        total += adjustedDays;
+        console.log(`Total pour le type ${request.type}:`, statsByType[request.type]);
+        console.log('Total général:', total);
       });
-
-      console.log('Final calculated stats:', { statsByType, total });
 
       return { statsByType, total };
     }
