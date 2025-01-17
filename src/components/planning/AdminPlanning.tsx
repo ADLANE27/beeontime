@@ -129,12 +129,12 @@ export const AdminPlanning = () => {
             startDate.getFullYear(),
             startDate.getMonth() + 1,
             startDate.getDate()
-          ],
+          ] as [number, number, number],
           end: [
             endDate.getFullYear(),
             endDate.getMonth() + 1,
             endDate.getDate()
-          ],
+          ] as [number, number, number],
           title: `Absence: ${request.type} - ${employee?.first_name} ${employee?.last_name}`,
           description: request.reason || '',
           status: 'CONFIRMED'
