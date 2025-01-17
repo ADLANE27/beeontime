@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,9 +48,9 @@ export const AdminPlanning = () => {
       setEmployees(employeesData || []);
 
       // Fetch approved leave requests for the current month
-      const startDate = format(firstDayOfMonth, 'yyyy-MM-dd');
+      const startDate = format(firstDayOfPeriod, 'yyyy-MM-dd');
       const endDate = format(
-        new Date(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth() + 1, 0),
+        new Date(firstDayOfPeriod.getFullYear(), firstDayOfPeriod.getMonth() + 1, 0),
         'yyyy-MM-dd'
       );
 
@@ -119,13 +119,27 @@ export const AdminPlanning = () => {
   const handleExportICS = () => {
     const events = leaveRequests
       .filter(request => request.status === 'approved')
-      .map(request => ({
-        start: request.start_date.split('-').map(Number),
-        end: request.end_date.split('-').map(Number),
-        title: `Absence: ${request.type} - ${employees.find(e => e.id === request.employee_id)?.first_name} ${employees.find(e => e.id === request.employee_id)?.last_name}`,
-        description: request.reason || '',
-        busyStatus: 'OOF',
-      }));
+      .map(request => {
+        const startDate = parse(request.start_date, 'yyyy-MM-dd', new Date());
+        const endDate = parse(request.end_date, 'yyyy-MM-dd', new Date());
+        const employee = employees.find(e => e.id === request.employee_id);
+        
+        return {
+          start: [
+            startDate.getFullYear(),
+            startDate.getMonth() + 1,
+            startDate.getDate()
+          ],
+          end: [
+            endDate.getFullYear(),
+            endDate.getMonth() + 1,
+            endDate.getDate()
+          ],
+          title: `Absence: ${request.type} - ${employee?.first_name} ${employee?.last_name}`,
+          description: request.reason || '',
+          status: 'CONFIRMED'
+        };
+      });
 
     createEvents(events, (error: Error | undefined, value: string) => {
       if (error) {
