@@ -137,7 +137,7 @@ export const AdminPlanning = () => {
           ] as [number, number, number],
           title: `Absence: ${request.type} - ${employee?.first_name} ${employee?.last_name}`,
           description: request.reason || '',
-          status: 'CONFIRMED'
+          status: 'CONFIRMED' as const
         };
       });
 
