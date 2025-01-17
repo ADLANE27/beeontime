@@ -52,6 +52,7 @@ export const LeaveStatistics = () => {
           end_date: request.end_date,
           type: request.type,
           day_type: request.day_type,
+          period: request.period,
           status: request.status
         });
         
