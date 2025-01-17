@@ -18,7 +18,7 @@ export const CompanyStats = () => {
     queryFn: async () => {
       const { count, error } = await supabase
         .from('employees')
-        .select('*', { count: 'exact' });
+        .select('*', { count: 'exact', head: true });
       
       if (error) throw error;
       return count || 0;
@@ -28,15 +28,14 @@ export const CompanyStats = () => {
   const { data: currentLeaves = 0, isLoading: isLoadingLeaves } = useQuery({
     queryKey: ['current-leaves', selectedMonth, selectedYear],
     queryFn: async () => {
-      // Calculer le premier et le dernier jour du mois sélectionné
       const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
       const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
       
       console.log('Fetching leaves between:', startDate.toISOString(), 'and', endDate.toISOString());
       
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('leave_requests')
-        .select('*', { count: 'exact' })
+        .select('start_date, end_date')
         .eq('status', 'approved')
         .gte('start_date', startDate.toISOString().split('T')[0])
         .lte('end_date', endDate.toISOString().split('T')[0]);
@@ -45,9 +44,19 @@ export const CompanyStats = () => {
         console.error('Error fetching leaves:', error);
         throw error;
       }
+
+      // Compter le nombre total de jours de congés
+      let totalDays = 0;
+      data?.forEach(leave => {
+        const start = new Date(leave.start_date);
+        const end = new Date(leave.end_date);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le jour de début
+        totalDays += diffDays;
+      });
       
-      console.log('Found leaves:', count);
-      return count || 0;
+      console.log('Total leave days:', totalDays);
+      return totalDays;
     }
   });
 
@@ -74,10 +83,11 @@ export const CompanyStats = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employees')
-        .select('position');
+        .select('position, id');
       
       if (error) throw error;
 
+      // Créer un objet pour compter les employés par poste
       const positions = data.reduce((acc: { [key: string]: number }, curr) => {
         if (curr.position) {
           acc[curr.position] = (acc[curr.position] || 0) + 1;
@@ -85,7 +95,14 @@ export const CompanyStats = () => {
         return acc;
       }, {});
 
-      return Object.entries(positions).map(([name, value]) => ({ name, value }));
+      // Calculer le total des employés
+      const totalEmployees = Object.values(positions).reduce((sum, count) => sum + count, 0);
+
+      // Convertir en pourcentages
+      return Object.entries(positions).map(([name, count]) => ({
+        name,
+        value: (count / totalEmployees) * 100
+      }));
     }
   });
 
@@ -135,31 +152,6 @@ export const CompanyStats = () => {
 
   const isLoading = isLoadingEmployees || isLoadingLeaves || isLoadingOvertime || 
                     isLoadingPositions || isLoadingMonthly;
-
-  // Calcul du taux de présence moyen avec 2 décimales
-  const averagePresence = monthlyStats.length > 0 
-    ? (monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length).toFixed(2)
-    : 0;
-
-  const RADIAN = Math.PI / 180;
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
-    const radius = outerRadius * 1.4;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#000"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        fontSize={12}
-      >
-        {`${name} (${(percent * 100).toFixed(0)}%)`}
-      </text>
-    );
-  };
 
   if (isLoading) {
     return (
