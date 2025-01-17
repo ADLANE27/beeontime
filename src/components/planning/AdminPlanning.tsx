@@ -6,8 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CompanyStats } from "@/components/stats/CompanyStats";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
 import { PlanningCell } from "./PlanningCell";
@@ -94,82 +92,64 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <Tabs defaultValue="planning" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="planning">Planning</TabsTrigger>
-        <TabsTrigger value="stats">Statistiques</TabsTrigger>
-      </TabsList>
+    <Card className="p-4">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="icon" onClick={previousMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-xl font-semibold">
+              {format(currentDate, 'MMMM yyyy', { locale: fr })}
+            </h2>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-      <TabsContent value="planning">
-        <Card className="p-4">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="icon" onClick={previousMonth}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <h2 className="text-xl font-semibold">
-                  {format(currentDate, 'MMMM yyyy', { locale: fr })}
-                </h2>
-                <Button variant="outline" size="icon" onClick={nextMonth}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <LeaveTypeLegend />
-            
-            <ScrollArea className="h-[500px] w-full" orientation="both">
-              <div className="min-w-max border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 bg-white z-10 w-[200px]">Employé</TableHead>
-                      {getDaysToShow().map((date, i) => (
-                        <TableHead 
-                          key={i} 
-                          className="text-center min-w-[100px] p-2 whitespace-pre-line"
-                        >
-                          <div className="text-xs font-medium">
-                            {format(date, 'dd')}
-                          </div>
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableHead className="sticky left-0 bg-white font-medium w-[200px]">
-                          {`${employee.first_name} ${employee.last_name}`}
-                        </TableHead>
-                        {getDaysToShow().map((date, i) => (
-                          <PlanningCell
-                            key={i}
-                            date={date}
-                            leaveRequest={getLeaveRequestForDay(employee.id, date)}
-                            isWeekend={isWeekend(date)}
-                            isToday={isToday(date)}
-                          />
-                        ))}
-                      </TableRow>
+        <LeaveTypeLegend />
+        
+        <ScrollArea className="h-[500px] w-full" orientation="both">
+          <div className="min-w-max border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky left-0 bg-white z-10 w-[200px]">Employé</TableHead>
+                  {getDaysToShow().map((date, i) => (
+                    <TableHead 
+                      key={i} 
+                      className="text-center min-w-[100px] p-2 whitespace-pre-line"
+                    >
+                      <div className="text-xs font-medium">
+                        {format(date, 'dd')}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableHead className="sticky left-0 bg-white font-medium w-[200px]">
+                      {`${employee.first_name} ${employee.last_name}`}
+                    </TableHead>
+                    {getDaysToShow().map((date, i) => (
+                      <PlanningCell
+                        key={i}
+                        date={date}
+                        leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                        isWeekend={isWeekend(date)}
+                        isToday={isToday(date)}
+                      />
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </ScrollArea>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="stats">
-        <Card className="p-6">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Statistiques</h2>
-            <CompanyStats />
-          </div>
-        </Card>
-      </TabsContent>
-    </Tabs>
+        </ScrollArea>
+      </div>
+    </Card>
   );
 };
