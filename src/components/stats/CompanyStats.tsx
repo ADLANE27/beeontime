@@ -31,8 +31,6 @@ export const CompanyStats = () => {
       const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1);
       const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
       
-      console.log('Fetching leaves between:', startDate.toISOString(), 'and', endDate.toISOString());
-      
       const { data, error } = await supabase
         .from('leave_requests')
         .select('start_date, end_date, day_type')
@@ -45,9 +43,7 @@ export const CompanyStats = () => {
         throw error;
       }
 
-      // Compter uniquement les jours individuels dans le mois sélectionné
       let totalDays = 0;
-      const daysInMonth = new Set(); // Utiliser un Set pour éviter les doublons
 
       data?.forEach(leave => {
         const start = new Date(leave.start_date);
@@ -59,19 +55,13 @@ export const CompanyStats = () => {
           // Vérifier si le jour est dans le mois sélectionné
           if (currentDate.getMonth() === parseInt(selectedMonth) && 
               currentDate.getFullYear() === parseInt(selectedYear)) {
-            // Ajouter la date au Set (format YYYY-MM-DD)
-            const dateStr = currentDate.toISOString().split('T')[0];
-            daysInMonth.add(dateStr);
+            // Ajouter 1 ou 0.5 selon le type de journée
+            totalDays += leave.day_type === 'full' ? 1 : 0.5;
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
       });
-
-      // Convertir le Set en nombre de jours
-      totalDays = daysInMonth.size;
       
-      console.log('Total leave days:', totalDays);
-      console.log('Days in month:', Array.from(daysInMonth));
       return totalDays;
     }
   });
@@ -166,7 +156,6 @@ export const CompanyStats = () => {
   const isLoading = isLoadingEmployees || isLoadingLeaves || isLoadingOvertime || 
                     isLoadingPositions || isLoadingMonthly;
 
-  // Calcul du taux de présence moyen
   const averagePresence = monthlyStats?.length > 0 
     ? (monthlyStats.reduce((acc, curr) => acc + curr.presence, 0) / monthlyStats.length).toFixed(2)
     : "0";
