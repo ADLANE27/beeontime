@@ -144,7 +144,10 @@ export const HREventsList = () => {
           className="max-w-xs"
         />
 
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <Select 
+          value={selectedCategory} 
+          onValueChange={(value: EventCategory | "") => setSelectedCategory(value)}
+        >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Catégorie" />
           </SelectTrigger>

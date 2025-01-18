@@ -168,10 +168,13 @@ export const NewHREventDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="category">Catégorie</Label>
-            <Select value={category} onValueChange={(value) => {
-              setCategory(value);
-              setSubcategory("");
-            }}>
+            <Select 
+              value={category} 
+              onValueChange={(value: EventCategory) => {
+                setCategory(value);
+                setSubcategory("");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une catégorie" />
               </SelectTrigger>
@@ -187,13 +190,16 @@ export const NewHREventDialog = ({
           {category && (
             <div className="space-y-2">
               <Label htmlFor="subcategory">Sous-catégorie</Label>
-              <Select value={subcategory} onValueChange={setSubcategory}>
+              <Select 
+                value={subcategory} 
+                onValueChange={(value: EventSubcategory) => setSubcategory(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une sous-catégorie" />
                 </SelectTrigger>
                 <SelectContent>
                   {getSubcategories().map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
+                    <SelectItem key={value} value={value as EventSubcategory}>
                       {label}
                     </SelectItem>
                   ))}
@@ -204,7 +210,10 @@ export const NewHREventDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="severity">Gravité</Label>
-            <Select value={severity} onValueChange={setSeverity}>
+            <Select 
+              value={severity} 
+              onValueChange={(value: EventSeverity) => setSeverity(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner la gravité" />
               </SelectTrigger>
