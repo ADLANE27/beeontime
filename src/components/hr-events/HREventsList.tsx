@@ -28,6 +28,7 @@ import { HREventDetails } from "./HREventDetails";
 import { Badge } from "@/components/ui/badge";
 import { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { generateEventPDF } from "./utils";
 
 type EventCategory = Database["public"]["Enums"]["event_category"];
 
@@ -165,6 +166,11 @@ export const HREventsList = () => {
     currentPage * ITEMS_PER_PAGE
   );
 
+  const handleDownloadPDF = async (event: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await generateEventPDF(event);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -300,10 +306,7 @@ export const HREventsList = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Call downloadDocument function here
-                          }}
+                          onClick={(e) => handleDownloadPDF(event, e)}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
