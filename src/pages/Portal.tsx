@@ -5,6 +5,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthError } from "@supabase/supabase-js";
 
 const Portal = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Portal = () => {
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          setError("Error checking authentication status");
+          setError("Erreur lors de la vérification de l'authentification");
           return;
         }
 
@@ -31,7 +32,7 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Error checking user role");
+            setError("Erreur lors de la vérification du rôle utilisateur");
             return;
           }
 
@@ -43,7 +44,7 @@ const Portal = () => {
         }
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("An unexpected error occurred");
+        setError("Une erreur inattendue s'est produite");
       }
     };
 
@@ -63,7 +64,7 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Error checking user role");
+            setError("Erreur lors de la vérification du rôle utilisateur");
             return;
           }
 
@@ -74,9 +75,15 @@ const Portal = () => {
           }
         } catch (err) {
           console.error("Error during role check:", err);
-          setError("Error checking user role");
+          setError("Erreur lors de la vérification du rôle utilisateur");
         }
       } else if (event === 'SIGNED_OUT') {
+        setError(null);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setError(null);
+      } else if (event === 'USER_UPDATED') {
+        setError(null);
+      } else if (event === 'INITIAL_SESSION') {
         setError(null);
       }
     });
@@ -85,6 +92,19 @@ const Portal = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case 'Invalid login credentials':
+        return 'Email ou mot de passe incorrect';
+      case 'Email not confirmed':
+        return 'Veuillez confirmer votre email avant de vous connecter';
+      case 'Invalid email or password':
+        return 'Email ou mot de passe invalide';
+      default:
+        return error.message;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -99,11 +119,7 @@ const Portal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
-              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
-              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         <Auth
@@ -127,7 +143,9 @@ const Portal = () => {
                 button_label: 'Se connecter',
                 loading_button_label: 'Connexion en cours...',
                 email_input_placeholder: 'Votre adresse email',
-                password_input_placeholder: 'Votre mot de passe'
+                password_input_placeholder: 'Votre mot de passe',
+                password_error: 'Mot de passe incorrect',
+                email_error: 'Email invalide'
               }
             }
           }}
