@@ -111,21 +111,19 @@ export type Database = {
           birth_place: string | null
           contract_type: string | null
           created_at: string
-          current_year_used_days: number | null
-          current_year_vacation_days: number | null
           email: string
           first_name: string
           id: string
           initial_password: string
           last_name: string
-          last_vacation_credit_date: string | null
           phone: string | null
           position: string | null
-          previous_year_used_days: number | null
           previous_year_vacation_days: number | null
+          remaining_vacation_days: number | null
           social_security_number: string | null
           start_date: string | null
           updated_at: string
+          used_vacation_days: number | null
           work_schedule: Json | null
         }
         Insert: {
@@ -134,21 +132,19 @@ export type Database = {
           birth_place?: string | null
           contract_type?: string | null
           created_at?: string
-          current_year_used_days?: number | null
-          current_year_vacation_days?: number | null
           email: string
           first_name: string
           id: string
           initial_password?: string
           last_name: string
-          last_vacation_credit_date?: string | null
           phone?: string | null
           position?: string | null
-          previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
+          remaining_vacation_days?: number | null
           social_security_number?: string | null
           start_date?: string | null
           updated_at?: string
+          used_vacation_days?: number | null
           work_schedule?: Json | null
         }
         Update: {
@@ -157,21 +153,19 @@ export type Database = {
           birth_place?: string | null
           contract_type?: string | null
           created_at?: string
-          current_year_used_days?: number | null
-          current_year_vacation_days?: number | null
           email?: string
           first_name?: string
           id?: string
           initial_password?: string
           last_name?: string
-          last_vacation_credit_date?: string | null
           phone?: string | null
           position?: string | null
-          previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
+          remaining_vacation_days?: number | null
           social_security_number?: string | null
           start_date?: string | null
           updated_at?: string
+          used_vacation_days?: number | null
           work_schedule?: Json | null
         }
         Relationships: [
@@ -354,47 +348,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "time_records_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vacation_history: {
-        Row: {
-          action_date: string | null
-          action_type: string
-          created_at: string | null
-          days_affected: number
-          details: Json | null
-          employee_id: string | null
-          id: string
-          year: number
-        }
-        Insert: {
-          action_date?: string | null
-          action_type: string
-          created_at?: string | null
-          days_affected: number
-          details?: Json | null
-          employee_id?: string | null
-          id?: string
-          year: number
-        }
-        Update: {
-          action_date?: string | null
-          action_type?: string
-          created_at?: string | null
-          days_affected?: number
-          details?: Json | null
-          employee_id?: string | null
-          id?: string
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vacation_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
