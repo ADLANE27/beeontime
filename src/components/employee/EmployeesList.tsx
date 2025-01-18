@@ -119,23 +119,23 @@ export const EmployeesList = () => {
     
     // Si le mot de passe a été modifié, on le met à jour via l'Edge Function
     if (updatedEmployee.initialPassword && updatedEmployee.initialPassword !== '') {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
+      try {
+        const { data, error } = await supabase.functions.invoke('update-user-password', {
+          body: {
             userId: updatedEmployee.id,
             password: updatedEmployee.initialPassword
-          })
-        }
-      );
+          }
+        });
 
-      if (!response.ok) {
-        console.error('Error updating password:', await response.text());
+        if (error) {
+          console.error('Error updating password:', error);
+          toast.error("Erreur lors de la mise à jour du mot de passe");
+          return;
+        }
+
+        console.log('Password update response:', data);
+      } catch (err) {
+        console.error('Error calling update-user-password function:', err);
         toast.error("Erreur lors de la mise à jour du mot de passe");
         return;
       }
