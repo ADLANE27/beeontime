@@ -143,9 +143,7 @@ const Portal = () => {
                 button_label: 'Se connecter',
                 loading_button_label: 'Connexion en cours...',
                 email_input_placeholder: 'Votre adresse email',
-                password_input_placeholder: 'Votre mot de passe',
-                password_error: 'Mot de passe incorrect',
-                email_error: 'Email invalide'
+                password_input_placeholder: 'Votre mot de passe'
               }
             }
           }}
