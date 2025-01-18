@@ -118,20 +118,22 @@ export const EmployeesList = () => {
     
     if (updatedEmployee.initialPassword && updatedEmployee.initialPassword !== '') {
       try {
-        const { error: updatePasswordError } = await supabase.auth.admin.updateUserById(
-          updatedEmployee.id,
-          { password: updatedEmployee.initialPassword }
-        );
+        const { data, error } = await supabase.functions.invoke('update-user-password', {
+          body: {
+            userId: updatedEmployee.id,
+            password: updatedEmployee.initialPassword
+          }
+        });
 
-        if (updatePasswordError) {
-          console.error('Error updating password:', updatePasswordError);
+        if (error) {
+          console.error('Error updating password:', error);
           toast.error("Erreur lors de la mise à jour du mot de passe");
           return;
         }
 
-        console.log('Password updated successfully');
+        console.log('Password update response:', data);
       } catch (err) {
-        console.error('Error updating password:', err);
+        console.error('Error calling update-user-password function:', err);
         toast.error("Erreur lors de la mise à jour du mot de passe");
         return;
       }
