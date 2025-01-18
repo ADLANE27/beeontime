@@ -238,45 +238,89 @@ export const EmployeesList = () => {
   };
 
   const handleCreateEmployee = async (newEmployee: NewEmployee) => {
-    const { error } = await supabase.auth.signUp({
-      email: newEmployee.email,
-      password: 'Welcome123!', // Temporary password
-      options: {
-        data: {
+    try {
+      console.log('Creating new employee with data:', newEmployee);
+      
+      // First check if user exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', newEmployee.email.toLowerCase())
+        .single();
+
+      let userId: string;
+
+      if (existingUser) {
+        console.log('User already exists, using existing ID:', existingUser.id);
+        userId = existingUser.id;
+      } else {
+        // Create auth user if they don't exist
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: newEmployee.email.toLowerCase(),
+          password: newEmployee.initialPassword,
+          options: {
+            data: {
+              first_name: newEmployee.firstName,
+              last_name: newEmployee.lastName
+            }
+          }
+        });
+
+        if (authError) {
+          console.error('Error creating user:', authError);
+          toast.error("Erreur lors de la création de l'utilisateur");
+          return;
+        }
+
+        if (!authData.user) {
+          console.error('No user data returned');
+          toast.error("Erreur lors de la création de l'utilisateur");
+          return;
+        }
+
+        userId = authData.user.id;
+        console.log('Auth user created:', userId);
+      }
+
+      // Create or update employee record
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .upsert({
+          id: userId,
           first_name: newEmployee.firstName,
           last_name: newEmployee.lastName,
-        }
+          email: newEmployee.email.toLowerCase(),
+          phone: newEmployee.phone,
+          birth_date: newEmployee.birthDate,
+          birth_place: newEmployee.birthPlace,
+          birth_country: newEmployee.birthCountry,
+          social_security_number: newEmployee.socialSecurityNumber,
+          contract_type: newEmployee.contractType,
+          start_date: newEmployee.startDate,
+          position: newEmployee.position,
+          work_schedule: newEmployee.workSchedule,
+          current_year_vacation_days: newEmployee.currentYearVacationDays,
+          current_year_used_days: newEmployee.currentYearUsedDays,
+          previous_year_vacation_days: newEmployee.previousYearVacationDays,
+          previous_year_used_days: newEmployee.previousYearUsedDays,
+          initial_password: newEmployee.initialPassword
+        });
+
+      if (employeeError) {
+        console.error('Error creating employee:', employeeError);
+        toast.error("Erreur lors de la création de l'employé");
+        return;
       }
-    });
 
-    if (error) {
-      console.error('Error creating user:', error);
-      toast.error("Erreur lors de la création de l'utilisateur");
-      return;
+      console.log('Employee created successfully');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success("Employé créé avec succès");
+      setIsNewEmployeeModalOpen(false);
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      toast.error("Erreur lors de la création de l'employé");
     }
-
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
-    toast.success("Employé créé avec succès");
-    setIsNewEmployeeModalOpen(false);
   };
-
-  const handleResetPassword = async (email: string) => {
-    toast.loading("Envoi de l'email de réinitialisation...");
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    if (error) {
-      console.error('Error resetting password:', error);
-      toast.error("Erreur lors de la réinitialisation du mot de passe");
-      return;
-    }
-
-    toast.success("Email de réinitialisation du mot de passe envoyé");
-  };
-
-  if (isLoading) return <div>Chargement...</div>;
 
   return (
     <div className="space-y-4">
@@ -472,4 +516,3 @@ export const EmployeesList = () => {
     </div>
   );
 };
-
