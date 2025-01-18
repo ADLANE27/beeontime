@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown, Gift, Cake } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown, Gift, Cake, MapPin } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -453,7 +453,7 @@ export const EmployeesList = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-2">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground mb-1">
                       <Briefcase className="h-4 w-4 inline-block mr-1" />
@@ -507,6 +507,29 @@ export const EmployeesList = () => {
                     </div>
                     <span className="text-sm">
                       {`${employee.remaining_vacation_days || 0} jours`}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      <MapPin className="h-4 w-4 inline-block mr-1" />
+                      Adresse
+                    </div>
+                    <span className="text-sm">
+                      {employee.street_address ? (
+                        <>
+                          {employee.street_address}
+                          <br />
+                          <span className="text-muted-foreground">
+                            {employee.postal_code} {employee.city}
+                            {employee.country && employee.country !== 'France' && (
+                              <>, {employee.country}</>
+                            )}
+                          </span>
+                        </>
+                      ) : (
+                        'Non spécifiée'
+                      )}
                     </span>
                   </div>
                 </div>
