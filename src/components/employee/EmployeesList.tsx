@@ -117,6 +117,20 @@ export const EmployeesList = () => {
 
     console.log('Updated employee:', updatedEmployee);
     
+    // Si le mot de passe a été modifié, on le met à jour dans Supabase Auth
+    if (updatedEmployee.initialPassword && updatedEmployee.initialPassword !== '') {
+      const { error: authError } = await supabase.auth.admin.updateUserById(
+        updatedEmployee.id,
+        { password: updatedEmployee.initialPassword }
+      );
+
+      if (authError) {
+        console.error('Error updating password:', authError);
+        toast.error("Erreur lors de la mise à jour du mot de passe");
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from('employees')
       .update({
@@ -134,7 +148,8 @@ export const EmployeesList = () => {
         work_schedule: updatedEmployee.workSchedule,
         previous_year_vacation_days: updatedEmployee.previousYearVacationDays,
         used_vacation_days: updatedEmployee.usedVacationDays,
-        remaining_vacation_days: updatedEmployee.remainingVacationDays
+        remaining_vacation_days: updatedEmployee.remainingVacationDays,
+        initial_password: updatedEmployee.initialPassword
       })
       .eq('id', updatedEmployee.id);
 
