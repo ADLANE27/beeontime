@@ -188,8 +188,16 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la désactivation du compte");
         return;
       }
+      console.log('Profile deactivated successfully');
 
       // Delete all related records in order
+      const { data: leaveRequests, error: leaveCountError } = await supabase
+        .from('leave_requests')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found leave requests to delete:', leaveRequests?.length || 0);
+
       const { error: leaveError } = await supabase
         .from('leave_requests')
         .delete()
@@ -200,6 +208,14 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression des demandes de congés");
         return;
       }
+      console.log('Leave requests deleted successfully');
+
+      const { data: delays, error: delaysCountError } = await supabase
+        .from('delays')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found delays to delete:', delays?.length || 0);
 
       const { error: delaysError } = await supabase
         .from('delays')
@@ -211,6 +227,14 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression des retards");
         return;
       }
+      console.log('Delays deleted successfully');
+
+      const { data: overtimes, error: overtimesCountError } = await supabase
+        .from('overtime_requests')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found overtime requests to delete:', overtimes?.length || 0);
 
       const { error: overtimeError } = await supabase
         .from('overtime_requests')
@@ -222,6 +246,14 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression des heures supplémentaires");
         return;
       }
+      console.log('Overtime requests deleted successfully');
+
+      const { data: timeRecords, error: timeRecordsCountError } = await supabase
+        .from('time_records')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found time records to delete:', timeRecords?.length || 0);
 
       const { error: timeRecordsError } = await supabase
         .from('time_records')
@@ -233,6 +265,14 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression des pointages");
         return;
       }
+      console.log('Time records deleted successfully');
+
+      const { data: vacationHistory, error: vacationHistoryCountError } = await supabase
+        .from('vacation_history')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found vacation history records to delete:', vacationHistory?.length || 0);
 
       const { error: vacationHistoryError } = await supabase
         .from('vacation_history')
@@ -244,6 +284,14 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression de l'historique des congés");
         return;
       }
+      console.log('Vacation history deleted successfully');
+
+      const { data: documents, error: documentsCountError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('employee_id', id);
+        
+      console.log('Found documents to delete:', documents?.length || 0);
 
       const { error: documentsError } = await supabase
         .from('documents')
@@ -255,6 +303,7 @@ export const EmployeesList = () => {
         toast.error("Erreur lors de la suppression des documents");
         return;
       }
+      console.log('Documents deleted successfully');
 
       // Finally delete the employee
       const { error: employeeError } = await supabase
@@ -268,6 +317,7 @@ export const EmployeesList = () => {
         return;
       }
 
+      console.log('Employee deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Employé supprimé avec succès");
       setEmployeeToDelete(null);
