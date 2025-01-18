@@ -10,6 +10,16 @@ import { toast } from "sonner";
 import { format, differenceInMonths, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,6 +67,7 @@ export const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPosition, setSelectedPosition] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: employees, isLoading } = useQuery({
@@ -164,7 +175,19 @@ export const EmployeesList = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // First delete all leave requests for this employee
+      // First deactivate the user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ active: false })
+        .eq('id', id);
+
+      if (profileError) {
+        console.error('Error deactivating profile:', profileError);
+        toast.error("Erreur lors de la désactivation du compte");
+        return;
+      }
+
+      // Delete all leave requests for this employee
       const { error: leaveRequestsError } = await supabase
         .from('leave_requests')
         .delete()
@@ -190,6 +213,7 @@ export const EmployeesList = () => {
 
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Employé supprimé avec succès");
+      setEmployeeToDelete(null);
     } catch (error) {
       console.error('Error in delete operation:', error);
       toast.error("Une erreur est survenue lors de la suppression");
@@ -471,7 +495,7 @@ export const EmployeesList = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(employee.id)}
+                      onClick={() => setEmployeeToDelete(employee.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                       Supprimer
@@ -564,6 +588,27 @@ export const EmployeesList = () => {
           </Card>
         ))}
       </div>
+
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!employeeToDelete} onOpenChange={() => setEmployeeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cet employé ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'employé ne pourra plus accéder à son compte et toutes ses données seront supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => employeeToDelete && handleDelete(employeeToDelete)}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {editingEmployee && (
         <NewEmployeeForm
