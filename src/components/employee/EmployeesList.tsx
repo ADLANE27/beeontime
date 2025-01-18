@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown, Gift, Cake } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Search, ArrowUpDown, Gift, Cake } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
@@ -94,14 +94,12 @@ export const EmployeesList = () => {
 
     let filteredEmployees = [...employees];
 
-    // Apply position filter
     if (selectedPosition && selectedPosition !== "all") {
       filteredEmployees = filteredEmployees.filter(
         emp => emp.position === selectedPosition
       );
     }
 
-    // Apply search filter (case-insensitive)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredEmployees = filteredEmployees.filter(
@@ -111,7 +109,6 @@ export const EmployeesList = () => {
       );
     }
 
-    // Sort by start date
     filteredEmployees.sort((a, b) => {
       if (!a.start_date || !b.start_date) return 0;
       const dateA = new Date(a.start_date);
@@ -225,7 +222,11 @@ export const EmployeesList = () => {
         current_year_used_days: updatedEmployee.currentYearUsedDays,
         previous_year_vacation_days: updatedEmployee.previousYearVacationDays,
         previous_year_used_days: updatedEmployee.previousYearUsedDays,
-        initial_password: updatedEmployee.initialPassword
+        initial_password: updatedEmployee.initialPassword,
+        street_address: updatedEmployee.streetAddress,
+        city: updatedEmployee.city,
+        postal_code: updatedEmployee.postalCode,
+        country: updatedEmployee.country
       })
       .eq('id', updatedEmployee.id);
 
@@ -241,94 +242,7 @@ export const EmployeesList = () => {
     setEditingEmployee(null);
   };
 
-  const handleCreateEmployee = async (newEmployee: NewEmployee) => {
-    try {
-      console.log('Creating new employee with data:', newEmployee);
-      
-      // First check if user exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', newEmployee.email.toLowerCase())
-        .single();
-
-      let userId: string;
-
-      if (existingUser) {
-        console.log('User already exists, using existing ID:', existingUser.id);
-        userId = existingUser.id;
-      } else {
-        // Create auth user if they don't exist
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: newEmployee.email.toLowerCase(),
-          password: newEmployee.initialPassword,
-          options: {
-            data: {
-              first_name: newEmployee.firstName,
-              last_name: newEmployee.lastName
-            }
-          }
-        });
-
-        if (authError) {
-          console.error('Error creating user:', authError);
-          toast.error("Erreur lors de la création de l'utilisateur");
-          return;
-        }
-
-        if (!authData.user) {
-          console.error('No user data returned');
-          toast.error("Erreur lors de la création de l'utilisateur");
-          return;
-        }
-
-        userId = authData.user.id;
-        console.log('Auth user created:', userId);
-      }
-
-      // Create or update employee record
-      const { error: employeeError } = await supabase
-        .from('employees')
-        .upsert({
-          id: userId,
-          first_name: newEmployee.firstName,
-          last_name: newEmployee.lastName,
-          email: newEmployee.email.toLowerCase(),
-          phone: newEmployee.phone,
-          birth_date: newEmployee.birthDate,
-          birth_place: newEmployee.birthPlace,
-          birth_country: newEmployee.birthCountry,
-          social_security_number: newEmployee.socialSecurityNumber,
-          contract_type: newEmployee.contractType,
-          start_date: newEmployee.startDate,
-          position: newEmployee.position,
-          work_schedule: newEmployee.workSchedule,
-          current_year_vacation_days: newEmployee.currentYearVacationDays,
-          current_year_used_days: newEmployee.currentYearUsedDays,
-          previous_year_vacation_days: newEmployee.previousYearVacationDays,
-          previous_year_used_days: newEmployee.previousYearUsedDays,
-          initial_password: newEmployee.initialPassword
-        });
-
-      if (employeeError) {
-        console.error('Error creating employee:', employeeError);
-        toast.error("Erreur lors de la création de l'employé");
-        return;
-      }
-
-      console.log('Employee created successfully');
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast.success("Employé créé avec succès");
-      setIsNewEmployeeModalOpen(false);
-    } catch (error) {
-      console.error('Error creating employee:', error);
-      toast.error("Erreur lors de la création de l'employé");
-    }
-  };
-
   const handleResetPassword = async (email: string) => {
-    toast.loading("Envoi de l'email de réinitialisation...");
-    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
@@ -339,7 +253,7 @@ export const EmployeesList = () => {
       return;
     }
 
-    toast.success("Email de réinitialisation du mot de passe envoyé");
+    toast.success("Email de réinitialisation envoyé avec succès");
   };
 
   if (isLoading) return <div>Chargement...</div>;
@@ -395,121 +309,58 @@ export const EmployeesList = () => {
       <div className="grid gap-4">
         {getFilteredAndSortedEmployees().map((employee) => (
           <Card key={employee.id} className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="grid gap-3 w-full">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      {employee.first_name} {employee.last_name}
-                      {isToday(employee.birth_date) && (
-                        <Badge variant="secondary" className="gap-1">
-                          <Cake className="h-3 w-3" />
-                          Anniversaire
-                        </Badge>
-                      )}
-                      {isToday(employee.start_date) && (
-                        <Badge variant="secondary" className="gap-1">
-                          <Gift className="h-3 w-3" />
-                          Anniversaire professionnel
-                        </Badge>
-                      )}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{employee.email}</p>
-                    {employee.phone && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {employee.phone}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {employee.profiles?.active ? 'Actif' : ''}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(employee)}
-                    >
-                      <Edit className="h-4 w-4" />
-                      Modifier
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleResetPassword(employee.email)}
-                    >
-                      <Key className="h-4 w-4" />
-                      Réinitialiser MDP
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(employee.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Supprimer
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-1">
-                      <Briefcase className="h-4 w-4 inline-block mr-1" />
-                      Poste
-                    </div>
-                    <span className="text-sm">
-                      {employee.position || 'Non spécifié'}
-                    </span>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-1">
-                      <Calendar className="h-4 w-4 inline-block mr-1" />
-                      Date d'arrivée
-                    </div>
-                    <span className="text-sm">
-                      {employee.start_date 
-                        ? <>
-                            {format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })}
-                            <br />
-                            <span className="text-xs text-muted-foreground">
-                              {calculateSeniority(employee.start_date)}
-                            </span>
-                          </>
-                        : 'Non spécifié'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-1">
-                      <Clock className="h-4 w-4 inline-block mr-1" />
-                      Horaires de travail
-                    </div>
-                    <span className="text-sm">
-                      {employee.work_schedule 
-                        ? <>
-                            {employee.work_schedule.startTime} - {employee.work_schedule.endTime}
-                            <br />
-                            <span className="text-muted-foreground">
-                              Pause: {employee.work_schedule.breakStartTime} - {employee.work_schedule.breakEndTime}
-                            </span>
-                          </>
-                        : 'Non spécifié'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-1">
-                      <PalmtreeIcon className="h-4 w-4 inline-block mr-1" />
-                      Congés restants
-                    </div>
-                    <span className="text-sm">
-                      {`${employee.remaining_vacation_days || 0} jours`}
-                    </span>
-                  </div>
-                </div>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  {employee.first_name} {employee.last_name}
+                  {isToday(employee.birth_date) && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Cake className="h-3 w-3" />
+                      Anniversaire
+                    </Badge>
+                  )}
+                  {isToday(employee.start_date) && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Gift className="h-3 w-3" />
+                      Anniversaire professionnel
+                    </Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-muted-foreground">{employee.email}</p>
+                <p className="text-sm text-muted-foreground">{employee.position}</p>
+                {employee.start_date && (
+                  <p className="text-sm text-muted-foreground">
+                    Depuis le {format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })}
+                    {' '}
+                    ({calculateSeniority(employee.start_date)})
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(employee)}
+                >
+                  <Edit className="h-4 w-4" />
+                  Modifier
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleResetPassword(employee.email)}
+                >
+                  <Key className="h-4 w-4" />
+                  Réinitialiser MDP
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDelete(employee.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer
+                </Button>
               </div>
             </div>
           </Card>
@@ -532,7 +383,7 @@ export const EmployeesList = () => {
       <NewEmployeeForm
         isOpen={isNewEmployeeModalOpen}
         onClose={() => setIsNewEmployeeModalOpen(false)}
-        onSubmit={handleCreateEmployee}
+        onSubmit={handleUpdate}
         mode="create"
       />
     </div>
