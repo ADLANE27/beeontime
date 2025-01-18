@@ -15,6 +15,7 @@ import { createEvents } from 'ics';
 import { toast } from "sonner";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
+type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
 
 interface Employee {
   id: string;
@@ -23,7 +24,6 @@ interface Employee {
   position: string;
 }
 
-// Ajout des traductions des types de congés
 const leaveTypeTranslations: { [key: string]: string } = {
   "vacation": "Congés payés",
   "annual": "Congé annuel",
@@ -37,7 +37,6 @@ const leaveTypeTranslations: { [key: string]: string } = {
   "familyEvent": "Absences pour événements familiaux"
 };
 
-// Fonction utilitaire pour capitaliser la première lettre
 const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
@@ -46,6 +45,7 @@ export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   const firstDayOfPeriod = viewMode === 'month' 
@@ -69,7 +69,9 @@ export const AdminPlanning = () => {
       // Fetch approved leave requests for the current month
       const startDate = format(firstDayOfPeriod, 'yyyy-MM-dd');
       const endDate = format(
-        new Date(firstDayOfPeriod.getFullYear(), firstDayOfPeriod.getMonth() + 1, 0),
+        viewMode === 'month' 
+          ? new Date(firstDayOfPeriod.getFullYear(), firstDayOfPeriod.getMonth() + 1, 0)
+          : endOfWeek(currentDate, { locale: fr }),
         'yyyy-MM-dd'
       );
 
@@ -86,10 +88,24 @@ export const AdminPlanning = () => {
       }
 
       setLeaveRequests(leaveData || []);
+
+      // Fetch time records for the current period
+      const { data: timeData, error: timeError } = await supabase
+        .from('time_records')
+        .select('*')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (timeError) {
+        console.error('Error fetching time records:', timeError);
+        return;
+      }
+
+      setTimeRecords(timeData || []);
     };
 
     fetchData();
-  }, [currentDate]);
+  }, [currentDate, viewMode]);
 
   const nextPeriod = () => {
     if (viewMode === 'month') {
@@ -128,6 +144,13 @@ export const AdminPlanning = () => {
         currentDate >= request.start_date &&
         currentDate <= request.end_date
       );
+    });
+  };
+
+  const getTimeRecordForDay = (employeeId: string, date: Date) => {
+    return timeRecords.find(record => {
+      const currentDate = format(date, 'yyyy-MM-dd');
+      return record.employee_id === employeeId && record.date === currentDate;
     });
   };
 
@@ -268,6 +291,7 @@ export const AdminPlanning = () => {
                         key={i}
                         date={date}
                         leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                        timeRecord={getTimeRecordForDay(employee.id, date)}
                         isWeekend={isWeekend(date)}
                         isToday={isToday(date)}
                       />

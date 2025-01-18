@@ -1,106 +1,82 @@
+import { TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { leaveTypeColors } from "./LeaveTypeLegend";
 import { Database } from "@/integrations/supabase/types";
+import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
+type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
 
 interface PlanningCellProps {
   date: Date;
   leaveRequest?: LeaveRequest;
-  isWeekend: boolean;
-  isToday: boolean;
+  timeRecord?: TimeRecord;
+  isWeekend?: boolean;
+  isToday?: boolean;
 }
 
-export const PlanningCell = ({
-  date,
-  leaveRequest,
-  isWeekend,
-  isToday
-}: PlanningCellProps) => {
-  if (!leaveRequest) {
+const getTimeRecordDisplay = (timeRecord: TimeRecord) => {
+  const times = [];
+  if (timeRecord.morning_in) times.push(`Arrivée: ${timeRecord.morning_in}`);
+  if (timeRecord.lunch_out) times.push(`Départ déjeuner: ${timeRecord.lunch_out}`);
+  if (timeRecord.lunch_in) times.push(`Retour déjeuner: ${timeRecord.lunch_in}`);
+  if (timeRecord.evening_out) times.push(`Départ: ${timeRecord.evening_out}`);
+  return times.join('\n');
+};
+
+export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToday }: PlanningCellProps) => {
+  const baseClasses = "text-center p-2 h-16 relative";
+  const todayClasses = isToday ? "bg-blue-50" : "";
+  const weekendClasses = isWeekend ? "bg-gray-50" : "";
+  
+  const getLeaveContent = () => {
+    if (!leaveRequest) return null;
+    
+    const isHalfDay = leaveRequest.day_type === 'half';
+    const period = leaveRequest.period;
+    
     return (
-      <td
-        className={cn(
-          "text-center p-2 min-w-[100px] whitespace-pre-line text-xs relative",
-          {
-            "bg-blue-50": isToday,
-            "bg-gray-100": isWeekend
-          }
-        )}
-      />
+      <div className={cn(
+        "absolute inset-0 flex items-center justify-center",
+        isHalfDay ? (period === 'morning' ? "top-0 h-1/2" : "bottom-0 h-1/2") : ""
+      )}>
+        <div className="w-full h-full bg-green-200 opacity-50" />
+        <span className="absolute text-xs">
+          {isHalfDay ? '½' : '✓'}
+        </span>
+      </div>
     );
-  }
-
-  const getLeaveColor = (type: string) => {
-    switch (type) {
-      case "vacation":
-        return leaveTypeColors.vacation.color;
-      case "rtt":
-        return leaveTypeColors.rtt.color;
-      case "paternity":
-        return leaveTypeColors.paternity.color;
-      case "maternity":
-        return leaveTypeColors.maternity.color;
-      case "sickChild":
-        return leaveTypeColors.sickChild.color;
-      default:
-        return leaveTypeColors.other.color;
-    }
   };
 
-  const getLeaveLabel = (type: string) => {
-    switch (type) {
-      case "vacation":
-        return "CP";
-      case "rtt":
-        return "RTT";
-      case "paternity":
-        return "CP";
-      case "maternity":
-        return "CM";
-      case "sickChild":
-        return "CEM";
-      default:
-        return "Autre";
-    }
-  };
+  const getTimeRecordContent = () => {
+    if (!timeRecord) return null;
 
-  const backgroundColor = getLeaveColor(leaveRequest.type);
+    return (
+      <div className="absolute bottom-0 left-0 right-0 text-xs text-gray-500 overflow-hidden">
+        {timeRecord.morning_in && format(new Date(`2000-01-01T${timeRecord.morning_in}`), 'HH:mm')}
+      </div>
+    );
+  };
 
   return (
-    <td
-      className={cn(
-        "text-center p-2 min-w-[100px] whitespace-pre-line text-xs relative",
-        {
-          "bg-blue-50": isToday,
-          "bg-gray-100": isWeekend
-        }
-      )}
-    >
-      {leaveRequest.day_type === "half" ? (
-        <div className="relative w-full h-full min-h-[40px]">
-          <div 
-            className={cn(
-              "absolute inset-0",
-              leaveRequest.period === "morning" ? "clip-path-left" : "clip-path-right"
-            )}
-            style={{ backgroundColor }}
-          />
-          <div className="relative z-10">
-            <span className="font-medium">{getLeaveLabel(leaveRequest.type)}</span>
-            <span className="text-xs block">
-              {leaveRequest.period === "morning" ? "Matin" : "Après-midi"}
-            </span>
-          </div>
-        </div>
+    <TableCell className={cn(baseClasses, todayClasses, weekendClasses)}>
+      {timeRecord ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="w-full h-full">
+              {getLeaveContent()}
+              {getTimeRecordContent()}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="whitespace-pre-line">{getTimeRecordDisplay(timeRecord)}</p>
+          </TooltipContent>
+        </Tooltip>
       ) : (
-        <div
-          className="w-full h-full min-h-[40px] flex flex-col items-center justify-center"
-          style={{ backgroundColor }}
-        >
-          <span className="font-medium">{getLeaveLabel(leaveRequest.type)}</span>
+        <div className="w-full h-full">
+          {getLeaveContent()}
         </div>
       )}
-    </td>
+    </TableCell>
   );
 };
