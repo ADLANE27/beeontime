@@ -32,6 +32,7 @@ interface HREventDetailsProps {
 
 export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useQuery({
@@ -52,6 +53,12 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
         .single();
 
       if (error) throw error;
+      
+      // Initialize selectedCategory with the event's category
+      if (data) {
+        setSelectedCategory(data.category);
+      }
+      
       return data;
     },
     enabled: !!eventId,
@@ -110,6 +117,27 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
 
   if (!eventId) return null;
 
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+  };
+
+  const getSeverityLabel = (severity: string) => {
+    switch (severity) {
+      case "minor":
+        return "Mineure";
+      case "standard":
+        return "Standard";
+      case "critical":
+        return "Critique";
+      default:
+        return severity;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    return status === 'open' ? 'Ouvert' : 'Clôturé';
+  };
+
   return (
     <Dialog open={!!eventId} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[600px]">
@@ -133,7 +161,12 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
               )}
               <Button
                 variant="outline"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => {
+                  setIsEditing(!isEditing);
+                  if (event && !isEditing) {
+                    setSelectedCategory(event.category);
+                  }
+                }}
               >
                 {isEditing ? "Annuler" : "Modifier"}
               </Button>
@@ -210,16 +243,7 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                   <Select 
                     name="category" 
                     defaultValue={event.category}
-                    onValueChange={(value) => {
-                      // Reset subcategory when category changes
-                      const subcategorySelect = document.querySelector('select[name="subcategory"]') as HTMLSelectElement;
-                      if (subcategorySelect) {
-                        const newSubcategories = getSubcategories(value);
-                        if (newSubcategories.length > 0) {
-                          subcategorySelect.value = newSubcategories[0][0];
-                        }
-                      }
-                    }}
+                    onValueChange={handleCategoryChange}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -235,12 +259,15 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="subcategory">Sous-catégorie</Label>
-                  <Select name="subcategory" defaultValue={event.subcategory}>
+                  <Select 
+                    name="subcategory" 
+                    defaultValue={event.subcategory}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {getSubcategories(event.category).map(([value, label]) => (
+                      {getSubcategories(selectedCategory || event.category).map(([value, label]) => (
                         <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>
@@ -296,7 +323,7 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                           : "default"
                       }
                     >
-                      {event.severity}
+                      {getSeverityLabel(event.severity)}
                     </Badge>
                   </div>
                 </div>
@@ -314,7 +341,7 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                     <Badge
                       variant={event.status === 'open' ? 'default' : 'secondary'}
                     >
-                      {event.status === 'open' ? 'Ouvert' : 'Clôturé'}
+                      {getStatusLabel(event.status)}
                     </Badge>
                   </div>
                 </div>
