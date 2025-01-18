@@ -1,0 +1,13 @@
+project_id = "tedjuorbafahlnplndye"
+
+[api]
+enabled = true
+url = "https://tedjuorbafahlnplndye.supabase.co/functions/v1/"
+
+[[functions]]
+name = "manage-vacations"
+verify_jwt = true
+
+[[functions]]
+name = "schedule-vacation-tasks"
+verify_jwt = true
