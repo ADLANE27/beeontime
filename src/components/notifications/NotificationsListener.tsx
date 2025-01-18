@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "lucide-react";
+import { Badge, FileText } from "lucide-react";
 
 export const NotificationsListener = () => {
   useEffect(() => {
@@ -31,7 +31,7 @@ export const NotificationsListener = () => {
               });
             } else if (document.type === 'important_document') {
               toast.info('Nouveau document important', {
-                icon: <Badge className="h-4 w-4" />,
+                icon: <FileText className="h-4 w-4" />,
                 description: `Un nouveau document important a été ajouté : ${document.title}`
               });
             }
