@@ -44,6 +44,10 @@ interface Employee {
   profiles: {
     active: boolean | null;
   } | null;
+  street_address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
 }
 
 export const EmployeesList = () => {
