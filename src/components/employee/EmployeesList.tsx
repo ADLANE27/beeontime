@@ -2,13 +2,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface Employee {
   id: string;
@@ -41,6 +49,9 @@ export const EmployeesList = () => {
   const [editingEmployee, setEditingEmployee] = useState<NewEmployee | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPosition, setSelectedPosition] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
   const { data: employees, isLoading } = useQuery({
@@ -61,6 +72,52 @@ export const EmployeesList = () => {
       return transformedData as Employee[];
     }
   });
+
+  // Filter and sort functions
+  const getFilteredAndSortedEmployees = () => {
+    if (!employees) return [];
+
+    let filteredEmployees = [...employees];
+
+    // Apply position filter
+    if (selectedPosition) {
+      filteredEmployees = filteredEmployees.filter(
+        emp => emp.position === selectedPosition
+      );
+    }
+
+    // Apply search filter (case-insensitive)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredEmployees = filteredEmployees.filter(
+        emp => 
+          emp.first_name.toLowerCase().includes(searchLower) ||
+          emp.last_name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by start date
+    filteredEmployees.sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      const dateA = new Date(a.start_date);
+      const dateB = new Date(b.start_date);
+      return sortDirection === 'asc' 
+        ? dateA.getTime() - dateB.getTime()
+        : dateB.getTime() - dateA.getTime();
+    });
+
+    return filteredEmployees;
+  };
+
+  const calculateSeniority = (startDate: string | null) => {
+    if (!startDate) return null;
+    const months = differenceInMonths(new Date(), new Date(startDate));
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    return `${years} an${years > 1 ? 's' : ''} et ${remainingMonths} mois`;
+  };
+
+  const positions = Array.from(new Set(employees?.map(emp => emp.position).filter(Boolean) || []));
 
   const handleEdit = (employee: any) => {
     const mappedEmployee: NewEmployee = {
@@ -224,8 +281,46 @@ export const EmployeesList = () => {
         </Button>
       </div>
 
+      <div className="flex gap-4 mb-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par nom..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
+        <Select
+          value={selectedPosition}
+          onValueChange={setSelectedPosition}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filtrer par poste" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Tous les postes</SelectItem>
+            {positions.map((position) => (
+              <SelectItem key={position} value={position || ""}>
+                {position}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+          className="flex items-center gap-2"
+        >
+          <ArrowUpDown className="h-4 w-4" />
+          {sortDirection === 'asc' ? 'Plus récent' : 'Plus ancien'}
+        </Button>
+      </div>
+
       <div className="grid gap-4">
-        {employees?.map((employee) => (
+        {getFilteredAndSortedEmployees().map((employee) => (
           <Card key={employee.id} className="p-4">
             <div className="flex justify-between items-center">
               <div className="grid gap-3 w-full">
@@ -291,7 +386,13 @@ export const EmployeesList = () => {
                     </div>
                     <span className="text-sm">
                       {employee.start_date 
-                        ? format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })
+                        ? <>
+                            {format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })}
+                            <br />
+                            <span className="text-xs text-muted-foreground">
+                              {calculateSeniority(employee.start_date)}
+                            </span>
+                          </>
                         : 'Non spécifié'}
                     </span>
                   </div>
