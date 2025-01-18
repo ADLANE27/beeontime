@@ -100,15 +100,13 @@ export const deleteDocument = async (documentId: string) => {
 
 export const downloadDocument = async (filePath: string, fileName: string) => {
   try {
-    // First, get a signed URL for the file
-    const { data: { publicUrl }, error: urlError } = await supabase.storage
+    // First, get a public URL for the file
+    const { data } = await supabase.storage
       .from('hr-documents')
       .getPublicUrl(filePath);
 
-    if (urlError) throw urlError;
-
-    // Fetch the file using the signed URL
-    const response = await fetch(publicUrl);
+    // Fetch the file using the public URL
+    const response = await fetch(data.publicUrl);
     if (!response.ok) throw new Error('Failed to download file');
 
     // Create a blob from the response
