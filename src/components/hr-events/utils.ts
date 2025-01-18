@@ -7,28 +7,27 @@ type SubcategoryMap = {
 
 const subcategories: SubcategoryMap = {
   disciplinary: [
-    ["warning", "Avertissement"],
-    ["misconduct", "Faute"],
-    ["absence", "Absence non justifiée"],
-    ["performance", "Performance insuffisante"],
+    ["verbal_warning", "Avertissement oral"],
+    ["written_warning", "Avertissement écrit"],
+    ["reminder", "Rappel"],
+    ["suspension", "Mise à pied"],
+    ["dismissal", "Licenciement"],
   ],
   evaluation: [
-    ["annual", "Évaluation annuelle"],
-    ["probation", "Période d'essai"],
-    ["objectives", "Fixation d'objectifs"],
-    ["review", "Revue de performance"],
+    ["annual_review", "Entretien annuel"],
+    ["quarterly_review", "Évaluation trimestrielle"],
+    ["pdp", "Plan de développement personnel"],
   ],
   administrative: [
-    ["contract", "Modification de contrat"],
-    ["schedule", "Changement d'horaires"],
-    ["position", "Changement de poste"],
-    ["salary", "Révision salariale"],
+    ["promotion", "Promotion"],
+    ["position_change", "Changement de poste"],
+    ["training", "Formation"],
+    ["certification", "Certification"],
   ],
   other: [
-    ["meeting", "Entretien"],
-    ["training", "Formation"],
-    ["note", "Note"],
-    ["misc", "Divers"],
+    ["extended_leave", "Absence prolongée"],
+    ["specific_meeting", "Réunion spécifique"],
+    ["feedback", "Feedback exceptionnel"],
   ],
 };
 
