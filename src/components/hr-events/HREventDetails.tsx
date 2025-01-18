@@ -23,6 +23,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getSubcategories, uploadDocument, deleteDocument } from "./utils";
 
 interface HREventDetailsProps {
   eventId: string | null;
@@ -341,7 +342,7 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          uploadDocument(file);
+                          uploadDocument(file, eventId);
                         }
                       }}
                     />
