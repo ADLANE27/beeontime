@@ -81,8 +81,16 @@ export interface NewEmployee {
   startDate: string;
   position: Position;
   workSchedule: WorkSchedule;
+  currentYearVacationDays: number;
+  currentYearUsedDays: number;
   previousYearVacationDays: number;
-  usedVacationDays: number;
-  remainingVacationDays: number;
+  previousYearUsedDays: number;
   initialPassword: string;
+}
+
+export interface VacationBalance {
+  currentYearVacationDays: number;
+  currentYearUsedDays: number;
+  previousYearVacationDays: number;
+  previousYearUsedDays: number;
 }

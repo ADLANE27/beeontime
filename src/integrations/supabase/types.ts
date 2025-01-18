@@ -407,7 +407,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_working_days: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: number
+      }
+      credit_monthly_vacation: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      handle_previous_year_vacation_expiration: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       leave_type:

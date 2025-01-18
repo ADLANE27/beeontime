@@ -25,8 +25,9 @@ export interface ScheduleInfoFormProps {
 }
 
 export interface VacationInfoFormProps {
+  currentYearVacationDays: string;
+  currentYearUsedDays: string;
   previousYearVacationDays: string;
-  usedVacationDays: string;
-  remainingVacationDays: string;
+  previousYearUsedDays: string;
   onFieldChange: (field: keyof NewEmployee, value: string) => void;
 }

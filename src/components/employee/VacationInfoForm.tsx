@@ -4,9 +4,10 @@ import { VacationInfoFormProps } from "./types/employee-form";
 import { Calendar } from "lucide-react";
 
 export const VacationInfoForm = ({
+  currentYearVacationDays,
+  currentYearUsedDays,
   previousYearVacationDays,
-  usedVacationDays,
-  remainingVacationDays,
+  previousYearUsedDays,
   onFieldChange,
 }: VacationInfoFormProps) => {
   return (
@@ -16,36 +17,59 @@ export const VacationInfoForm = ({
         <h3 className="text-lg font-semibold">Congés</h3>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="previousYearVacationDays">Congés N-1</Label>
-          <Input
-            id="previousYearVacationDays"
-            type="number"
-            value={previousYearVacationDays}
-            onChange={(e) => onFieldChange("previousYearVacationDays", e.target.value)}
-            required
-          />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <h4 className="font-medium">Année en cours</h4>
+          <div className="space-y-2">
+            <Label htmlFor="currentYearVacationDays">Congés acquis</Label>
+            <Input
+              id="currentYearVacationDays"
+              type="number"
+              value={currentYearVacationDays}
+              onChange={(e) => onFieldChange("currentYearVacationDays", e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="currentYearUsedDays">Congés pris</Label>
+            <Input
+              id="currentYearUsedDays"
+              type="number"
+              value={currentYearUsedDays}
+              onChange={(e) => onFieldChange("currentYearUsedDays", e.target.value)}
+              required
+            />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Solde: {Number(currentYearVacationDays) - Number(currentYearUsedDays)} jours
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="usedVacationDays">Congés pris</Label>
-          <Input
-            id="usedVacationDays"
-            type="number"
-            value={usedVacationDays}
-            onChange={(e) => onFieldChange("usedVacationDays", e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="remainingVacationDays">Congés restants</Label>
-          <Input
-            id="remainingVacationDays"
-            type="number"
-            value={remainingVacationDays}
-            onChange={(e) => onFieldChange("remainingVacationDays", e.target.value)}
-            required
-          />
+
+        <div className="space-y-4">
+          <h4 className="font-medium">Année précédente (N-1)</h4>
+          <div className="space-y-2">
+            <Label htmlFor="previousYearVacationDays">Congés acquis</Label>
+            <Input
+              id="previousYearVacationDays"
+              type="number"
+              value={previousYearVacationDays}
+              onChange={(e) => onFieldChange("previousYearVacationDays", e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="previousYearUsedDays">Congés pris</Label>
+            <Input
+              id="previousYearUsedDays"
+              type="number"
+              value={previousYearUsedDays}
+              onChange={(e) => onFieldChange("previousYearUsedDays", e.target.value)}
+              required
+            />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Solde: {Number(previousYearVacationDays) - Number(previousYearUsedDays)} jours
+          </div>
         </div>
       </div>
     </div>
