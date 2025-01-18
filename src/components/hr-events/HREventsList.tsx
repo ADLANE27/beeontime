@@ -60,7 +60,7 @@ export const HREventsList = () => {
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<EventCategory | "">("");
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
   const [selectedPeriod, setSelectedPeriod] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("event_date");
@@ -83,7 +83,7 @@ export const HREventsList = () => {
         query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
 
-      if (selectedCategory) {
+      if (selectedCategory && selectedCategory !== "all") {
         query = query.eq("category", selectedCategory);
       }
 
@@ -146,13 +146,13 @@ export const HREventsList = () => {
 
         <Select 
           value={selectedCategory} 
-          onValueChange={(value: EventCategory | "") => setSelectedCategory(value)}
+          onValueChange={(value: EventCategory | "all") => setSelectedCategory(value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Catégorie" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Toutes les catégories</SelectItem>
+            <SelectItem value="all">Toutes les catégories</SelectItem>
             <SelectItem value="disciplinary">Disciplinaire</SelectItem>
             <SelectItem value="evaluation">Évaluation</SelectItem>
             <SelectItem value="administrative">Administratif</SelectItem>
