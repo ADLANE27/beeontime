@@ -187,19 +187,30 @@ export const EmployeesList = () => {
         return;
       }
 
-      // Delete all leave requests for this employee
-      const { error: leaveRequestsError } = await supabase
-        .from('leave_requests')
-        .delete()
-        .eq('employee_id', id);
+      // Delete all related records in order
+      const tables = [
+        'leave_requests',
+        'delays',
+        'overtime_requests',
+        'time_records',
+        'vacation_history',
+        'documents'
+      ];
 
-      if (leaveRequestsError) {
-        console.error('Error deleting leave requests:', leaveRequestsError);
-        toast.error("Erreur lors de la suppression des demandes de congés");
-        return;
+      for (const table of tables) {
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .eq('employee_id', id);
+
+        if (error) {
+          console.error(`Error deleting ${table}:`, error);
+          toast.error(`Erreur lors de la suppression des ${table}`);
+          return;
+        }
       }
 
-      // Then delete the employee
+      // Finally delete the employee
       const { error: employeeError } = await supabase
         .from('employees')
         .delete()
