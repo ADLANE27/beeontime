@@ -84,4 +84,5 @@ export interface NewEmployee {
   previousYearVacationDays: number;
   usedVacationDays: number;
   remainingVacationDays: number;
+  initialPassword: string;
 }

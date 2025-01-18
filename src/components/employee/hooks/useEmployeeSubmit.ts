@@ -12,7 +12,7 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
       // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.toLowerCase(),
-        password: 'Welcome123!',
+        password: formData.initialPassword,
         options: {
           data: {
             first_name: formData.firstName,
@@ -34,7 +34,7 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
       const { error: employeeError } = await supabase
         .from('employees')
         .insert({
-          id: userId, // Use the auth user's ID here
+          id: userId,
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email.toLowerCase(),
@@ -49,7 +49,8 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
           work_schedule: formData.workSchedule,
           previous_year_vacation_days: formData.previousYearVacationDays,
           used_vacation_days: formData.usedVacationDays,
-          remaining_vacation_days: formData.remainingVacationDays
+          remaining_vacation_days: formData.remainingVacationDays,
+          initial_password: formData.initialPassword
         });
 
       if (employeeError) {

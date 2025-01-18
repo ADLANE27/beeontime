@@ -114,6 +114,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          initial_password: string
           last_name: string
           phone: string | null
           position: string | null
@@ -134,6 +135,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          initial_password?: string
           last_name: string
           phone?: string | null
           position?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          initial_password?: string
           last_name?: string
           phone?: string | null
           position?: string | null

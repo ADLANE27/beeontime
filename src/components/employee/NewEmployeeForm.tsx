@@ -44,11 +44,12 @@ export const NewEmployeeForm = ({
   const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
   const [usedVacationDays, setUsedVacationDays] = useState(employeeToEdit?.usedVacationDays?.toString() || '0');
   const [remainingVacationDays, setRemainingVacationDays] = useState(employeeToEdit?.remainingVacationDays?.toString() || '0');
+  const [initialPassword, setInitialPassword] = useState(employeeToEdit?.initialPassword || '');
 
   const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
     resetForm();
     onSubmit({
-      id: employeeToEdit?.id, // Include the ID when editing
+      id: employeeToEdit?.id,
       firstName,
       lastName,
       email,
@@ -63,7 +64,8 @@ export const NewEmployeeForm = ({
       workSchedule,
       previousYearVacationDays: Number(previousYearVacationDays),
       usedVacationDays: Number(usedVacationDays),
-      remainingVacationDays: Number(remainingVacationDays)
+      remainingVacationDays: Number(remainingVacationDays),
+      initialPassword
     });
     onClose();
   });
@@ -112,6 +114,9 @@ export const NewEmployeeForm = ({
       case "remainingVacationDays":
         setRemainingVacationDays(value);
         break;
+      case "initialPassword":
+        setInitialPassword(value);
+        break;
     }
   };
 
@@ -136,12 +141,13 @@ export const NewEmployeeForm = ({
     setPreviousYearVacationDays('0');
     setUsedVacationDays('0');
     setRemainingVacationDays('0');
+    setInitialPassword('');
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData: NewEmployee = {
-      id: employeeToEdit?.id, // Include the ID when editing
+      id: employeeToEdit?.id,
       firstName,
       lastName,
       email,
@@ -156,7 +162,8 @@ export const NewEmployeeForm = ({
       workSchedule,
       previousYearVacationDays: Number(previousYearVacationDays),
       usedVacationDays: Number(usedVacationDays),
-      remainingVacationDays: Number(remainingVacationDays)
+      remainingVacationDays: Number(remainingVacationDays),
+      initialPassword
     };
 
     if (mode === 'create') {
@@ -184,6 +191,7 @@ export const NewEmployeeForm = ({
               birthPlace={birthPlace}
               birthCountry={birthCountry}
               socialSecurityNumber={socialSecurityNumber}
+              initialPassword={initialPassword}
               onFieldChange={handleFieldChange}
             />
 
