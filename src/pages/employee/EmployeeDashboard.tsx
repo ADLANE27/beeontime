@@ -11,79 +11,77 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const EmployeeDashboard = () => {
-  // Vérifier les nouveaux documents
+  // Vérifier les nouveaux documents non téléchargés
   const { data: newDocuments = 0 } = useQuery({
     queryKey: ['new-documents'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
       const { data, error } = await supabase
         .from('documents')
         .select('id')
         .or(`employee_id.eq.${user.id},employee_id.is.null`)
-        .gte('created_at', thirtyDaysAgo.toISOString());
+        .eq('viewed', false);
 
       if (error) throw error;
       return data.length;
     }
   });
 
-  // Vérifier les demandes de congés en attente de validation
-  const { data: pendingLeaves = 0 } = useQuery({
-    queryKey: ['pending-leaves'],
+  // Vérifier les demandes de congés récemment approuvées/refusées
+  const { data: recentLeaveUpdates = 0 } = useQuery({
+    queryKey: ['recent-leave-updates'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('id')
+        .select('id, status, updated_at')
         .eq('employee_id', user.id)
-        .eq('status', 'pending');
+        .neq('status', 'pending')
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
-      return data.length;
-    }
+      
+      // Si pas de données ou dernière mise à jour > 1 minute, pas de notification
+      if (!data.length || 
+          (new Date().getTime() - new Date(data[0].updated_at).getTime()) > 60000) {
+        return 0;
+      }
+      
+      return 1;
+    },
+    refetchInterval: 30000 // Rafraîchir toutes les 30 secondes
   });
 
-  // Vérifier les demandes d'heures supplémentaires en attente
-  const { data: pendingOvertimes = 0 } = useQuery({
-    queryKey: ['pending-overtimes'],
+  // Vérifier les heures supplémentaires récemment approuvées/refusées
+  const { data: recentOvertimeUpdates = 0 } = useQuery({
+    queryKey: ['recent-overtime-updates'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       const { data, error } = await supabase
         .from('overtime_requests')
-        .select('id')
+        .select('id, status, updated_at')
         .eq('employee_id', user.id)
-        .eq('status', 'pending');
+        .neq('status', 'pending')
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
-      return data.length;
-    }
-  });
-
-  // Vérifier les retards en attente
-  const { data: pendingDelays = 0 } = useQuery({
-    queryKey: ['pending-delays'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data, error } = await supabase
-        .from('delays')
-        .select('id')
-        .eq('employee_id', user.id)
-        .eq('status', 'pending');
-
-      if (error) throw error;
-      return data.length;
-    }
+      
+      if (!data.length || 
+          (new Date().getTime() - new Date(data[0].updated_at).getTime()) > 60000) {
+        return 0;
+      }
+      
+      return 1;
+    },
+    refetchInterval: 30000
   });
 
   return (
@@ -115,9 +113,9 @@ const EmployeeDashboard = () => {
             >
               <CalendarDays className="h-5 w-5" />
               Congés
-              {pendingLeaves > 0 && (
+              {recentLeaveUpdates > 0 && (
                 <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {pendingLeaves}
+                  {recentLeaveUpdates}
                 </Badge>
               )}
             </TabsTrigger>
@@ -127,9 +125,9 @@ const EmployeeDashboard = () => {
             >
               <Clock4 className="h-5 w-5" />
               Heures Supp.
-              {pendingOvertimes > 0 && (
+              {recentOvertimeUpdates > 0 && (
                 <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {pendingOvertimes}
+                  {recentOvertimeUpdates}
                 </Badge>
               )}
             </TabsTrigger>
