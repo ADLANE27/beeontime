@@ -229,7 +229,11 @@ export const EmployeesList = () => {
         current_year_used_days: updatedEmployee.currentYearUsedDays,
         previous_year_vacation_days: updatedEmployee.previousYearVacationDays,
         previous_year_used_days: updatedEmployee.previousYearUsedDays,
-        initial_password: updatedEmployee.initialPassword
+        initial_password: updatedEmployee.initialPassword,
+        street_address: updatedEmployee.streetAddress,
+        city: updatedEmployee.city,
+        postal_code: updatedEmployee.postalCode,
+        country: updatedEmployee.country
       })
       .eq('id', updatedEmployee.id);
 
