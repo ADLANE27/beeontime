@@ -9,31 +9,47 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
   const handleSubmit = async (formData: NewEmployee) => {
     setIsSubmitting(true);
     try {
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email.toLowerCase(),
-        password: formData.initialPassword,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName
-          }
-        }
-      });
+      console.log('Creating new employee with data:', formData);
+      
+      // First check if user exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email.toLowerCase())
+        .single();
 
-      if (authError || !authData.user) {
-        console.error('Auth error:', authError);
-        toast.error("Erreur lors de la création du compte utilisateur");
-        return;
+      let userId: string;
+
+      if (existingUser) {
+        console.log('User already exists, using existing ID:', existingUser.id);
+        userId = existingUser.id;
+      } else {
+        // Create auth user if they don't exist
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email.toLowerCase(),
+          password: formData.initialPassword,
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName
+            }
+          }
+        });
+
+        if (authError || !authData.user) {
+          console.error('Auth error:', authError);
+          toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        userId = authData.user.id;
+        console.log('Auth user created:', userId);
       }
 
-      const userId = authData.user.id;
-      console.log('Auth user created:', userId);
-
-      // 2. Create employee record with the same ID as the auth user
+      // Create or update employee record
       const { error: employeeError } = await supabase
         .from('employees')
-        .insert({
+        .upsert({
           id: userId,
           first_name: formData.firstName,
           last_name: formData.lastName,
