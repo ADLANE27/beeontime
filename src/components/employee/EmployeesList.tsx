@@ -89,6 +89,41 @@ export const EmployeesList = () => {
 
   const positions = Array.from(new Set(employees?.map(emp => emp.position).filter(Boolean) || []));
 
+  const getFilteredAndSortedEmployees = () => {
+    if (!employees) return [];
+
+    let filteredEmployees = [...employees];
+
+    // Apply position filter
+    if (selectedPosition && selectedPosition !== "all") {
+      filteredEmployees = filteredEmployees.filter(
+        emp => emp.position === selectedPosition
+      );
+    }
+
+    // Apply search filter (case-insensitive)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredEmployees = filteredEmployees.filter(
+        emp => 
+          emp.first_name.toLowerCase().includes(searchLower) ||
+          emp.last_name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by start date
+    filteredEmployees.sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      const dateA = new Date(a.start_date);
+      const dateB = new Date(b.start_date);
+      return sortDirection === 'asc' 
+        ? dateA.getTime() - dateB.getTime()
+        : dateB.getTime() - dateA.getTime();
+    });
+
+    return filteredEmployees;
+  };
+
   const handleEdit = (employee: any) => {
     const mappedEmployee: NewEmployee = {
       id: employee.id,
