@@ -175,6 +175,8 @@ export const EmployeesList = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      console.log('Starting deletion process for employee:', id);
+      
       // First deactivate the user profile
       const { error: profileError } = await supabase
         .from('profiles')
