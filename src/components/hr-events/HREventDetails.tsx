@@ -63,25 +63,13 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Get the default subcategory based on category if not provided
-      const subcategory = updatedData.subcategory || (() => {
-        switch (updatedData.category) {
-          case "disciplinary":
-            return "verbal_warning";
-          case "evaluation":
-            return "annual_review";
-          case "administrative":
-            return "promotion";
-          case "other":
-            return "specific_meeting";
-          default:
-            return "verbal_warning";
-        }
-      })();
-
       const { error } = await supabase
         .from("hr_events")
-        .update({ ...updatedData, subcategory, updated_by: user.id })
+        .update({ 
+          ...updatedData, 
+          updated_by: user.id,
+          status: updatedData.status || 'open'
+        })
         .eq("id", eventId);
 
       if (error) throw error;
@@ -119,98 +107,7 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
     },
   });
 
-  const { mutate: uploadDocument } = useMutation({
-    mutationFn: async (file: File) => {
-      if (!eventId) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${eventId}/${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('hr-documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
-        .from('hr_event_documents')
-        .insert({
-          event_id: eventId,
-          file_path: filePath,
-          file_name: file.name,
-          file_type: file.type,
-          uploaded_by: user.id,
-        });
-
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hr-event", eventId] });
-      toast.success("Document ajouté avec succès");
-    },
-    onError: (error) => {
-      console.error("Error uploading document:", error);
-      toast.error("Erreur lors de l'ajout du document");
-    },
-  });
-
-  const { mutate: deleteDocument } = useMutation({
-    mutationFn: async (documentId: string) => {
-      const { error } = await supabase
-        .from('hr_event_documents')
-        .delete()
-        .eq('id', documentId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hr-event", eventId] });
-      toast.success("Document supprimé avec succès");
-    },
-    onError: (error) => {
-      console.error("Error deleting document:", error);
-      toast.error("Erreur lors de la suppression du document");
-    },
-  });
-
   if (!eventId) return null;
-
-  const getSubcategories = (category: string) => {
-    switch (category) {
-      case "disciplinary":
-        return [
-          ["verbal_warning", "Avertissement oral"],
-          ["written_warning", "Avertissement écrit"],
-          ["reminder", "Rappel"],
-          ["suspension", "Mise à pied"],
-          ["dismissal", "Licenciement"],
-        ];
-      case "evaluation":
-        return [
-          ["annual_review", "Entretien annuel"],
-          ["quarterly_review", "Évaluation trimestrielle"],
-          ["pdp", "Plan de développement personnel"],
-        ];
-      case "administrative":
-        return [
-          ["promotion", "Promotion"],
-          ["position_change", "Changement de poste"],
-          ["training", "Formation"],
-          ["certification", "Certification"],
-        ];
-      case "other":
-        return [
-          ["extended_leave", "Absence prolongée"],
-          ["specific_meeting", "Réunion spécifique"],
-          ["feedback", "Feedback exceptionnel"],
-        ];
-      default:
-        return [];
-    }
-  };
 
   return (
     <Dialog open={!!eventId} onOpenChange={() => onClose()}>
@@ -219,6 +116,20 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
           <DialogTitle className="flex justify-between items-center">
             <span>Détails de l'événement</span>
             <div className="flex gap-2">
+              {!isEditing && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (event) {
+                      updateEvent({
+                        status: event.status === 'open' ? 'closed' : 'open'
+                      });
+                    }
+                  }}
+                >
+                  {event?.status === 'open' ? 'Clôturer' : 'Réouvrir'}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => setIsEditing(!isEditing)}
@@ -396,35 +307,46 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                   </div>
                 </div>
 
-            <div className="space-y-2">
-              <Label>Documents</Label>
-              <div className="space-y-2">
-                {event.documents?.map((doc: any) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-2 border rounded"
-                  >
-                    <span>{doc.file_name}</span>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => deleteDocument(doc.id)}
+                <div>
+                  <Label>Statut</Label>
+                  <div>
+                    <Badge
+                      variant={event.status === 'open' ? 'default' : 'secondary'}
                     >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                      {event.status === 'open' ? 'Ouvert' : 'Clôturé'}
+                    </Badge>
                   </div>
-                ))}
-                <Input
-                  type="file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      uploadDocument(file);
-                    }
-                  }}
-                />
-              </div>
-            </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Documents</Label>
+                  <div className="space-y-2">
+                    {event.documents?.map((doc: any) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-2 border rounded"
+                      >
+                        <span>{doc.file_name}</span>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => deleteDocument(doc.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Input
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          uploadDocument(file);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </>
             )}
           </div>

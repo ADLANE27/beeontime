@@ -223,6 +223,7 @@ export const HREventsList = () => {
                     Gravité
                     <SortIcon field="severity" />
                   </TableHead>
+                  <TableHead>Statut</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -245,6 +246,13 @@ export const HREventsList = () => {
                     <TableCell>
                       <Badge variant={getSeverityColor(event.severity)}>
                         {event.severity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={event.status === 'open' ? 'default' : 'secondary'}
+                      >
+                        {event.status === 'open' ? 'Ouvert' : 'Clôturé'}
                       </Badge>
                     </TableCell>
                   </TableRow>

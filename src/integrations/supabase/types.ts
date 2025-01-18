@@ -254,7 +254,7 @@ export type Database = {
           event_date: string
           id: string
           severity: Database["public"]["Enums"]["event_severity"]
-          status: Database["public"]["Enums"]["event_status"] | null
+          status: Database["public"]["Enums"]["event_status"]
           subcategory: Database["public"]["Enums"]["event_subcategory"]
           title: string
           updated_at: string
@@ -269,7 +269,7 @@ export type Database = {
           event_date?: string
           id?: string
           severity?: Database["public"]["Enums"]["event_severity"]
-          status?: Database["public"]["Enums"]["event_status"] | null
+          status?: Database["public"]["Enums"]["event_status"]
           subcategory: Database["public"]["Enums"]["event_subcategory"]
           title: string
           updated_at?: string
@@ -284,7 +284,7 @@ export type Database = {
           event_date?: string
           id?: string
           severity?: Database["public"]["Enums"]["event_severity"]
-          status?: Database["public"]["Enums"]["event_status"] | null
+          status?: Database["public"]["Enums"]["event_status"]
           subcategory?: Database["public"]["Enums"]["event_subcategory"]
           title?: string
           updated_at?: string
