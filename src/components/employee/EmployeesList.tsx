@@ -163,19 +163,37 @@ export const EmployeesList = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('employees')
-      .delete()
-      .eq('id', id);
+    try {
+      // First delete all leave requests for this employee
+      const { error: leaveRequestsError } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('employee_id', id);
 
-    if (error) {
-      console.error('Error deleting employee:', error);
-      toast.error("Erreur lors de la suppression de l'employé");
-      return;
+      if (leaveRequestsError) {
+        console.error('Error deleting leave requests:', leaveRequestsError);
+        toast.error("Erreur lors de la suppression des demandes de congés");
+        return;
+      }
+
+      // Then delete the employee
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (employeeError) {
+        console.error('Error deleting employee:', employeeError);
+        toast.error("Erreur lors de la suppression de l'employé");
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success("Employé supprimé avec succès");
+    } catch (error) {
+      console.error('Error in delete operation:', error);
+      toast.error("Une erreur est survenue lors de la suppression");
     }
-
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
-    toast.success("Employé supprimé avec succès");
   };
 
   const handleUpdate = async (updatedEmployee: NewEmployee) => {
