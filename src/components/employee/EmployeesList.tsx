@@ -148,7 +148,11 @@ export const EmployeesList = () => {
       currentYearUsedDays: employee.current_year_used_days || 0,
       previousYearVacationDays: employee.previous_year_vacation_days || 0,
       previousYearUsedDays: employee.previous_year_used_days || 0,
-      initialPassword: employee.initial_password || ''
+      initialPassword: employee.initial_password || '',
+      streetAddress: employee.street_address || '',
+      city: employee.city || '',
+      postalCode: employee.postal_code || '',
+      country: employee.country || 'France'
     };
     setEditingEmployee(mappedEmployee);
     setIsEditModalOpen(true);
