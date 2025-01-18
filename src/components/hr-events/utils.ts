@@ -97,3 +97,30 @@ export const deleteDocument = async (documentId: string) => {
     toast.error("Erreur lors de la suppression du document");
   }
 };
+
+export const downloadDocument = async (filePath: string, fileName: string) => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('hr-documents')
+      .download(filePath);
+
+    if (error) throw error;
+
+    // Créer un URL pour le fichier
+    const url = URL.createObjectURL(data);
+    
+    // Créer un lien temporaire pour le téléchargement
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Nettoyer l'URL
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading document:", error);
+    toast.error("Erreur lors du téléchargement du document");
+  }
+};

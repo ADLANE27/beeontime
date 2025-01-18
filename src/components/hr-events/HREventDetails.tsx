@@ -21,9 +21,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { Trash } from "lucide-react";
+import { Trash, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getSubcategories, uploadDocument, deleteDocument } from "./utils";
+import { getSubcategories, uploadDocument, deleteDocument, downloadDocument } from "./utils";
 
 interface HREventDetailsProps {
   eventId: string | null;
@@ -212,11 +212,11 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                     defaultValue={event.category}
                     onValueChange={(value) => {
                       // Reset subcategory when category changes
-                      const form = document.querySelector('form');
-                      if (form) {
-                        const subcategorySelect = form.querySelector('select[name="subcategory"]') as HTMLSelectElement;
-                        if (subcategorySelect) {
-                          subcategorySelect.value = getSubcategories(value)[0][0];
+                      const subcategorySelect = document.querySelector('select[name="subcategory"]') as HTMLSelectElement;
+                      if (subcategorySelect) {
+                        const newSubcategories = getSubcategories(value);
+                        if (newSubcategories.length > 0) {
+                          subcategorySelect.value = newSubcategories[0][0];
                         }
                       }
                     }}
@@ -328,13 +328,24 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                         className="flex items-center justify-between p-2 border rounded"
                       >
                         <span>{doc.file_name}</span>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => deleteDocument(doc.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => downloadDocument(doc.file_path, doc.file_name)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => deleteDocument(doc.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                     <Input

@@ -22,7 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronUp, Plus, Download } from "lucide-react";
 import { NewHREventDialog } from "./NewHREventDialog";
 import { HREventDetails } from "./HREventDetails";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,17 @@ const getSeverityColor = (severity: string) => {
       return "secondary";
     default:
       return "default";
+  }
+};
+
+const getSeverityLabel = (severity: string) => {
+  switch (severity) {
+    case "critical":
+      return "Critique";
+    case "minor":
+      return "Mineure";
+    default:
+      return "Standard";
   }
 };
 
@@ -224,6 +235,7 @@ export const HREventsList = () => {
                     <SortIcon field="severity" />
                   </TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -245,7 +257,7 @@ export const HREventsList = () => {
                     <TableCell>{event.title}</TableCell>
                     <TableCell>
                       <Badge variant={getSeverityColor(event.severity)}>
-                        {event.severity}
+                        {getSeverityLabel(event.severity)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -254,6 +266,18 @@ export const HREventsList = () => {
                       >
                         {event.status === 'open' ? 'Ouvert' : 'Clôturé'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Call downloadDocument function here
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
