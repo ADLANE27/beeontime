@@ -63,9 +63,25 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
+      // Get the default subcategory based on category if not provided
+      const subcategory = updatedData.subcategory || (() => {
+        switch (updatedData.category) {
+          case "disciplinary":
+            return "verbal_warning";
+          case "evaluation":
+            return "annual_review";
+          case "administrative":
+            return "promotion";
+          case "other":
+            return "specific_meeting";
+          default:
+            return "verbal_warning";
+        }
+      })();
+
       const { error } = await supabase
         .from("hr_events")
-        .update({ ...updatedData, updated_by: user.id })
+        .update({ ...updatedData, subcategory, updated_by: user.id })
         .eq("id", eventId);
 
       if (error) throw error;
@@ -162,6 +178,40 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
 
   if (!eventId) return null;
 
+  const getSubcategories = (category: string) => {
+    switch (category) {
+      case "disciplinary":
+        return [
+          ["verbal_warning", "Avertissement oral"],
+          ["written_warning", "Avertissement écrit"],
+          ["reminder", "Rappel"],
+          ["suspension", "Mise à pied"],
+          ["dismissal", "Licenciement"],
+        ];
+      case "evaluation":
+        return [
+          ["annual_review", "Entretien annuel"],
+          ["quarterly_review", "Évaluation trimestrielle"],
+          ["pdp", "Plan de développement personnel"],
+        ];
+      case "administrative":
+        return [
+          ["promotion", "Promotion"],
+          ["position_change", "Changement de poste"],
+          ["training", "Formation"],
+          ["certification", "Certification"],
+        ];
+      case "other":
+        return [
+          ["extended_leave", "Absence prolongée"],
+          ["specific_meeting", "Réunion spécifique"],
+          ["feedback", "Feedback exceptionnel"],
+        ];
+      default:
+        return [];
+    }
+  };
+
   return (
     <Dialog open={!!eventId} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[600px]">
@@ -245,7 +295,20 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Catégorie</Label>
-                  <Select name="category" defaultValue={event.category}>
+                  <Select 
+                    name="category" 
+                    defaultValue={event.category}
+                    onValueChange={(value) => {
+                      // Reset subcategory when category changes
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const subcategorySelect = form.querySelector('select[name="subcategory"]') as HTMLSelectElement;
+                        if (subcategorySelect) {
+                          subcategorySelect.value = getSubcategories(value)[0][0];
+                        }
+                      }
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -254,6 +317,22 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                       <SelectItem value="evaluation">Évaluation</SelectItem>
                       <SelectItem value="administrative">Administratif</SelectItem>
                       <SelectItem value="other">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory">Sous-catégorie</Label>
+                  <Select name="subcategory" defaultValue={event.subcategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSubcategories(event.category).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -309,8 +388,13 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                     </Badge>
                   </div>
                 </div>
-              </>
-            )}
+
+                <div>
+                  <Label>Sous-catégorie</Label>
+                  <div className="font-medium">
+                    {getSubcategories(event.category).find(([value]) => value === event.subcategory)?.[1] || event.subcategory}
+                  </div>
+                </div>
 
             <div className="space-y-2">
               <Label>Documents</Label>
@@ -341,6 +425,8 @@ export const HREventDetails = ({ eventId, onClose }: HREventDetailsProps) => {
                 />
               </div>
             </div>
+              </>
+            )}
           </div>
         ) : null}
       </DialogContent>
