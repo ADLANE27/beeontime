@@ -66,7 +66,6 @@ export type Database = {
           type: string
           updated_at: string
           uploaded_by: string
-          viewed: boolean | null
         }
         Insert: {
           created_at?: string
@@ -77,7 +76,6 @@ export type Database = {
           type: string
           updated_at?: string
           uploaded_by: string
-          viewed?: boolean | null
         }
         Update: {
           created_at?: string
@@ -88,7 +86,6 @@ export type Database = {
           type?: string
           updated_at?: string
           uploaded_by?: string
-          viewed?: boolean | null
         }
         Relationships: [
           {
