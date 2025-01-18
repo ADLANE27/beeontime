@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +22,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, ChevronDown, ChevronUp, Plus, Download } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronUp, Plus, Download, Trash2 } from "lucide-react";
 import { NewHREventDialog } from "./NewHREventDialog";
 import { HREventDetails } from "./HREventDetails";
 import { Badge } from "@/components/ui/badge";
 import { Database } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 type EventCategory = Database["public"]["Enums"]["event_category"];
 
@@ -76,6 +77,7 @@ export const HREventsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("event_date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const queryClient = useQueryClient();
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["hr-events", searchQuery, selectedCategory, selectedPeriod, sortField, sortOrder],
@@ -116,6 +118,32 @@ export const HREventsList = () => {
       return data;
     },
   });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from("hr_events")
+        .delete()
+        .eq("id", eventId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hr-events"] });
+      toast.success("Événement supprimé avec succès");
+    },
+    onError: (error) => {
+      console.error("Error deleting event:", error);
+      toast.error("Erreur lors de la suppression de l'événement");
+    },
+  });
+
+  const handleDeleteEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Êtes-vous sûr de vouloir supprimer cet événement ?")) {
+      deleteEventMutation.mutate(eventId);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -268,16 +296,25 @@ export const HREventsList = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Call downloadDocument function here
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Call downloadDocument function here
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => handleDeleteEvent(event.id, e)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
