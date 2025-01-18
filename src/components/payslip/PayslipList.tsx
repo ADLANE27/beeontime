@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const PayslipList = () => {
+  const queryClient = useQueryClient();
+
   const { data: payslips = [], isLoading: isLoadingPayslips } = useQuery({
     queryKey: ['payslips'],
     queryFn: async () => {
@@ -50,7 +52,7 @@ export const PayslipList = () => {
     }
   });
 
-  const handleDownload = async (fileUrl: string, title: string) => {
+  const handleDownload = async (fileUrl: string, title: string, documentId: string) => {
     try {
       const { data, error } = await supabase.storage
         .from('documents')
@@ -71,6 +73,22 @@ export const PayslipList = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Mark document as viewed
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({ viewed: true })
+        .eq('id', documentId);
+
+      if (updateError) {
+        console.error('Error marking document as viewed:', updateError);
+        return;
+      }
+
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['payslips'] });
+      queryClient.invalidateQueries({ queryKey: ['important_documents'] });
+      queryClient.invalidateQueries({ queryKey: ['new-documents'] });
 
       toast.success(`Téléchargement de ${title} réussi`);
     } catch (error) {
@@ -114,12 +132,15 @@ export const PayslipList = () => {
                     <FileText className="h-6 w-6 text-muted-foreground" />
                     <div>
                       <p className="font-semibold">{payslip.title}</p>
+                      {!payslip.viewed && (
+                        <span className="text-sm text-blue-500">Nouveau</span>
+                      )}
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleDownload(payslip.file_path, payslip.title)}
+                    onClick={() => handleDownload(payslip.file_path, payslip.title, payslip.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
@@ -149,12 +170,15 @@ export const PayslipList = () => {
                     <FileText className="h-6 w-6 text-muted-foreground" />
                     <div>
                       <p className="font-semibold">{doc.title}</p>
+                      {!doc.viewed && (
+                        <span className="text-sm text-blue-500">Nouveau</span>
+                      )}
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleDownload(doc.file_path, doc.title)}
+                    onClick={() => handleDownload(doc.file_path, doc.title, doc.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
