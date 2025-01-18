@@ -6,10 +6,12 @@ import { OvertimeList } from "@/components/overtime/OvertimeList";
 import { PayslipList } from "@/components/payslip/PayslipList";
 import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 import { TimeClock } from "@/components/attendance/TimeClock";
+import { NotificationsListener } from "@/components/notifications/NotificationsListener";
 
 const EmployeeDashboard = () => {
   return (
     <DashboardLayout>
+      <NotificationsListener />
       <div className="space-y-6">
         {/* Time Clock Section */}
         <div className="bg-white rounded-lg shadow p-6">
