@@ -188,26 +188,70 @@ export const EmployeesList = () => {
       }
 
       // Delete all related records in order
-      const tables = [
-        'leave_requests',
-        'delays',
-        'overtime_requests',
-        'time_records',
-        'vacation_history',
-        'documents'
-      ];
+      const { error: leaveError } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('employee_id', id);
 
-      for (const table of tables) {
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .eq('employee_id', id);
+      if (leaveError) {
+        console.error('Error deleting leave requests:', leaveError);
+        toast.error("Erreur lors de la suppression des demandes de congés");
+        return;
+      }
 
-        if (error) {
-          console.error(`Error deleting ${table}:`, error);
-          toast.error(`Erreur lors de la suppression des ${table}`);
-          return;
-        }
+      const { error: delaysError } = await supabase
+        .from('delays')
+        .delete()
+        .eq('employee_id', id);
+
+      if (delaysError) {
+        console.error('Error deleting delays:', delaysError);
+        toast.error("Erreur lors de la suppression des retards");
+        return;
+      }
+
+      const { error: overtimeError } = await supabase
+        .from('overtime_requests')
+        .delete()
+        .eq('employee_id', id);
+
+      if (overtimeError) {
+        console.error('Error deleting overtime requests:', overtimeError);
+        toast.error("Erreur lors de la suppression des heures supplémentaires");
+        return;
+      }
+
+      const { error: timeRecordsError } = await supabase
+        .from('time_records')
+        .delete()
+        .eq('employee_id', id);
+
+      if (timeRecordsError) {
+        console.error('Error deleting time records:', timeRecordsError);
+        toast.error("Erreur lors de la suppression des pointages");
+        return;
+      }
+
+      const { error: vacationHistoryError } = await supabase
+        .from('vacation_history')
+        .delete()
+        .eq('employee_id', id);
+
+      if (vacationHistoryError) {
+        console.error('Error deleting vacation history:', vacationHistoryError);
+        toast.error("Erreur lors de la suppression de l'historique des congés");
+        return;
+      }
+
+      const { error: documentsError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('employee_id', id);
+
+      if (documentsError) {
+        console.error('Error deleting documents:', documentsError);
+        toast.error("Erreur lors de la suppression des documents");
+        return;
       }
 
       // Finally delete the employee
