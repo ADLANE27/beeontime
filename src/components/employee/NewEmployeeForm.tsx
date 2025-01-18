@@ -41,9 +41,10 @@ export const NewEmployeeForm = ({
     breakStartTime: '12:00',
     breakEndTime: '13:00'
   });
+  const [currentYearVacationDays, setCurrentYearVacationDays] = useState(employeeToEdit?.currentYearVacationDays?.toString() || '0');
+  const [currentYearUsedDays, setCurrentYearUsedDays] = useState(employeeToEdit?.currentYearUsedDays?.toString() || '0');
   const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
-  const [usedVacationDays, setUsedVacationDays] = useState(employeeToEdit?.usedVacationDays?.toString() || '0');
-  const [remainingVacationDays, setRemainingVacationDays] = useState(employeeToEdit?.remainingVacationDays?.toString() || '0');
+  const [previousYearUsedDays, setPreviousYearUsedDays] = useState(employeeToEdit?.previousYearUsedDays?.toString() || '0');
   const [initialPassword, setInitialPassword] = useState(employeeToEdit?.initialPassword || '');
 
   const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
@@ -62,9 +63,10 @@ export const NewEmployeeForm = ({
       startDate: new Date(startDate).toISOString(),
       position,
       workSchedule,
+      currentYearVacationDays: Number(currentYearVacationDays),
+      currentYearUsedDays: Number(currentYearUsedDays),
       previousYearVacationDays: Number(previousYearVacationDays),
-      usedVacationDays: Number(usedVacationDays),
-      remainingVacationDays: Number(remainingVacationDays),
+      previousYearUsedDays: Number(previousYearUsedDays),
       initialPassword
     });
     onClose();
@@ -105,14 +107,17 @@ export const NewEmployeeForm = ({
       case "position":
         setPosition(value as any);
         break;
+      case "currentYearVacationDays":
+        setCurrentYearVacationDays(value);
+        break;
+      case "currentYearUsedDays":
+        setCurrentYearUsedDays(value);
+        break;
       case "previousYearVacationDays":
         setPreviousYearVacationDays(value);
         break;
-      case "usedVacationDays":
-        setUsedVacationDays(value);
-        break;
-      case "remainingVacationDays":
-        setRemainingVacationDays(value);
+      case "previousYearUsedDays":
+        setPreviousYearUsedDays(value);
         break;
       case "initialPassword":
         setInitialPassword(value);
@@ -138,9 +143,10 @@ export const NewEmployeeForm = ({
       breakStartTime: '12:00',
       breakEndTime: '13:00'
     });
+    setCurrentYearVacationDays('0');
+    setCurrentYearUsedDays('0');
     setPreviousYearVacationDays('0');
-    setUsedVacationDays('0');
-    setRemainingVacationDays('0');
+    setPreviousYearUsedDays('0');
     setInitialPassword('');
   };
 
@@ -160,9 +166,10 @@ export const NewEmployeeForm = ({
       startDate: new Date(startDate).toISOString(),
       position,
       workSchedule,
+      currentYearVacationDays: Number(currentYearVacationDays),
+      currentYearUsedDays: Number(currentYearUsedDays),
       previousYearVacationDays: Number(previousYearVacationDays),
-      usedVacationDays: Number(usedVacationDays),
-      remainingVacationDays: Number(remainingVacationDays),
+      previousYearUsedDays: Number(previousYearUsedDays),
       initialPassword
     };
 
@@ -208,9 +215,10 @@ export const NewEmployeeForm = ({
             />
 
             <VacationInfoForm
+              currentYearVacationDays={currentYearVacationDays}
+              currentYearUsedDays={currentYearUsedDays}
               previousYearVacationDays={previousYearVacationDays}
-              usedVacationDays={usedVacationDays}
-              remainingVacationDays={remainingVacationDays}
+              previousYearUsedDays={previousYearUsedDays}
               onFieldChange={handleFieldChange}
             />
 

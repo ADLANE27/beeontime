@@ -63,9 +63,10 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
           start_date: formData.startDate,
           position: formData.position,
           work_schedule: formData.workSchedule,
+          current_year_vacation_days: formData.currentYearVacationDays,
+          current_year_used_days: formData.currentYearUsedDays,
           previous_year_vacation_days: formData.previousYearVacationDays,
-          used_vacation_days: formData.usedVacationDays,
-          remaining_vacation_days: formData.remainingVacationDays,
+          previous_year_used_days: formData.previousYearUsedDays,
           initial_password: formData.initialPassword
         });
 

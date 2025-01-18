@@ -144,9 +144,10 @@ export const EmployeesList = () => {
         breakStartTime: '12:00',
         breakEndTime: '13:00'
       },
+      currentYearVacationDays: employee.current_year_vacation_days || 0,
+      currentYearUsedDays: employee.current_year_used_days || 0,
       previousYearVacationDays: employee.previous_year_vacation_days || 0,
-      usedVacationDays: employee.used_vacation_days || 0,
-      remainingVacationDays: employee.remaining_vacation_days || 0,
+      previousYearUsedDays: employee.previous_year_used_days || 0,
       initialPassword: employee.initial_password || ''
     };
     setEditingEmployee(mappedEmployee);
@@ -216,9 +217,10 @@ export const EmployeesList = () => {
         start_date: updatedEmployee.startDate,
         position: updatedEmployee.position,
         work_schedule: updatedEmployee.workSchedule,
+        current_year_vacation_days: updatedEmployee.currentYearVacationDays,
+        current_year_used_days: updatedEmployee.currentYearUsedDays,
         previous_year_vacation_days: updatedEmployee.previousYearVacationDays,
-        used_vacation_days: updatedEmployee.usedVacationDays,
-        remaining_vacation_days: updatedEmployee.remainingVacationDays,
+        previous_year_used_days: updatedEmployee.previousYearUsedDays,
         initial_password: updatedEmployee.initialPassword
       })
       .eq('id', updatedEmployee.id);
@@ -470,3 +472,4 @@ export const EmployeesList = () => {
     </div>
   );
 };
+
