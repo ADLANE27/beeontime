@@ -50,7 +50,7 @@ export const EmployeesList = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPosition, setSelectedPosition] = useState<string>("");
+  const [selectedPosition, setSelectedPosition] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
@@ -80,7 +80,7 @@ export const EmployeesList = () => {
     let filteredEmployees = [...employees];
 
     // Apply position filter
-    if (selectedPosition) {
+    if (selectedPosition && selectedPosition !== "all") {
       filteredEmployees = filteredEmployees.filter(
         emp => emp.position === selectedPosition
       );
@@ -301,9 +301,9 @@ export const EmployeesList = () => {
             <SelectValue placeholder="Filtrer par poste" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tous les postes</SelectItem>
+            <SelectItem value="all">Tous les postes</SelectItem>
             {positions.map((position) => (
-              <SelectItem key={position} value={position || ""}>
+              <SelectItem key={position} value={position || "undefined"}>
                 {position}
               </SelectItem>
             ))}
