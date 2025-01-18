@@ -174,6 +174,8 @@ export const EmployeesList = () => {
   };
 
   const handleResetPassword = async (email: string) => {
+    toast.loading("Envoi de l'email de réinitialisation...");
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
