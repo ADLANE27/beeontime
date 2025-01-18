@@ -199,6 +199,121 @@ export type Database = {
           },
         ]
       }
+      hr_event_documents: {
+        Row: {
+          event_id: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          event_id: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          event_id?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_event_documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "hr_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_event_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_events: {
+        Row: {
+          category: Database["public"]["Enums"]["event_category"]
+          created_at: string
+          created_by: string
+          description: string | null
+          employee_id: string
+          event_date: string
+          id: string
+          severity: Database["public"]["Enums"]["event_severity"]
+          status: Database["public"]["Enums"]["event_status"] | null
+          subcategory: Database["public"]["Enums"]["event_subcategory"]
+          title: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["event_category"]
+          created_at?: string
+          created_by: string
+          description?: string | null
+          employee_id: string
+          event_date?: string
+          id?: string
+          severity?: Database["public"]["Enums"]["event_severity"]
+          status?: Database["public"]["Enums"]["event_status"] | null
+          subcategory: Database["public"]["Enums"]["event_subcategory"]
+          title: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["event_category"]
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          employee_id?: string
+          event_date?: string
+          id?: string
+          severity?: Database["public"]["Enums"]["event_severity"]
+          status?: Database["public"]["Enums"]["event_status"] | null
+          subcategory?: Database["public"]["Enums"]["event_subcategory"]
+          title?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_events_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           created_at: string
@@ -439,6 +554,25 @@ export type Database = {
       }
     }
     Enums: {
+      event_category: "disciplinary" | "evaluation" | "administrative" | "other"
+      event_severity: "critical" | "standard" | "minor"
+      event_status: "open" | "closed"
+      event_subcategory:
+        | "verbal_warning"
+        | "written_warning"
+        | "reminder"
+        | "suspension"
+        | "dismissal"
+        | "annual_review"
+        | "quarterly_review"
+        | "pdp"
+        | "promotion"
+        | "position_change"
+        | "training"
+        | "certification"
+        | "extended_leave"
+        | "specific_meeting"
+        | "feedback"
       leave_type:
         | "vacation"
         | "annual"
