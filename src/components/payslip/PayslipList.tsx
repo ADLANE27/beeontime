@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const PayslipList = () => {
+  const queryClient = useQueryClient();
+
   const { data: payslips = [], isLoading: isLoadingPayslips } = useQuery({
     queryKey: ['payslips'],
     queryFn: async () => {
@@ -50,8 +52,9 @@ export const PayslipList = () => {
     }
   });
 
-  const handleDownload = async (fileUrl: string, title: string) => {
+  const handleDownload = async (fileUrl: string, title: string, docId: string) => {
     try {
+      // Télécharger le fichier
       const { data, error } = await supabase.storage
         .from('documents')
         .download(fileUrl);
@@ -62,7 +65,21 @@ export const PayslipList = () => {
         return;
       }
 
-      // Create a download link
+      // Marquer le document comme vu
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({ viewed: true })
+        .eq('id', docId);
+
+      if (updateError) {
+        console.error('Error updating document viewed status:', updateError);
+      } else {
+        // Invalider les requêtes pour forcer un rafraîchissement des données
+        queryClient.invalidateQueries({ queryKey: ['important_documents'] });
+        queryClient.invalidateQueries({ queryKey: ['payslips'] });
+      }
+
+      // Créer un lien de téléchargement
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -89,11 +106,21 @@ export const PayslipList = () => {
     );
   }
 
+  // Calculer le nombre de documents non vus
+  const unviewedDocs = importantDocuments.filter(doc => !doc.viewed).length;
+
   return (
     <Tabs defaultValue="payslips" className="space-y-4">
       <TabsList>
         <TabsTrigger value="payslips">Bulletins de paie</TabsTrigger>
-        <TabsTrigger value="documents">Documents importants</TabsTrigger>
+        <TabsTrigger value="documents" className="relative">
+          Documents importants
+          {unviewedDocs > 0 && (
+            <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {unviewedDocs}
+            </span>
+          )}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="payslips">
@@ -119,7 +146,7 @@ export const PayslipList = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleDownload(payslip.file_path, payslip.title)}
+                    onClick={() => handleDownload(payslip.file_path, payslip.title, payslip.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
@@ -149,12 +176,15 @@ export const PayslipList = () => {
                     <FileText className="h-6 w-6 text-muted-foreground" />
                     <div>
                       <p className="font-semibold">{doc.title}</p>
+                      {!doc.viewed && (
+                        <span className="text-xs text-destructive">Nouveau</span>
+                      )}
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleDownload(doc.file_path, doc.title)}
+                    onClick={() => handleDownload(doc.file_path, doc.title, doc.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
