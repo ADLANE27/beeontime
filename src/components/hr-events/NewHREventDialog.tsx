@@ -20,6 +20,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useEmployeesList } from "../employee/hooks/useEmployeesList";
+import { Database } from "@/integrations/supabase/types";
+
+type EventCategory = Database["public"]["Enums"]["event_category"];
+type EventSubcategory = Database["public"]["Enums"]["event_subcategory"];
+type EventSeverity = Database["public"]["Enums"]["event_severity"];
 
 interface NewHREventDialogProps {
   open: boolean;
@@ -33,13 +38,13 @@ export const NewHREventDialog = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [employeeId, setEmployeeId] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [severity, setSeverity] = useState("standard");
+  const [category, setCategory] = useState<EventCategory | "">("");
+  const [subcategory, setSubcategory] = useState<EventSubcategory | "">("");
+  const [severity, setSeverity] = useState<EventSeverity>("standard");
   const queryClient = useQueryClient();
   const { data: employees } = useEmployeesList();
 
-  const { mutate: createEvent, isLoading } = useMutation({
+  const { mutate: createEvent, isPending } = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
@@ -48,8 +53,8 @@ export const NewHREventDialog = ({
         title,
         description,
         employee_id: employeeId,
-        category,
-        subcategory,
+        category: category as EventCategory,
+        subcategory: subcategory as EventSubcategory,
         severity,
         created_by: user.id,
         updated_by: user.id,
@@ -219,8 +224,8 @@ export const NewHREventDialog = ({
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Création..." : "Créer"}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Création..." : "Créer"}
             </Button>
           </div>
         </form>

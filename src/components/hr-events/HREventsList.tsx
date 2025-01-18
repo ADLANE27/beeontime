@@ -26,6 +26,9 @@ import { CalendarIcon, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { NewHREventDialog } from "./NewHREventDialog";
 import { HREventDetails } from "./HREventDetails";
 import { Badge } from "@/components/ui/badge";
+import { Database } from "@/integrations/supabase/types";
+
+type EventCategory = Database["public"]["Enums"]["event_category"];
 
 const ITEMS_PER_PAGE = 10;
 
@@ -57,7 +60,7 @@ export const HREventsList = () => {
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | "">("");
   const [selectedPeriod, setSelectedPeriod] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("event_date");
