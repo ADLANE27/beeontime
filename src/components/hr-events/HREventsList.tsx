@@ -59,12 +59,12 @@ const getSeverityLabel = (severity: string) => {
   }
 };
 
-const getCategoryLabel = (category: string) => {
+const getCategoryLabel = (category: string): string => {
   const labels: Record<string, string> = {
     disciplinary: "Disciplinaire",
     evaluation: "Évaluation",
     administrative: "Administratif",
-    other: "Autre",
+    other: "Autre"
   };
   return labels[category] || category;
 };

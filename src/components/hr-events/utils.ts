@@ -28,8 +28,26 @@ const subcategories: SubcategoryMap = {
   other: [
     ["extended_leave", "Absence prolongée"],
     ["specific_meeting", "Réunion spécifique"],
-    ["feedback", "Feedback exceptionnel"],
+    ["feedback", "Retour exceptionnel"],
   ],
+};
+
+const getCategoryLabel = (category: string): string => {
+  const labels: Record<string, string> = {
+    disciplinary: "Disciplinaire",
+    evaluation: "Évaluation",
+    administrative: "Administratif",
+    other: "Autre"
+  };
+  return labels[category] || category;
+};
+
+const getSubcategoryLabel = (category: string, subcategory: string): string => {
+  const subcategoryList = subcategories[category];
+  if (!subcategoryList) return subcategory;
+  
+  const found = subcategoryList.find(([value]) => value === subcategory);
+  return found ? found[1] : subcategory;
 };
 
 export const getSubcategories = (category: string): [string, string][] => {
@@ -157,11 +175,11 @@ export const generateEventPDF = async (event: any) => {
     
     let yPos = 120 + (splitDescription.length * 7);
     
-    doc.text(`Catégorie: ${event.category}`, 20, yPos);
+    doc.text(`Catégorie: ${getCategoryLabel(event.category)}`, 20, yPos);
     yPos += 10;
-    doc.text(`Sous-catégorie: ${event.subcategory}`, 20, yPos);
+    doc.text(`Sous-catégorie: ${getSubcategoryLabel(event.category, event.subcategory)}`, 20, yPos);
     yPos += 10;
-    doc.text(`Gravité: ${event.severity}`, 20, yPos);
+    doc.text(`Gravité: ${event.severity === 'critical' ? 'Critique' : event.severity === 'minor' ? 'Mineure' : 'Standard'}`, 20, yPos);
     yPos += 10;
     doc.text(`Statut: ${event.status === 'open' ? 'Ouvert' : 'Clôturé'}`, 20, yPos);
     yPos += 20;
