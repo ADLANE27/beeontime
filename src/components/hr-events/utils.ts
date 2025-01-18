@@ -100,16 +100,22 @@ export const deleteDocument = async (documentId: string) => {
 
 export const downloadDocument = async (filePath: string, fileName: string) => {
   try {
-    const { data, error } = await supabase.storage
+    // First, get a signed URL for the file
+    const { data: { publicUrl }, error: urlError } = await supabase.storage
       .from('hr-documents')
-      .download(filePath);
+      .getPublicUrl(filePath);
 
-    if (error) throw error;
+    if (urlError) throw urlError;
 
-    // Créer un URL pour le fichier
-    const url = URL.createObjectURL(data);
+    // Fetch the file using the signed URL
+    const response = await fetch(publicUrl);
+    if (!response.ok) throw new Error('Failed to download file');
+
+    // Create a blob from the response
+    const blob = await response.blob();
     
-    // Créer un lien temporaire pour le téléchargement
+    // Create a download link
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -117,7 +123,7 @@ export const downloadDocument = async (filePath: string, fileName: string) => {
     link.click();
     document.body.removeChild(link);
     
-    // Nettoyer l'URL
+    // Clean up
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading document:", error);
