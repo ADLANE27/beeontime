@@ -322,6 +322,24 @@ export const EmployeesList = () => {
     }
   };
 
+  const handleResetPassword = async (email: string) => {
+    toast.loading("Envoi de l'email de réinitialisation...");
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      console.error('Error resetting password:', error);
+      toast.error("Erreur lors de la réinitialisation du mot de passe");
+      return;
+    }
+
+    toast.success("Email de réinitialisation du mot de passe envoyé");
+  };
+
+  if (isLoading) return <div>Chargement...</div>;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
