@@ -86,6 +86,7 @@ export const EmployeesList = () => {
       previousYearVacationDays: employee.previous_year_vacation_days || 0,
       usedVacationDays: employee.used_vacation_days || 0,
       remainingVacationDays: employee.remaining_vacation_days || 0,
+      initialPassword: employee.initial_password || ''
     };
     setEditingEmployee(mappedEmployee);
     setIsEditModalOpen(true);
