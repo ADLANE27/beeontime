@@ -25,6 +25,7 @@ const EmployeeDashboard = () => {
         .from('documents')
         .select('id')
         .or(`employee_id.eq.${user.id},employee_id.is.null`)
+        .eq('viewed', false)
         .gte('created_at', thirtyDaysAgo.toISOString());
 
       if (error) throw error;
@@ -59,24 +60,6 @@ const EmployeeDashboard = () => {
 
       const { data, error } = await supabase
         .from('overtime_requests')
-        .select('id')
-        .eq('employee_id', user.id)
-        .eq('status', 'pending');
-
-      if (error) throw error;
-      return data.length;
-    }
-  });
-
-  // Vérifier les retards en attente
-  const { data: pendingDelays = 0 } = useQuery({
-    queryKey: ['pending-delays'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data, error } = await supabase
-        .from('delays')
         .select('id')
         .eq('employee_id', user.id)
         .eq('status', 'pending');
