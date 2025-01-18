@@ -9,6 +9,7 @@ import { TimeClock } from "@/components/attendance/TimeClock";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationsListener } from "@/components/notifications/NotificationsListener";
 
 const EmployeeDashboard = () => {
   // Vérifier les nouveaux documents
@@ -88,6 +89,7 @@ const EmployeeDashboard = () => {
 
   return (
     <DashboardLayout>
+      <NotificationsListener />
       <div className="space-y-6">
         {/* Time Clock Section */}
         <div className="bg-white rounded-lg shadow p-6">
