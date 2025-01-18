@@ -7,6 +7,7 @@ import { PersonalInfoForm } from "./PersonalInfoForm";
 import { WorkInfoForm } from "./WorkInfoForm";
 import { ScheduleInfoForm } from "./ScheduleInfoForm";
 import { VacationInfoForm } from "./VacationInfoForm";
+import { AddressInfoForm } from "./AddressInfoForm";
 import { useEmployeeSubmit } from "./hooks/useEmployeeSubmit";
 
 interface NewEmployeeFormProps {
@@ -46,6 +47,10 @@ export const NewEmployeeForm = ({
   const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
   const [previousYearUsedDays, setPreviousYearUsedDays] = useState(employeeToEdit?.previousYearUsedDays?.toString() || '0');
   const [initialPassword, setInitialPassword] = useState(employeeToEdit?.initialPassword || '');
+  const [streetAddress, setStreetAddress] = useState(employeeToEdit?.streetAddress || '');
+  const [city, setCity] = useState(employeeToEdit?.city || '');
+  const [postalCode, setPostalCode] = useState(employeeToEdit?.postalCode || '');
+  const [country, setCountry] = useState(employeeToEdit?.country || 'France');
 
   const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
     resetForm();
@@ -67,7 +72,11 @@ export const NewEmployeeForm = ({
       currentYearUsedDays: Number(currentYearUsedDays),
       previousYearVacationDays: Number(previousYearVacationDays),
       previousYearUsedDays: Number(previousYearUsedDays),
-      initialPassword
+      initialPassword,
+      streetAddress,
+      city,
+      postalCode,
+      country
     });
     onClose();
   });
@@ -122,6 +131,18 @@ export const NewEmployeeForm = ({
       case "initialPassword":
         setInitialPassword(value);
         break;
+      case "streetAddress":
+        setStreetAddress(value);
+        break;
+      case "city":
+        setCity(value);
+        break;
+      case "postalCode":
+        setPostalCode(value);
+        break;
+      case "country":
+        setCountry(value);
+        break;
     }
   };
 
@@ -148,6 +169,10 @@ export const NewEmployeeForm = ({
     setPreviousYearVacationDays('0');
     setPreviousYearUsedDays('0');
     setInitialPassword('');
+    setStreetAddress('');
+    setCity('');
+    setPostalCode('');
+    setCountry('France');
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -170,7 +195,11 @@ export const NewEmployeeForm = ({
       currentYearUsedDays: Number(currentYearUsedDays),
       previousYearVacationDays: Number(previousYearVacationDays),
       previousYearUsedDays: Number(previousYearUsedDays),
-      initialPassword
+      initialPassword,
+      streetAddress,
+      city,
+      postalCode,
+      country
     };
 
     if (mode === 'create') {
@@ -199,6 +228,14 @@ export const NewEmployeeForm = ({
               birthCountry={birthCountry}
               socialSecurityNumber={socialSecurityNumber}
               initialPassword={initialPassword}
+              onFieldChange={handleFieldChange}
+            />
+
+            <AddressInfoForm
+              streetAddress={streetAddress}
+              city={city}
+              postalCode={postalCode}
+              country={country}
               onFieldChange={handleFieldChange}
             />
 

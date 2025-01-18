@@ -109,7 +109,9 @@ export type Database = {
           birth_country: string | null
           birth_date: string | null
           birth_place: string | null
+          city: string | null
           contract_type: string | null
+          country: string | null
           created_at: string
           current_year_used_days: number | null
           current_year_vacation_days: number | null
@@ -121,10 +123,12 @@ export type Database = {
           last_vacation_credit_date: string | null
           phone: string | null
           position: string | null
+          postal_code: string | null
           previous_year_used_days: number | null
           previous_year_vacation_days: number | null
           social_security_number: string | null
           start_date: string | null
+          street_address: string | null
           updated_at: string
           work_schedule: Json | null
         }
@@ -132,7 +136,9 @@ export type Database = {
           birth_country?: string | null
           birth_date?: string | null
           birth_place?: string | null
+          city?: string | null
           contract_type?: string | null
+          country?: string | null
           created_at?: string
           current_year_used_days?: number | null
           current_year_vacation_days?: number | null
@@ -144,10 +150,12 @@ export type Database = {
           last_vacation_credit_date?: string | null
           phone?: string | null
           position?: string | null
+          postal_code?: string | null
           previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
           social_security_number?: string | null
           start_date?: string | null
+          street_address?: string | null
           updated_at?: string
           work_schedule?: Json | null
         }
@@ -155,7 +163,9 @@ export type Database = {
           birth_country?: string | null
           birth_date?: string | null
           birth_place?: string | null
+          city?: string | null
           contract_type?: string | null
+          country?: string | null
           created_at?: string
           current_year_used_days?: number | null
           current_year_vacation_days?: number | null
@@ -167,10 +177,12 @@ export type Database = {
           last_vacation_credit_date?: string | null
           phone?: string | null
           position?: string | null
+          postal_code?: string | null
           previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
           social_security_number?: string | null
           start_date?: string | null
+          street_address?: string | null
           updated_at?: string
           work_schedule?: Json | null
         }
