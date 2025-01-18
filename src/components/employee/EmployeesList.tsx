@@ -53,7 +53,6 @@ export const EmployeesList = () => {
       if (error) throw error;
       console.log('Fetched employees:', data);
       
-      // Transform the data to match our Employee interface
       const transformedData = data.map((employee: any) => ({
         ...employee,
         work_schedule: employee.work_schedule as Employee['work_schedule']
@@ -117,25 +116,22 @@ export const EmployeesList = () => {
 
     console.log('Updated employee:', updatedEmployee);
     
-    // Si le mot de passe a été modifié, on le met à jour via l'Edge Function
     if (updatedEmployee.initialPassword && updatedEmployee.initialPassword !== '') {
       try {
-        const { data, error } = await supabase.functions.invoke('update-user-password', {
-          body: {
-            userId: updatedEmployee.id,
-            password: updatedEmployee.initialPassword
-          }
-        });
+        const { error: updatePasswordError } = await supabase.auth.admin.updateUserById(
+          updatedEmployee.id,
+          { password: updatedEmployee.initialPassword }
+        );
 
-        if (error) {
-          console.error('Error updating password:', error);
+        if (updatePasswordError) {
+          console.error('Error updating password:', updatePasswordError);
           toast.error("Erreur lors de la mise à jour du mot de passe");
           return;
         }
 
-        console.log('Password update response:', data);
+        console.log('Password updated successfully');
       } catch (err) {
-        console.error('Error calling update-user-password function:', err);
+        console.error('Error updating password:', err);
         toast.error("Erreur lors de la mise à jour du mot de passe");
         return;
       }
