@@ -54,18 +54,7 @@ export const PayslipList = () => {
 
   const handleDownload = async (fileUrl: string, title: string, docId: string) => {
     try {
-      // Télécharger le fichier
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .download(fileUrl);
-
-      if (error) {
-        console.error('Error downloading file:', error);
-        toast.error("Erreur lors du téléchargement du document");
-        return;
-      }
-
-      // Marquer le document comme vu
+      // D'abord, marquer le document comme vu
       const { error: updateError } = await supabase
         .from('documents')
         .update({ viewed: true })
@@ -76,7 +65,17 @@ export const PayslipList = () => {
       } else {
         // Invalider les requêtes pour forcer un rafraîchissement des données
         queryClient.invalidateQueries({ queryKey: ['important_documents'] });
-        queryClient.invalidateQueries({ queryKey: ['payslips'] });
+      }
+
+      // Ensuite, télécharger le fichier
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(fileUrl);
+
+      if (error) {
+        console.error('Error downloading file:', error);
+        toast.error("Erreur lors du téléchargement du document");
+        return;
       }
 
       // Créer un lien de téléchargement
