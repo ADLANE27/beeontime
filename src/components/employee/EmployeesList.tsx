@@ -2,12 +2,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown } from "lucide-react";
+import { Edit, Key, Plus, Trash2, Calendar, Clock, Briefcase, PalmtreeIcon, Phone, Search, ArrowUpDown, Gift, Cake } from "lucide-react";
 import { useState } from "react";
 import { NewEmployee } from "@/types/hr";
 import NewEmployeeForm from "./NewEmployeeForm";
 import { toast } from "sonner";
-import { format, differenceInMonths } from "date-fns";
+import { format, differenceInMonths, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface Employee {
   id: string;
@@ -73,48 +74,17 @@ export const EmployeesList = () => {
     }
   });
 
-  // Filter and sort functions
-  const getFilteredAndSortedEmployees = () => {
-    if (!employees) return [];
-
-    let filteredEmployees = [...employees];
-
-    // Apply position filter
-    if (selectedPosition && selectedPosition !== "all") {
-      filteredEmployees = filteredEmployees.filter(
-        emp => emp.position === selectedPosition
-      );
-    }
-
-    // Apply search filter (case-insensitive)
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filteredEmployees = filteredEmployees.filter(
-        emp => 
-          emp.first_name.toLowerCase().includes(searchLower) ||
-          emp.last_name.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Sort by start date
-    filteredEmployees.sort((a, b) => {
-      if (!a.start_date || !b.start_date) return 0;
-      const dateA = new Date(a.start_date);
-      const dateB = new Date(b.start_date);
-      return sortDirection === 'asc' 
-        ? dateA.getTime() - dateB.getTime()
-        : dateB.getTime() - dateA.getTime();
-    });
-
-    return filteredEmployees;
-  };
-
   const calculateSeniority = (startDate: string | null) => {
     if (!startDate) return null;
     const months = differenceInMonths(new Date(), new Date(startDate));
     const years = Math.floor(months / 12);
     const remainingMonths = months % 12;
     return `${years} an${years > 1 ? 's' : ''} et ${remainingMonths} mois`;
+  };
+
+  const isToday = (date: string | null) => {
+    if (!date) return false;
+    return isSameDay(new Date(date), new Date());
   };
 
   const positions = Array.from(new Set(employees?.map(emp => emp.position).filter(Boolean) || []));
@@ -326,8 +296,20 @@ export const EmployeesList = () => {
               <div className="grid gap-3 w-full">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-lg font-semibold">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
                       {employee.first_name} {employee.last_name}
+                      {isToday(employee.birth_date) && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Cake className="h-3 w-3" />
+                          Anniversaire
+                        </Badge>
+                      )}
+                      {isToday(employee.start_date) && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Gift className="h-3 w-3" />
+                          Anniversaire professionnel
+                        </Badge>
+                      )}
                     </h3>
                     <p className="text-sm text-muted-foreground">{employee.email}</p>
                     {employee.phone && (
