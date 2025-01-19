@@ -43,6 +43,12 @@ const getLastTwelveMonths = () => {
   return months;
 };
 
+const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h${String(remainingMinutes).padStart(2, '0')}`;
+};
+
 export const ExportDataTab = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [isExporting, setIsExporting] = useState(false);
@@ -214,11 +220,9 @@ export const ExportDataTab = () => {
               breakDuration = differenceInMinutes(breakEnd, breakStart);
             }
             
-            // Calculer le temps total en minutes puis convertir en heures
+            // Calculer le temps total en minutes puis convertir en format "XhYY"
             const totalMinutes = differenceInMinutes(endTime, startTime) - breakDuration;
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            totalHours = `${hours}h${minutes.toString().padStart(2, '0')}`;
+            totalHours = formatDuration(totalMinutes);
           }
 
           return {
