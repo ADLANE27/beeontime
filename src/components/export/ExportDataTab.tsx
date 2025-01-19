@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,19 @@ const leaveTypeTranslations: { [key: string]: string } = {
   "unpaidExcused": "Absence justifiée non rémunérée",
   "unpaid": "Absence non rémunérée",
   "familyEvent": "Absences pour événements familiaux"
+};
+
+// Fonction pour obtenir les 12 derniers mois
+const getLastTwelveMonths = () => {
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const date = subMonths(new Date(), i);
+    months.push({
+      value: format(date, 'yyyy-MM'),
+      label: format(date, 'MMMM yyyy', { locale: fr })
+    });
+  }
+  return months;
 };
 
 export const ExportDataTab = () => {
