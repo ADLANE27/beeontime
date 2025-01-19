@@ -13,6 +13,7 @@ const HRPortal = () => {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        console.log("Checking HR access...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -22,6 +23,7 @@ const HRPortal = () => {
         }
 
         if (session) {
+          console.log("Session found, checking role...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -34,9 +36,12 @@ const HRPortal = () => {
             return;
           }
 
+          console.log("Profile role:", profile?.role);
           if (profile?.role === 'hr') {
+            console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr');
           } else {
+            console.log("Not HR role, redirecting to /");
             navigate('/');
           }
         }
@@ -53,6 +58,7 @@ const HRPortal = () => {
       
       if (event === 'SIGNED_IN') {
         try {
+          console.log("User signed in, checking role...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -65,9 +71,12 @@ const HRPortal = () => {
             return;
           }
 
+          console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'hr') {
+            console.log("HR role confirmed after sign in, redirecting to /hr");
             navigate('/hr');
           } else {
+            console.log("Not HR role after sign in, redirecting to /");
             navigate('/');
           }
         } catch (err) {
