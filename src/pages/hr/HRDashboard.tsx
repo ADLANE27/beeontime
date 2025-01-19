@@ -30,7 +30,6 @@ const HRDashboard = () => {
   const [pendingDelays, setPendingDelays] = useState(0);
 
   useEffect(() => {
-    // Initial fetch of pending counts
     const fetchPendingCounts = async () => {
       console.log('Fetching pending counts...');
       
@@ -101,7 +100,7 @@ const HRDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className="flex flex-wrap gap-2">
+          <TabsList className="flex flex-wrap items-center gap-2">
             <TabsTrigger value="employees">
               <Users className="mr-2 h-4 w-4" />
               Employés
