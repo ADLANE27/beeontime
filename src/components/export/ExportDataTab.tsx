@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +33,7 @@ const leaveTypeTranslations: { [key: string]: string } = {
 export const ExportDataTab = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [isExporting, setIsExporting] = useState(false);
-  
+
   const handleExport = async (type: string) => {
     setIsExporting(true);
     const startDate = startOfMonth(new Date(selectedMonth));
@@ -155,18 +155,94 @@ export const ExportDataTab = () => {
     }
   };
 
-  // Génération des 12 derniers mois pour le sélecteur
-  const getLastTwelveMonths = () => {
-    const months = [];
-    const today = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      months.push({
-        value: format(date, 'yyyy-MM'),
-        label: format(date, 'MMMM yyyy', { locale: fr })
-      });
+  const handleTimeExport = async () => {
+    setIsExporting(true);
+    const startDate = startOfMonth(new Date(selectedMonth));
+    const endDate = endOfMonth(new Date(selectedMonth));
+    const formattedMonth = format(startDate, 'MMMM yyyy', { locale: fr });
+
+    try {
+      // Récupérer tous les employés
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, work_schedule');
+
+      if (employeesError) throw employeesError;
+
+      // Créer un nouveau workbook
+      const wb = XLSX.utils.book_new();
+
+      // Pour chaque employé
+      for (const employee of employees) {
+        // Récupérer les pointages du mois pour cet employé
+        const { data: timeRecords, error: timeError } = await supabase
+          .from('time_records')
+          .select('*')
+          .eq('employee_id', employee.id)
+          .gte('date', format(startDate, 'yyyy-MM-dd'))
+          .lte('date', format(endDate, 'yyyy-MM-dd'))
+          .order('date');
+
+        if (timeError) throw timeError;
+
+        // Préparer les données pour l'export
+        const data = timeRecords.map(record => {
+          let totalHours = "Pointage incomplet";
+          
+          if (record.morning_in && record.evening_out) {
+            const startTime = parseISO(`2000-01-01T${record.morning_in}`);
+            const endTime = parseISO(`2000-01-01T${record.evening_out}`);
+            
+            // Calculer la pause déjeuner si elle est renseignée
+            let breakDuration = 60; // Pause standard d'1h par défaut
+            if (record.lunch_out && record.lunch_in) {
+              const breakStart = parseISO(`2000-01-01T${record.lunch_out}`);
+              const breakEnd = parseISO(`2000-01-01T${record.lunch_in}`);
+              breakDuration = differenceInMinutes(breakEnd, breakStart);
+            }
+            
+            // Calculer le temps total en minutes puis convertir en heures
+            const totalMinutes = differenceInMinutes(endTime, startTime) - breakDuration;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            totalHours = `${hours}h${minutes.toString().padStart(2, '0')}`;
+          }
+
+          return {
+            "Date": format(parseISO(record.date), 'dd/MM/yyyy'),
+            "Heure d'arrivée": record.morning_in || 'Non pointé',
+            "Départ pause déjeuner": record.lunch_out || 'Non pointé',
+            "Retour pause déjeuner": record.lunch_in || 'Non pointé',
+            "Heure de départ": record.evening_out || 'Non pointé',
+            "Total heures travaillées": totalHours
+          };
+        });
+
+        // Créer une feuille pour l'employé
+        const ws = XLSX.utils.json_to_sheet(data);
+
+        // Ajuster la largeur des colonnes
+        const colWidths = Object.keys(data[0] || {}).map(key => ({
+          wch: Math.max(
+            key.length,
+            ...data.map(row => String(row[key]).length)
+          )
+        }));
+        ws['!cols'] = colWidths;
+
+        // Ajouter la feuille au workbook
+        XLSX.utils.book_append_sheet(wb, ws, `${employee.first_name} ${employee.last_name}`);
+      }
+
+      // Générer et télécharger le fichier
+      XLSX.writeFile(wb, `temps_travail_${formattedMonth}.xlsx`);
+      toast.success(`Export du temps de travail pour ${formattedMonth} effectué avec succès`);
+    } catch (error) {
+      console.error('Erreur lors de l\'export du temps de travail:', error);
+      toast.error("Une erreur est survenue lors de l'export");
+    } finally {
+      setIsExporting(false);
     }
-    return months;
   };
 
   return (
@@ -244,6 +320,25 @@ export const ExportDataTab = () => {
                 variant="outline" 
                 className="w-full" 
                 onClick={() => handleExport("retards")}
+                disabled={isExporting}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exporter
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4 hover:bg-accent/50 transition-colors">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Temps de travail</h3>
+                <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Export du temps de travail du mois</p>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleTimeExport}
                 disabled={isExporting}
               >
                 <Download className="mr-2 h-4 w-4" />
