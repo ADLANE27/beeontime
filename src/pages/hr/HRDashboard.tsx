@@ -101,7 +101,7 @@ const HRDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className="flex flex-wrap gap-2 items-center">
+          <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="employees">
               <Users className="mr-2 h-4 w-4" />
               Employés
