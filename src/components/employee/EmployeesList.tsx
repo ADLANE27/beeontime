@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Mail, Phone, Building, Calendar, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -158,7 +159,10 @@ export const EmployeesList = () => {
         throw error;
       }
 
-      return data as Employee[];
+      return data.map(employee => ({
+        ...employee,
+        work_schedule: employee.work_schedule as WorkSchedule
+      })) as Employee[];
     }
   });
 
