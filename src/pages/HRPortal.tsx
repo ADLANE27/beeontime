@@ -5,12 +5,10 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -21,7 +19,6 @@ const HRPortal = () => {
         if (sessionError) {
           console.error("Session error:", sessionError);
           setError("Error checking authentication status");
-          setIsLoading(false);
           return;
         }
 
@@ -36,7 +33,6 @@ const HRPortal = () => {
           if (profileError) {
             console.error("Profile error:", profileError);
             setError("Error checking user role");
-            setIsLoading(false);
             return;
           }
 
@@ -49,11 +45,9 @@ const HRPortal = () => {
             navigate('/');
           }
         }
-        setIsLoading(false);
       } catch (err) {
         console.error("Unexpected error:", err);
         setError("An unexpected error occurred");
-        setIsLoading(false);
       }
     };
 
@@ -98,14 +92,6 @@ const HRPortal = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
