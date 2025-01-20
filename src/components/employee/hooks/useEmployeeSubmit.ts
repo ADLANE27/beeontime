@@ -24,25 +24,23 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
         console.log('User already exists, using existing ID:', existingUser.id);
         userId = existingUser.id;
       } else {
-        // Create auth user if they don't exist
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email.toLowerCase(),
-          password: formData.initialPassword,
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName
-            }
+        // Create auth user if they don't exist using the edge function
+        const { data, error: functionError } = await supabase.functions.invoke('create-employee-user', {
+          body: {
+            email: formData.email.toLowerCase(),
+            password: formData.initialPassword,
+            firstName: formData.firstName,
+            lastName: formData.lastName
           }
         });
 
-        if (authError || !authData.user) {
-          console.error('Auth error:', authError);
-          toast.error("Erreur lors de la création du compte utilisateur");
+        if (functionError || !data?.userId) {
+          console.error('Error creating user:', functionError);
+          toast.error("Erreur lors de la création de l'utilisateur");
           return;
         }
 
-        userId = authData.user.id;
+        userId = data.userId;
         console.log('Auth user created:', userId);
       }
 
@@ -67,11 +65,15 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
           current_year_used_days: formData.currentYearUsedDays,
           previous_year_vacation_days: formData.previousYearVacationDays,
           previous_year_used_days: formData.previousYearUsedDays,
-          initial_password: formData.initialPassword
+          initial_password: formData.initialPassword,
+          street_address: formData.streetAddress,
+          city: formData.city,
+          postal_code: formData.postalCode,
+          country: formData.country
         });
 
       if (employeeError) {
-        console.error('Employee creation error:', employeeError);
+        console.error('Error creating employee:', employeeError);
         toast.error("Erreur lors de la création de l'employé");
         return;
       }
