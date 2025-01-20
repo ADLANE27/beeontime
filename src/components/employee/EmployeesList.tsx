@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Mail, Phone, Building, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -25,6 +24,14 @@ interface Employee {
   previous_year_vacation_days: number | null;
   previous_year_used_days: number | null;
   work_schedule: WorkSchedule;
+  birth_date: string | null;
+  birth_place: string | null;
+  birth_country: string | null;
+  social_security_number: string | null;
+  street_address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
 }
 
 const EmployeeCard = ({ employee }: { employee: Employee }) => {
@@ -151,7 +158,7 @@ export const EmployeesList = () => {
         throw error;
       }
 
-      return data;
+      return data as Employee[];
     }
   });
 
