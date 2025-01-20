@@ -9,6 +9,23 @@ import { Loader2, Mail, Phone, Building, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { ContractType, Position, WorkSchedule } from "@/types/hr";
+
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  position: string;
+  contract_type: ContractType;
+  start_date: string | null;
+  current_year_vacation_days: number | null;
+  current_year_used_days: number | null;
+  previous_year_vacation_days: number | null;
+  previous_year_used_days: number | null;
+  work_schedule: WorkSchedule;
+}
 
 const EmployeeCard = ({ employee }: { employee: Employee }) => {
   const currentYearBalance = Number(employee.current_year_vacation_days || 0) - Number(employee.current_year_used_days || 0);

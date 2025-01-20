@@ -7,7 +7,8 @@ import { ScheduleInfoForm } from "./ScheduleInfoForm";
 import { VacationInfoForm } from "./VacationInfoForm";
 import { PasswordField } from "./PasswordField";
 import { useEmployeeSubmit } from "./hooks/useEmployeeSubmit";
-import { NewEmployee } from "@/types/hr";
+import { NewEmployee, WorkSchedule } from "@/types/hr";
+import { Loader2 } from "lucide-react";
 
 export const NewEmployeeForm = ({ 
   onSuccess, 
@@ -71,6 +72,7 @@ export const NewEmployeeForm = ({
         birthPlace={formData.birthPlace}
         birthCountry={formData.birthCountry}
         socialSecurityNumber={formData.socialSecurityNumber}
+        initialPassword={formData.initialPassword}
         onFieldChange={handleFieldChange}
       />
 
