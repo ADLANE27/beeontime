@@ -20,10 +20,10 @@ interface Employee {
   position: string;
   contract_type: ContractType;
   start_date: string | null;
-  current_year_vacation_days: number | null;
-  current_year_used_days: number | null;
-  previous_year_vacation_days: number | null;
-  previous_year_used_days: number | null;
+  current_year_vacation_days: number;
+  current_year_used_days: number;
+  previous_year_vacation_days: number;
+  previous_year_used_days: number;
   work_schedule: WorkSchedule;
   birth_date: string | null;
   birth_place: string | null;
@@ -86,15 +86,15 @@ const EmployeeCard = ({ employee }: { employee: Employee }) => {
           <div className="flex gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Année en cours</p>
-              <p className="font-medium">{currentYearBalance} jours</p>
+              <p className="font-medium">{currentYearBalance.toFixed(1)} jours</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Année précédente</p>
-              <p className="font-medium">{previousYearBalance} jours</p>
+              <p className="font-medium">{previousYearBalance.toFixed(1)} jours</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="font-medium">{totalBalance} jours</p>
+              <p className="font-medium">{totalBalance.toFixed(1)} jours</p>
             </div>
           </div>
         </div>
