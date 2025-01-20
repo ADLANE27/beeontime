@@ -25,40 +25,32 @@ export const NewEmployeeForm = ({
   employeeToEdit,
   mode = 'create'
 }: NewEmployeeFormProps) => {
-  // En mode création, on force des valeurs vides
-  // En mode édition, on utilise les valeurs de l'employé à éditer
-  const [firstName, setFirstName] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.firstName : '');
-  const [lastName, setLastName] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.lastName : '');
-  const [email, setEmail] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.email : '');
-  const [phone, setPhone] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.phone : '');
-  const [birthDate, setBirthDate] = useState(mode === 'edit' && employeeToEdit?.birthDate ? 
-    new Date(employeeToEdit.birthDate).toISOString().split('T')[0] : '');
-  const [birthPlace, setBirthPlace] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.birthPlace : '');
-  const [birthCountry, setBirthCountry] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.birthCountry : '');
-  const [socialSecurityNumber, setSocialSecurityNumber] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.socialSecurityNumber : '');
-  const [contractType, setContractType] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.contractType : 'CDI');
-  const [startDate, setStartDate] = useState(mode === 'edit' && employeeToEdit?.startDate ? 
-    new Date(employeeToEdit.startDate).toISOString().split('T')[0] : '');
-  const [position, setPosition] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.position : 'Traducteur');
-  const [workSchedule, setWorkSchedule] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.workSchedule : {
+  const [firstName, setFirstName] = useState(employeeToEdit?.firstName || '');
+  const [lastName, setLastName] = useState(employeeToEdit?.lastName || '');
+  const [email, setEmail] = useState(employeeToEdit?.email || '');
+  const [phone, setPhone] = useState(employeeToEdit?.phone || '');
+  const [birthDate, setBirthDate] = useState(employeeToEdit?.birthDate ? new Date(employeeToEdit.birthDate).toISOString().split('T')[0] : '');
+  const [birthPlace, setBirthPlace] = useState(employeeToEdit?.birthPlace || '');
+  const [birthCountry, setBirthCountry] = useState(employeeToEdit?.birthCountry || '');
+  const [socialSecurityNumber, setSocialSecurityNumber] = useState(employeeToEdit?.socialSecurityNumber || '');
+  const [contractType, setContractType] = useState(employeeToEdit?.contractType || 'CDI');
+  const [startDate, setStartDate] = useState(employeeToEdit?.startDate ? new Date(employeeToEdit.startDate).toISOString().split('T')[0] : '');
+  const [position, setPosition] = useState(employeeToEdit?.position || 'Traducteur');
+  const [workSchedule, setWorkSchedule] = useState(employeeToEdit?.workSchedule || {
     startTime: '09:00',
     endTime: '17:00',
     breakStartTime: '12:00',
     breakEndTime: '13:00'
   });
-  const [currentYearVacationDays, setCurrentYearVacationDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.currentYearVacationDays?.toString() : '0');
-  const [currentYearUsedDays, setCurrentYearUsedDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.currentYearUsedDays?.toString() : '0');
-  const [previousYearVacationDays, setPreviousYearVacationDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.previousYearVacationDays?.toString() : '0');
-  const [previousYearUsedDays, setPreviousYearUsedDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.previousYearUsedDays?.toString() : '0');
-  const [initialPassword, setInitialPassword] = useState('');
-  const [streetAddress, setStreetAddress] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.streetAddress : '');
-  const [city, setCity] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.city : '');
-  const [postalCode, setPostalCode] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.postalCode : '');
-  const [country, setCountry] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.country : 'France');
+  const [currentYearVacationDays, setCurrentYearVacationDays] = useState(employeeToEdit?.currentYearVacationDays?.toString() || '0');
+  const [currentYearUsedDays, setCurrentYearUsedDays] = useState(employeeToEdit?.currentYearUsedDays?.toString() || '0');
+  const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
+  const [previousYearUsedDays, setPreviousYearUsedDays] = useState(employeeToEdit?.previousYearUsedDays?.toString() || '0');
+  const [initialPassword, setInitialPassword] = useState(employeeToEdit?.initialPassword || '');
+  const [streetAddress, setStreetAddress] = useState(employeeToEdit?.streetAddress || '');
+  const [city, setCity] = useState(employeeToEdit?.city || '');
+  const [postalCode, setPostalCode] = useState(employeeToEdit?.postalCode || '');
+  const [country, setCountry] = useState(employeeToEdit?.country || 'France');
 
   const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
     resetForm();
@@ -185,55 +177,35 @@ export const NewEmployeeForm = ({
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formData: NewEmployee = {
+      id: employeeToEdit?.id,
+      firstName,
+      lastName,
+      email,
+      phone,
+      birthDate: new Date(birthDate).toISOString(),
+      birthPlace,
+      birthCountry,
+      socialSecurityNumber,
+      contractType,
+      startDate: new Date(startDate).toISOString(),
+      position,
+      workSchedule,
+      currentYearVacationDays: Number(currentYearVacationDays),
+      currentYearUsedDays: Number(currentYearUsedDays),
+      previousYearVacationDays: Number(previousYearVacationDays),
+      previousYearUsedDays: Number(previousYearUsedDays),
+      initialPassword,
+      streetAddress,
+      city,
+      postalCode,
+      country
+    };
+
     if (mode === 'create') {
-      await submitEmployee({
-        firstName,
-        lastName,
-        email,
-        phone,
-        birthDate: new Date(birthDate).toISOString(),
-        birthPlace,
-        birthCountry,
-        socialSecurityNumber,
-        contractType,
-        startDate: new Date(startDate).toISOString(),
-        position,
-        workSchedule,
-        currentYearVacationDays: Number(currentYearVacationDays),
-        currentYearUsedDays: Number(currentYearUsedDays),
-        previousYearVacationDays: Number(previousYearVacationDays),
-        previousYearUsedDays: Number(previousYearUsedDays),
-        initialPassword,
-        streetAddress,
-        city,
-        postalCode,
-        country
-      });
+      await submitEmployee(formData);
     } else {
-      onSubmit({
-        id: employeeToEdit?.id,
-        firstName,
-        lastName,
-        email,
-        phone,
-        birthDate: new Date(birthDate).toISOString(),
-        birthPlace,
-        birthCountry,
-        socialSecurityNumber,
-        contractType,
-        startDate: new Date(startDate).toISOString(),
-        position,
-        workSchedule,
-        currentYearVacationDays: Number(currentYearVacationDays),
-        currentYearUsedDays: Number(currentYearUsedDays),
-        previousYearVacationDays: Number(previousYearVacationDays),
-        previousYearUsedDays: Number(previousYearUsedDays),
-        initialPassword,
-        streetAddress,
-        city,
-        postalCode,
-        country
-      });
+      onSubmit(formData);
       onClose();
     }
   };
