@@ -25,9 +25,10 @@ export const NewEmployeeForm = ({
   employeeToEdit,
   mode = 'create'
 }: NewEmployeeFormProps) => {
+  // Initialisation avec des valeurs vides pour email et mot de passe
   const [firstName, setFirstName] = useState(employeeToEdit?.firstName || '');
   const [lastName, setLastName] = useState(employeeToEdit?.lastName || '');
-  const [email, setEmail] = useState(employeeToEdit?.email || '');
+  const [email, setEmail] = useState('');  // Toujours vide par défaut
   const [phone, setPhone] = useState(employeeToEdit?.phone || '');
   const [birthDate, setBirthDate] = useState(employeeToEdit?.birthDate ? new Date(employeeToEdit.birthDate).toISOString().split('T')[0] : '');
   const [birthPlace, setBirthPlace] = useState(employeeToEdit?.birthPlace || '');
@@ -46,7 +47,7 @@ export const NewEmployeeForm = ({
   const [currentYearUsedDays, setCurrentYearUsedDays] = useState(employeeToEdit?.currentYearUsedDays?.toString() || '0');
   const [previousYearVacationDays, setPreviousYearVacationDays] = useState(employeeToEdit?.previousYearVacationDays?.toString() || '0');
   const [previousYearUsedDays, setPreviousYearUsedDays] = useState(employeeToEdit?.previousYearUsedDays?.toString() || '0');
-  const [initialPassword, setInitialPassword] = useState(employeeToEdit?.initialPassword || '');
+  const [initialPassword, setInitialPassword] = useState('');  // Toujours vide par défaut
   const [streetAddress, setStreetAddress] = useState(employeeToEdit?.streetAddress || '');
   const [city, setCity] = useState(employeeToEdit?.city || '');
   const [postalCode, setPostalCode] = useState(employeeToEdit?.postalCode || '');
@@ -263,7 +264,7 @@ export const NewEmployeeForm = ({
               <Button type="button" variant="outline" onClick={onClose}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit">
                 {mode === 'create' ? 'Ajouter' : 'Mettre à jour'}
               </Button>
             </div>
