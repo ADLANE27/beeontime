@@ -44,7 +44,7 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
         console.log('Auth user created:', userId);
       }
 
-      // Create or update employee record
+      // Create or update employee record with all address fields
       const { error: employeeError } = await supabase
         .from('employees')
         .upsert({
@@ -66,10 +66,10 @@ export const useEmployeeSubmit = (onSuccess: () => void) => {
           previous_year_vacation_days: formData.previousYearVacationDays,
           previous_year_used_days: formData.previousYearUsedDays,
           initial_password: formData.initialPassword,
-          street_address: formData.streetAddress,
-          city: formData.city,
-          postal_code: formData.postalCode,
-          country: formData.country
+          street_address: formData.streetAddress || null,
+          city: formData.city || null,
+          postal_code: formData.postalCode || null,
+          country: formData.country || 'France'
         });
 
       if (employeeError) {
