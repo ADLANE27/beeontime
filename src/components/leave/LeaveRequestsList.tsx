@@ -1,4 +1,3 @@
-<lov-code>
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -177,3 +176,54 @@ export const LeaveRequestsList = () => {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Demandes de congés</h2>
+        <CreateLeaveRequestDialog />
+      </div>
+      
+      {filteredLeaveRequests?.map((request) => (
+        <Card key={request.id} className="p-4">
+          <div className="flex justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">
+                {request.employees.first_name} {request.employees.last_name}
+              </h3>
+              <p>{format(new Date(request.start_date), 'dd/MM/yyyy')} - {format(new Date(request.end_date), 'dd/MM/yyyy')}</p>
+              <p className={`text-sm ${getStatusColor(request.status)}`}>{getStatusLabel(request.status)}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button onClick={() => handleApprove(request)}>Approuver</Button>
+              <Button onClick={() => {
+                setSelectedRequest(request);
+                setRejectionDialogOpen(true);
+              }}>Refuser</Button>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Raison du refus</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="Entrez la raison du refus"
+          />
+          <DialogFooter>
+            <Button onClick={handleReject}>Confirmer</Button>
+            <Button onClick={() => setRejectionDialogOpen(false)}>Annuler</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};

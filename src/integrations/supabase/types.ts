@@ -314,6 +314,51 @@ export type Database = {
           },
         ]
       }
+      leave_request_documents: {
+        Row: {
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          leave_request_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          leave_request_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          leave_request_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_request_documents_leave_request_id_fkey"
+            columns: ["leave_request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_request_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           created_at: string
