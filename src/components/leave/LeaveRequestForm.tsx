@@ -51,7 +51,10 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
         .select('id, first_name, last_name')
         .order('last_name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching employees:', error);
+        throw error;
+      }
 
       return employees.map(emp => ({
         id: emp.id,
@@ -204,23 +207,21 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
   return (
     <Card className="p-6">
       <form className="space-y-4" onSubmit={handleSubmit}>
-        {employees && (
-          <div className="space-y-2">
-            <Label htmlFor="employee">Employé</Label>
-            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un employé" />
-              </SelectTrigger>
-              <SelectContent>
-                {employeesList.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="space-y-2">
+          <Label htmlFor="employee">Employé</Label>
+          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez un employé" />
+            </SelectTrigger>
+            <SelectContent>
+              {employeesList.map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="type">Type de congé</Label>
