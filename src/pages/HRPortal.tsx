@@ -6,6 +6,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const HRPortal = () => {
   const navigate = useNavigate();
@@ -44,12 +45,16 @@ const HRPortal = () => {
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr', { replace: true });
+          } else if (profile?.role === 'employee') {
+            console.log("Employee role detected, redirecting to employee portal");
+            navigate('/portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail RH");
           }
         }
         setIsLoading(false);
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("An unexpected error occurred");
+        setError("Une erreur inattendue s'est produite");
         setIsLoading(false);
       }
     };
@@ -78,6 +83,10 @@ const HRPortal = () => {
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
             navigate('/hr', { replace: true });
+          } else if (profile?.role === 'employee') {
+            console.log("Employee role detected, redirecting to employee portal");
+            navigate('/portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail RH");
           }
         } catch (err) {
           console.error("Error during role check:", err);

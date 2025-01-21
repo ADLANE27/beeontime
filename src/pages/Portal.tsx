@@ -6,6 +6,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
@@ -43,16 +44,17 @@ const Portal = () => {
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
-            navigate('/employee');
+            navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
-            console.log("HR role detected, redirecting to /hr-portal");
-            navigate('/hr-portal');
+            console.log("HR role detected, redirecting to HR portal");
+            navigate('/hr-portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail employé");
           }
         }
         setIsLoading(false);
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("An unexpected error occurred");
+        setError("Une erreur inattendue s'est produite");
         setIsLoading(false);
       }
     };
@@ -80,10 +82,11 @@ const Portal = () => {
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed after sign in, redirecting to /employee");
-            navigate('/employee');
+            navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
-            console.log("HR role detected after sign in, redirecting to /hr-portal");
-            navigate('/hr-portal');
+            console.log("HR role detected, redirecting to HR portal");
+            navigate('/hr-portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail employé");
           }
         } catch (err) {
           console.error("Error during role check:", err);
