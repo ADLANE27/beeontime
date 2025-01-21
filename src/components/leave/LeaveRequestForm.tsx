@@ -24,13 +24,20 @@ import { Database } from "@/integrations/supabase/types";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
-export const LeaveRequestForm = () => {
+interface LeaveRequestFormProps {
+  employees?: { id: string; name: string; }[];
+  onSubmit?: (data: any) => Promise<void>;
+  isSubmitting?: boolean;
+}
+
+export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveRequestFormProps = {}) => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
   const [dayType, setDayType] = useState("full");
   const [period, setPeriod] = useState<string>();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>();
   const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +50,11 @@ export const LeaveRequestForm = () => {
 
     if (dayType === "half" && !period) {
       toast.error("Veuillez sélectionner la période (matin ou après-midi)");
+      return;
+    }
+
+    if (employees && !selectedEmployee) {
+      toast.error("Veuillez sélectionner un employé");
       return;
     }
 
@@ -67,6 +79,19 @@ export const LeaveRequestForm = () => {
     }
 
     try {
+      if (onSubmit) {
+        await onSubmit({
+          employee_id: selectedEmployee || (await supabase.auth.getUser()).data.user?.id,
+          start_date: startDate,
+          end_date: endDate,
+          type: leaveType,
+          day_type: dayType,
+          period: dayType === "half" ? period : null,
+          reason: reason,
+        });
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -145,6 +170,7 @@ export const LeaveRequestForm = () => {
       setStartDate("");
       setEndDate("");
       setReason("");
+      setSelectedEmployee(undefined);
       // Refresh the leave requests list
       queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
     } catch (error) {
@@ -155,8 +181,25 @@ export const LeaveRequestForm = () => {
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Demande de congé</h2>
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {employees && (
+          <div className="space-y-2">
+            <Label htmlFor="employee">Employé</Label>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un employé" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="type">Type de congé</Label>
           <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
@@ -179,52 +222,24 @@ export const LeaveRequestForm = () => {
         </div>
 
         <div className="space-y-2">
-          <Label>Type de journée</Label>
-          <ToggleGroup
-            type="single"
-            value={dayType}
-            onValueChange={(value) => {
-              if (value) {
-                setDayType(value);
-                if (value === "full") {
-                  setPeriod(undefined);
-                }
-              }
-            }}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="full" aria-label="Journée complète" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Journée complète
-            </ToggleGroupItem>
-            <ToggleGroupItem value="half" aria-label="Demi-journée" className="gap-2">
-              <Clock className="h-4 w-4" />
-              Demi-journée
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <Label htmlFor="startDate">Date de début</Label>
+          <Input 
+            type="date" 
+            id="startDate" 
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+          />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="startDate">Date de début</Label>
-            <Input 
-              type="date" 
-              id="startDate" 
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="endDate">Date de fin</Label>
-            <Input 
-              type="date" 
-              id="endDate"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              required
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="endDate">Date de fin</Label>
+          <Input 
+            type="date" 
+            id="endDate"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
+          />
         </div>
 
         {dayType === "half" && (
@@ -252,7 +267,7 @@ export const LeaveRequestForm = () => {
           />
         </div>
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           Soumettre la demande
         </Button>
       </form>
