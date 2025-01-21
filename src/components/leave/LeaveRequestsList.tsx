@@ -301,9 +301,9 @@ export const LeaveRequestsList = () => {
                           </p>
                         )}
                         {request.documents && request.documents.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-sm font-medium text-gray-700">Documents joints :</p>
-                            <div className="flex flex-wrap gap-2 mt-1">
+                          <div className="mt-2 space-y-2">
+                            <p className="text-sm font-medium text-gray-700">Documents justificatifs :</p>
+                            <div className="flex flex-wrap gap-2">
                               {request.documents.map((doc) => (
                                 <Button
                                   key={doc.id}
@@ -311,11 +311,12 @@ export const LeaveRequestsList = () => {
                                   size="sm"
                                   onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
                                   disabled={downloadingDocumentId === doc.id}
+                                  className="flex items-center gap-2 text-sm"
                                 >
                                   {downloadingDocumentId === doc.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <Download className="h-4 w-4 mr-2" />
+                                    <Download className="h-4 w-4" />
                                   )}
                                   {doc.file_name}
                                 </Button>
