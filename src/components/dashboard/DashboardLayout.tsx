@@ -16,7 +16,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/hr-portal"); // Redirection vers le portail RH au lieu de /auth
+    navigate("/portal", { replace: true }); // Redirect to main portal instead of HR portal
     toast.success("Vous avez été déconnecté avec succès");
   };
 

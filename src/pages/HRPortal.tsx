@@ -43,7 +43,7 @@ const HRPortal = () => {
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
-            navigate('/hr', { replace: true }); // Ajout de replace: true pour éviter l'historique
+            navigate('/hr', { replace: true });
           }
         }
         setIsLoading(false);
@@ -77,7 +77,7 @@ const HRPortal = () => {
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
-            navigate('/hr', { replace: true }); // Ajout de replace: true pour éviter l'historique
+            navigate('/hr', { replace: true });
           }
         } catch (err) {
           console.error("Error during role check:", err);
