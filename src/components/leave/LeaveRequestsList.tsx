@@ -371,7 +371,6 @@ export const LeaveRequestsList = () => {
             <DialogTitle>Nouvelle demande de congés</DialogTitle>
           </DialogHeader>
           <LeaveRequestForm 
-            employees={uniqueEmployees} 
             onSubmit={async (data) => {
               try {
                 const { error } = await supabase
