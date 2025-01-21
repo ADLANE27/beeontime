@@ -34,7 +34,7 @@ type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
     first_name: string;
     last_name: string;
   };
-  documents?: {
+  documents: {
     id: string;
     file_path: string;
     file_name: string;
@@ -90,6 +90,7 @@ export const LeaveRequestsList = () => {
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['leave-requests'],
     queryFn: async () => {
+      console.log('Fetching leave requests with documents...');
       const { data, error } = await supabase
         .from('leave_requests')
         .select(`
@@ -111,6 +112,7 @@ export const LeaveRequestsList = () => {
         throw error;
       }
 
+      console.log('Fetched leave requests:', data);
       return data as LeaveRequest[];
     }
   });
@@ -118,9 +120,13 @@ export const LeaveRequestsList = () => {
   const handleDownloadDocument = async (documentId: string, filePath: string, fileName: string) => {
     try {
       setDownloadingDocumentId(documentId);
+      console.log('Downloading document:', { documentId, filePath, fileName });
+      
       const { data } = await supabase.storage
         .from('leave-documents')
         .getPublicUrl(filePath);
+
+      console.log('Got public URL:', data.publicUrl);
 
       const response = await fetch(data.publicUrl);
       if (!response.ok) throw new Error('Failed to download file');
