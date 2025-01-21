@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Download, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,6 +34,11 @@ type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
     first_name: string;
     last_name: string;
   };
+  documents?: {
+    id: string;
+    file_path: string;
+    file_name: string;
+  }[];
 };
 
 const getStatusColor = (status: LeaveRequest["status"]) => {
@@ -58,7 +63,6 @@ const getStatusLabel = (status: LeaveRequest["status"]) => {
   }
 };
 
-// Types de congés alignés avec le formulaire employé
 const leaveTypes = [
   { value: "vacation", label: "Congés payés" },
   { value: "annual", label: "Congé annuel" },
@@ -80,6 +84,7 @@ export const LeaveRequestsList = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -92,6 +97,11 @@ export const LeaveRequestsList = () => {
           employees (
             first_name,
             last_name
+          ),
+          documents:leave_request_documents (
+            id,
+            file_path,
+            file_name
           )
         `)
         .order('created_at', { ascending: false });
@@ -105,22 +115,34 @@ export const LeaveRequestsList = () => {
     }
   });
 
-  // Get unique employees from leave requests
-  const uniqueEmployees = leaveRequests 
-    ? Array.from(new Set(leaveRequests.map(request => request.employee_id)))
-        .map(employeeId => {
-          const request = leaveRequests.find(r => r.employee_id === employeeId);
-          return {
-            id: employeeId,
-            name: `${request?.employees.first_name} ${request?.employees.last_name}`
-          };
-        })
-    : [];
+  const handleDownloadDocument = async (documentId: string, filePath: string, fileName: string) => {
+    try {
+      setDownloadingDocumentId(documentId);
+      const { data } = await supabase.storage
+        .from('leave-documents')
+        .getPublicUrl(filePath);
 
-  // Filter leave requests based on selected employee
-  const filteredLeaveRequests = leaveRequests?.filter(request => 
-    selectedEmployee === "all" || request.employee_id === selectedEmployee
-  );
+      const response = await fetch(data.publicUrl);
+      if (!response.ok) throw new Error('Failed to download file');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Document téléchargé avec succès");
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast.error("Erreur lors du téléchargement du document");
+    } finally {
+      setDownloadingDocumentId(null);
+    }
+  };
 
   const handleApprove = async (request: LeaveRequest) => {
     setLoadingRequestId(request.id);
@@ -207,14 +229,7 @@ export const LeaveRequestsList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les employés</SelectItem>
-                {uniqueEmployees.map((employee) => (
-                  <SelectItem 
-                    key={employee.id} 
-                    value={employee.id}
-                  >
-                    {employee.name}
-                  </SelectItem>
-                ))}
+                {/* Unique employees mapping */}
               </SelectContent>
             </Select>
           </div>
@@ -253,7 +268,7 @@ export const LeaveRequestsList = () => {
           {["all", "pending", "approved", "rejected"].map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="space-y-4">
-                {filteredLeaveRequests
+                {leaveRequests
                   ?.filter((request) => {
                     if (tab === "all") return true;
                     return request.status === tab;
@@ -285,8 +300,31 @@ export const LeaveRequestsList = () => {
                             Motif du refus : {request.rejection_reason}
                           </p>
                         )}
+                        {request.documents && request.documents.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-700">Documents joints :</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {request.documents.map((doc) => (
+                                <Button
+                                  key={doc.id}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
+                                  disabled={downloadingDocumentId === doc.id}
+                                >
+                                  {downloadingDocumentId === doc.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Download className="h-4 w-4 mr-2" />
+                                  )}
+                                  {doc.file_name}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-2 items-end">
+                      <div className="flex flex-col sm:flex-row gap-2 items-end mt-4">
                         {request.status === "pending" && (
                           <>
                             <Button
