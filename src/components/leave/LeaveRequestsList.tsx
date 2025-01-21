@@ -316,8 +316,9 @@ export const LeaveRequestsList = () => {
                           <p className="text-sm text-gray-500">
                             Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
                           </p>
+                          {/* Documents section */}
                           {request.documents && request.documents.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-2 border-t pt-2">
                               <p className="text-sm text-gray-600">Documents :</p>
                               <div className="flex gap-2">
                                 {request.documents.map((doc) => (
