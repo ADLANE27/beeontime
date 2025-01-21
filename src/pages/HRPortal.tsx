@@ -44,14 +44,19 @@ const HRPortal = () => {
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
+            setIsLoading(false);
             navigate('/hr', { replace: true });
           } else if (profile?.role === 'employee') {
             console.log("Employee role detected, redirecting to employee portal");
-            navigate('/portal', { replace: true });
-            toast.error("Vous n'avez pas accès au portail RH");
+            setError("Vous n'avez pas accès au portail RH");
+            setIsLoading(false);
+            setTimeout(() => {
+              navigate('/portal', { replace: true });
+            }, 2000);
           }
+        } else {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       } catch (err) {
         console.error("Unexpected error:", err);
         setError("Une erreur inattendue s'est produite");
@@ -76,24 +81,31 @@ const HRPortal = () => {
           if (profileError) {
             console.error("Profile error:", profileError);
             setError("Error checking user role");
+            setIsLoading(false);
             return;
           }
 
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
+            setIsLoading(false);
             navigate('/hr', { replace: true });
           } else if (profile?.role === 'employee') {
             console.log("Employee role detected, redirecting to employee portal");
-            navigate('/portal', { replace: true });
-            toast.error("Vous n'avez pas accès au portail RH");
+            setError("Vous n'avez pas accès au portail RH");
+            setIsLoading(false);
+            setTimeout(() => {
+              navigate('/portal', { replace: true });
+            }, 2000);
           }
         } catch (err) {
           console.error("Error during role check:", err);
           setError("Error checking user role");
+          setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         setError(null);
+        setIsLoading(false);
       }
     });
 
@@ -127,6 +139,7 @@ const HRPortal = () => {
               {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
               {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
               {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
+              {error === "Vous n'avez pas accès au portail RH" && error}
             </AlertDescription>
           </Alert>
         )}
