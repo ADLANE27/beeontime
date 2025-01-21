@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
-import { CreateLeaveRequestDialog } from "./CreateLeaveRequestDialog";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
@@ -182,10 +181,7 @@ export const LeaveRequestsList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Demandes de congés</h2>
-        <CreateLeaveRequestDialog />
-      </div>
+      <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
 
       <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

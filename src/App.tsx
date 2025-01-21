@@ -12,9 +12,6 @@ import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
-// First, let's sign out the current user
-await supabase.auth.signOut();
-
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -37,20 +34,10 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     };
 
     checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAuth();
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [requiredRole]);
 
   if (isAuthorized === null) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-    </div>;
+    return null; // Loading state
   }
 
   if (!isAuthorized) {
