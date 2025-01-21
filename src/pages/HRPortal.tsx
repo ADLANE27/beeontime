@@ -20,7 +20,7 @@ const HRPortal = () => {
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          setError("Erreur lors de la vérification de l'authentification. Veuillez réessayer.");
+          setError("Erreur lors de la vérification de l'authentification");
           setIsLoading(false);
           return;
         }
@@ -32,11 +32,11 @@ const HRPortal = () => {
               .from('profiles')
               .select('role')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             if (profileError) {
               console.error("Profile error:", profileError);
-              setError("Erreur lors de la vérification du rôle utilisateur. Veuillez réessayer.");
+              setError("Erreur lors de la vérification du rôle utilisateur. Veuillez réessayer dans quelques instants.");
               setIsLoading(false);
               return;
             }
@@ -45,9 +45,9 @@ const HRPortal = () => {
             if (profile?.role === 'hr') {
               console.log("HR role confirmed, redirecting to /hr");
               navigate('/hr', { replace: true });
-            } else if (profile?.role === 'employee') {
-              console.log("Employee role detected, redirecting to employee portal");
-              setError("Vous n'avez pas accès au portail RH. Redirection vers le portail employé...");
+            } else {
+              console.log("Non-HR role detected, showing error");
+              setError("Vous n'avez pas accès au portail RH");
               setIsLoading(false);
               setTimeout(() => {
                 navigate('/portal', { replace: true });
@@ -55,7 +55,7 @@ const HRPortal = () => {
             }
           } catch (err) {
             console.error("Error during role check:", err);
-            setError("Une erreur est survenue lors de la vérification de vos droits d'accès. Veuillez réessayer.");
+            setError("Une erreur est survenue lors de la vérification de vos droits d'accès");
             setIsLoading(false);
           }
         } else {
@@ -63,7 +63,7 @@ const HRPortal = () => {
         }
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("Une erreur inattendue s'est produite. Veuillez réessayer.");
+        setError("Une erreur inattendue s'est produite");
         setIsLoading(false);
       }
     };
@@ -80,7 +80,7 @@ const HRPortal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session?.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) {
             console.error("Profile error:", profileError);
@@ -93,9 +93,9 @@ const HRPortal = () => {
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
             navigate('/hr', { replace: true });
-          } else if (profile?.role === 'employee') {
-            console.log("Employee role detected, redirecting to employee portal");
-            setError("Vous n'avez pas accès au portail RH. Redirection vers le portail employé...");
+          } else {
+            console.log("Non-HR role detected, redirecting to employee portal");
+            setError("Vous n'avez pas accès au portail RH");
             setIsLoading(false);
             setTimeout(() => {
               navigate('/portal', { replace: true });
