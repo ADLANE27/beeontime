@@ -136,7 +136,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
           day_type: dayType,
           period: dayType === "half" ? period : null,
           reason: reason,
-          status: 'pending'
+          status: 'approved' // Auto-approve when HR creates the request
         })
         .select()
         .single();
@@ -191,7 +191,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
       setSelectedEmployee(undefined);
       setSelectedFile(null);
       // Refresh the leave requests list
-      queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
     } catch (error) {
       console.error('Error:', error);
       toast.error("Une erreur est survenue");
