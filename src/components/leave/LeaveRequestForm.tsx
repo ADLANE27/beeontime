@@ -15,12 +15,13 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { useState } from "react";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
@@ -38,7 +39,35 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
+
+  // Fetch all employees if not provided
+  const { data: fetchedEmployees } = useQuery({
+    queryKey: ['employees-list'],
+    queryFn: async () => {
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name')
+        .order('last_name', { ascending: true });
+
+      if (error) throw error;
+
+      return employees.map(emp => ({
+        id: emp.id,
+        name: `${emp.first_name} ${emp.last_name}`
+      }));
+    },
+    enabled: !employees // Only fetch if employees prop is not provided
+  });
+
+  const employeesList = employees || fetchedEmployees || [];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,54 +128,11 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
         return;
       }
 
-      // Check if employee record exists
-      const { data: employee, error: employeeError } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (employeeError) {
-        console.error('Error checking employee record:', employeeError);
-        toast.error("Erreur lors de la vérification du profil employé");
-        return;
-      }
-
-      // If no employee record exists, create one
-      if (!employee) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError || !profile) {
-          console.error('Error fetching profile:', profileError);
-          toast.error("Erreur lors de la récupération du profil");
-          return;
-        }
-
-        const { error: createEmployeeError } = await supabase
-          .from('employees')
-          .insert({
-            id: user.id,
-            first_name: profile.first_name || '',
-            last_name: profile.last_name || '',
-            email: profile.email
-          });
-
-        if (createEmployeeError) {
-          console.error('Error creating employee record:', createEmployeeError);
-          toast.error("Erreur lors de la création du profil employé");
-          return;
-        }
-      }
-
       // Submit leave request
-      const { error: leaveRequestError } = await supabase
+      const { data: leaveRequest, error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
-          employee_id: user.id,
+          employee_id: selectedEmployee || user.id,
           start_date: startDate,
           end_date: endDate,
           type: leaveType,
@@ -154,12 +140,47 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
           period: dayType === "half" ? period : null,
           reason: reason,
           status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (leaveRequestError) {
         console.error('Error submitting leave request:', leaveRequestError);
         toast.error("Erreur lors de la soumission de la demande");
         return;
+      }
+
+      // Upload file if selected
+      if (selectedFile && leaveRequest) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const filePath = `${leaveRequest.id}/${crypto.randomUUID()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('leave-documents')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          toast.error("Erreur lors de l'upload du fichier");
+          return;
+        }
+
+        // Save document reference
+        const { error: docError } = await supabase
+          .from('leave_request_documents')
+          .insert({
+            leave_request_id: leaveRequest.id,
+            file_path: filePath,
+            file_name: selectedFile.name,
+            file_type: selectedFile.type,
+            uploaded_by: user.id
+          });
+
+        if (docError) {
+          console.error('Error saving document reference:', docError);
+          toast.error("Erreur lors de l'enregistrement du document");
+          return;
+        }
       }
 
       toast.success("Demande de congé soumise avec succès");
@@ -171,6 +192,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
       setEndDate("");
       setReason("");
       setSelectedEmployee(undefined);
+      setSelectedFile(null);
       // Refresh the leave requests list
       queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
     } catch (error) {
@@ -190,7 +212,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
                 <SelectValue placeholder="Sélectionnez un employé" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {employeesList.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>
@@ -212,6 +234,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
               <SelectItem value="paternity">Congé paternité</SelectItem>
               <SelectItem value="maternity">Congé maternité</SelectItem>
               <SelectItem value="sickChild">Congé enfant malade</SelectItem>
+              <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
               <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
               <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
               <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
@@ -242,6 +265,14 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="dayType">Type de journée</Label>
+          <ToggleGroup type="single" value={dayType} onValueChange={(value) => value && setDayType(value)}>
+            <ToggleGroupItem value="full">Journée complète</ToggleGroupItem>
+            <ToggleGroupItem value="half">Demi-journée</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         {dayType === "half" && (
           <div className="space-y-2">
             <Label htmlFor="period">Période</Label>
@@ -265,6 +296,33 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="file">Pièce jointe</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="file"
+              type="file"
+              onChange={handleFileChange}
+              className="flex-1"
+            />
+            {selectedFile && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedFile(null)}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+          {selectedFile && (
+            <p className="text-sm text-muted-foreground">
+              Fichier sélectionné : {selectedFile.name}
+            </p>
+          )}
         </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
