@@ -34,10 +34,20 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     };
 
     checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAuth();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [requiredRole]);
 
   if (isAuthorized === null) {
-    return null; // Loading state
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+    </div>;
   }
 
   if (!isAuthorized) {
