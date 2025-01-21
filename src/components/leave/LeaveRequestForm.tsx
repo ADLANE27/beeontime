@@ -20,19 +20,17 @@ import { Calendar, Clock, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
-import { useQuery } from "@tanstack/react-query";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
 interface LeaveRequestFormProps {
-  employees?: { id: string; name: string; }[];
   onSubmit?: (data: any) => Promise<void>;
   isSubmitting?: boolean;
 }
 
-export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveRequestFormProps = {}) => {
+export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormProps) => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
   const [dayType, setDayType] = useState("full");
   const [period, setPeriod] = useState<string>();
@@ -43,10 +41,11 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch all employees if not provided
-  const { data: fetchedEmployees, isLoading: isLoadingEmployees } = useQuery({
+  // Fetch all employees
+  const { data: employees, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employees-list'],
     queryFn: async () => {
+      console.log('Fetching employees...');
       const { data: employees, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name')
@@ -57,15 +56,10 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
         throw error;
       }
 
-      return employees.map(emp => ({
-        id: emp.id,
-        name: `${emp.first_name} ${emp.last_name}`
-      }));
-    },
-    enabled: !employees // Only fetch if employees prop is not provided
+      console.log('Fetched employees:', employees);
+      return employees;
+    }
   });
-
-  const employeesList = employees || fetchedEmployees || [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -209,9 +203,9 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
                 <SelectValue placeholder="Sélectionnez un employé" />
               </SelectTrigger>
               <SelectContent>
-                {employeesList.map((employee) => (
+                {employees?.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
+                    {employee.first_name} {employee.last_name}
                   </SelectItem>
                 ))}
               </SelectContent>
