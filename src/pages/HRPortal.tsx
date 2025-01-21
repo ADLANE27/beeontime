@@ -12,7 +12,7 @@ const HRPortal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubscribed, setIsSubscribed] = useState(true);
+  let isSubscribed = true;
 
   const checkUserRole = async (userId: string) => {
     try {
