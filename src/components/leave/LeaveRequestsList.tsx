@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
-import { CreateLeaveRequestDialog } from "./CreateLeaveRequestDialog";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
@@ -56,7 +55,7 @@ const getStatusLabel = (status: LeaveRequest["status"]) => {
     default:
       return "En attente";
   }
-}
+};
 
 // Types de congés alignés avec le formulaire employé
 const leaveTypes = [
@@ -181,49 +180,179 @@ export const LeaveRequestsList = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Demandes de congés</h2>
-        <CreateLeaveRequestDialog />
-      </div>
-      
-      {filteredLeaveRequests?.map((request) => (
-        <Card key={request.id} className="p-4">
-          <div className="flex justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">
-                {request.employees.first_name} {request.employees.last_name}
-              </h3>
-              <p>{format(new Date(request.start_date), 'dd/MM/yyyy')} - {format(new Date(request.end_date), 'dd/MM/yyyy')}</p>
-              <p className={`text-sm ${getStatusColor(request.status)}`}>{getStatusLabel(request.status)}</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button onClick={() => handleApprove(request)}>Approuver</Button>
-              <Button onClick={() => {
-                setSelectedRequest(request);
-                setRejectionDialogOpen(true);
-              }}>Refuser</Button>
-            </div>
+    <Card className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
+
+      <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Employé</Label>
+            <Select
+              value={selectedEmployee}
+              onValueChange={setSelectedEmployee}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tous les employés" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les employés</SelectItem>
+                {uniqueEmployees.map((employee) => (
+                  <SelectItem 
+                    key={employee.id} 
+                    value={employee.id}
+                  >
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </Card>
-      ))}
+
+          <div className="space-y-2">
+            <Label>Type de congé</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Tous les types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                {leaveTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Rechercher</Label>
+            <Input type="text" placeholder="Rechercher..." />
+          </div>
+        </div>
+
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="all">Toutes</TabsTrigger>
+            <TabsTrigger value="pending">En attente</TabsTrigger>
+            <TabsTrigger value="approved">Acceptée</TabsTrigger>
+            <TabsTrigger value="rejected">Refusée</TabsTrigger>
+          </TabsList>
+
+          {["all", "pending", "approved", "rejected"].map((tab) => (
+            <TabsContent key={tab} value={tab}>
+              <div className="space-y-4">
+                {filteredLeaveRequests
+                  ?.filter((request) => {
+                    if (tab === "all") return true;
+                    return request.status === tab;
+                  })
+                  .map((request) => (
+                    <Card key={request.id} className="p-4">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold">
+                          {request.employees.first_name} {request.employees.last_name}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {leaveTypes.find(t => t.value === request.type)?.label}
+                        </p>
+                        <p className="text-sm">
+                          Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })} au{" "}
+                          {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                          {request.period && ` (${request.period === "morning" ? "Matin" : "Après-midi"})`}
+                        </p>
+                        {request.reason && (
+                          <p className="text-sm text-gray-600">
+                            Motif : {request.reason}
+                          </p>
+                        )}
+                        {request.rejection_reason && (
+                          <p className="text-sm text-red-600">
+                            Motif du refus : {request.rejection_reason}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2 items-end">
+                        {request.status === "pending" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={() => handleApprove(request)}
+                              disabled={loadingRequestId === request.id}
+                            >
+                              {loadingRequestId === request.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Accepter
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setRejectionDialogOpen(true);
+                              }}
+                              disabled={loadingRequestId === request.id}
+                            >
+                              {loadingRequestId === request.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Refuser
+                            </Button>
+                          </>
+                        )}
+                        <Badge className={getStatusColor(request.status)}>
+                          {getStatusLabel(request.status)}
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
 
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Raison du refus</DialogTitle>
+            <DialogTitle>Motif du refus</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Entrez la raison du refus"
-          />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Veuillez indiquer le motif du refus</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Saisissez le motif du refus..."
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button onClick={handleReject}>Confirmer</Button>
-            <Button onClick={() => setRejectionDialogOpen(false)}>Annuler</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectionDialogOpen(false);
+                setRejectionReason("");
+                setSelectedRequest(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!rejectionReason.trim()}
+            >
+              Confirmer le refus
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 };
