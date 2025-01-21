@@ -12,6 +12,9 @@ import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
+// First, let's sign out the current user
+await supabase.auth.signOut();
+
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
