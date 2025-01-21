@@ -15,44 +15,25 @@ const HRPortal = () => {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.log("Checking HR access...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          setError("Error checking authentication status");
-          setIsLoading(false);
-          return;
-        }
-
         if (session) {
-          console.log("Session found, checking role...");
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
 
-          if (profileError) {
-            console.error("Profile error:", profileError);
-            setError("Error checking user role");
-            setIsLoading(false);
-            return;
-          }
-
-          console.log("Profile role:", profile?.role);
           if (profile?.role === 'hr') {
-            console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr');
           } else {
-            console.log("Not HR role, redirecting to /");
             navigate('/');
           }
         }
         setIsLoading(false);
       } catch (err) {
-        console.error("Unexpected error:", err);
-        setError("An unexpected error occurred");
+        console.error("Error:", err);
+        setError("Une erreur inattendue s'est produite");
         setIsLoading(false);
       }
     };
@@ -60,37 +41,18 @@ const HRPortal = () => {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
-      
       if (event === 'SIGNED_IN') {
-        try {
-          console.log("User signed in, checking role...");
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session?.user.id)
-            .single();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session?.user.id)
+          .single();
 
-          if (profileError) {
-            console.error("Profile error:", profileError);
-            setError("Error checking user role");
-            return;
-          }
-
-          console.log("Profile role after sign in:", profile?.role);
-          if (profile?.role === 'hr') {
-            console.log("HR role confirmed after sign in, redirecting to /hr");
-            navigate('/hr');
-          } else {
-            console.log("Not HR role after sign in, redirecting to /");
-            navigate('/');
-          }
-        } catch (err) {
-          console.error("Error during role check:", err);
-          setError("Error checking user role");
+        if (profile?.role === 'hr') {
+          navigate('/hr');
+        } else {
+          navigate('/');
         }
-      } else if (event === 'SIGNED_OUT') {
-        setError(null);
       }
     });
 
@@ -120,11 +82,7 @@ const HRPortal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail RH</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
-              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
-              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         <Auth
