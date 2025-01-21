@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,11 +28,11 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/jpg"];
 
 export const CreateLeaveRequestDialog = () => {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [leaveType, setLeaveType] = useState<LeaveType>();
+  const [leaveType, setLeaveType] = useState<LeaveType | undefined>();
   const [reason, setReason] = useState("");
   const [dayType, setDayType] = useState("full");
   const [period, setPeriod] = useState<string | null>(null);
@@ -42,37 +41,39 @@ export const CreateLeaveRequestDialog = () => {
 
   const queryClient = useQueryClient();
 
-  const { data: employees } = useQuery({
+  const { data: employees, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
         .select("id, first_name, last_name");
-
       if (error) throw error;
       return data;
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      setFile(null);
+      return;
+    }
 
     if (selectedFile.size > MAX_FILE_SIZE) {
-      toast.error("Le fichier est trop volumineux (max 5MB)");
+      toast.error("Le fichier est trop volumineux. Maximum 5MB.");
       return;
     }
 
     if (!ALLOWED_FILE_TYPES.includes(selectedFile.type)) {
-      toast.error("Type de fichier non autorisé (PDF, JPEG ou JPG uniquement)");
+      toast.error("Type de fichier non autorisé. Utilisez PDF, JPEG ou JPG.");
       return;
     }
 
     setFile(selectedFile);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!selectedEmployee || !startDate || !endDate || !leaveType || !dayType) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
@@ -81,7 +82,7 @@ export const CreateLeaveRequestDialog = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Create leave request
+      // Create leave request
       const { data: leaveRequest, error: leaveError } = await supabase
         .from("leave_requests")
         .insert({
@@ -91,30 +92,30 @@ export const CreateLeaveRequestDialog = () => {
           type: leaveType,
           reason,
           day_type: dayType,
-          period: dayType === "half" ? period : null,
+          period: period || undefined,
+          status: "pending",
         })
         .select()
         .single();
 
       if (leaveError) throw leaveError;
 
-      // 2. Upload file if present
-      if (file) {
+      // Upload file if present
+      if (file && leaveRequest) {
         const fileExt = file.name.split(".").pop();
-        const filePath = `${leaveRequest.id}/${crypto.randomUUID()}.${fileExt}`;
-
+        const fileName = `${leaveRequest.id}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from("leave-documents")
-          .upload(filePath, file);
+          .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        // 3. Create document record
+        // Create document record
         const { error: docError } = await supabase
           .from("leave_request_documents")
           .insert({
             leave_request_id: leaveRequest.id,
-            file_path: filePath,
+            file_path: fileName,
             file_name: file.name,
             file_type: file.type,
             uploaded_by: (await supabase.auth.getUser()).data.user?.id,
@@ -123,19 +124,19 @@ export const CreateLeaveRequestDialog = () => {
         if (docError) throw docError;
       }
 
-      toast.success("Demande de congé créée avec succès");
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
-      setOpen(false);
-      resetForm();
+      toast.success("Demande de congé créée avec succès");
+      handleClose();
     } catch (error) {
       console.error("Error creating leave request:", error);
-      toast.error("Une erreur est survenue lors de la création de la demande");
+      toast.error("Erreur lors de la création de la demande de congé");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const resetForm = () => {
+  const handleClose = () => {
+    setIsOpen(false);
     setSelectedEmployee("");
     setStartDate("");
     setEndDate("");
@@ -147,18 +148,18 @@ export const CreateLeaveRequestDialog = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button className="gap-2">
+          <Plus className="h-4 w-4" />
           Nouvelle demande
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Créer une demande de congé</DialogTitle>
+          <DialogTitle>Nouvelle demande de congé</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="employee">Employé</Label>
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -168,7 +169,7 @@ export const CreateLeaveRequestDialog = () => {
               <SelectContent>
                 {employees?.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
-                    {`${employee.first_name} ${employee.last_name}`}
+                    {employee.first_name} {employee.last_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -178,20 +179,23 @@ export const CreateLeaveRequestDialog = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">Date de début</Label>
-              <Input
-                id="startDate"
+              <input
                 type="date"
+                id="startDate"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="endDate">Date de fin</Label>
-              <Input
-                id="endDate"
+              <input
                 type="date"
+                id="endDate"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
               />
             </div>
           </div>
@@ -204,21 +208,13 @@ export const CreateLeaveRequestDialog = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="vacation">Congés payés</SelectItem>
-                <SelectItem value="annual">Congé annuel</SelectItem>
+                <SelectItem value="annual">Congés annuels</SelectItem>
                 <SelectItem value="rtt">RTT</SelectItem>
+                <SelectItem value="unpaid">Congé sans solde</SelectItem>
+                <SelectItem value="sickChild">Enfant malade</SelectItem>
+                <SelectItem value="familyEvent">Événement familial</SelectItem>
                 <SelectItem value="paternity">Congé paternité</SelectItem>
                 <SelectItem value="maternity">Congé maternité</SelectItem>
-                <SelectItem value="sickChild">Congé enfant malade</SelectItem>
-                <SelectItem value="unpaidUnexcused">
-                  Absence injustifiée non rémunérée
-                </SelectItem>
-                <SelectItem value="unpaidExcused">
-                  Absence justifiée non rémunérée
-                </SelectItem>
-                <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
-                <SelectItem value="familyEvent">
-                  Absences pour événements familiaux
-                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -252,29 +248,38 @@ export const CreateLeaveRequestDialog = () => {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="reason">Motif</Label>
+            <Label htmlFor="reason">Motif (optionnel)</Label>
             <Textarea
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Motif de la demande"
+              placeholder="Saisissez le motif de la demande..."
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file">Pièce jointe (PDF, JPEG, JPG - max 5MB)</Label>
-            <Input
-              id="file"
+            <Label htmlFor="file">Pièce jointe (optionnel)</Label>
+            <input
               type="file"
-              onChange={handleFileChange}
+              id="file"
               accept=".pdf,.jpg,.jpeg"
+              onChange={handleFileChange}
+              className="w-full cursor-pointer rounded-md border border-input px-3 py-2"
             />
+            <p className="text-sm text-muted-foreground">
+              Formats acceptés : PDF, JPEG, JPG (max 5MB)
+            </p>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Créer la demande
-          </Button>
+          <div className="flex justify-end gap-4">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Annuler
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Créer la demande
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
