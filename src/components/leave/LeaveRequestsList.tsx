@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
+import { LeaveRequestForm } from "./LeaveRequestForm";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
@@ -77,6 +78,7 @@ export const LeaveRequestsList = () => {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
+  const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -173,15 +175,23 @@ export const LeaveRequestsList = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Demandes de congés</h2>
+        <Button onClick={() => setIsNewLeaveOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle demande
+        </Button>
+      </div>
 
       <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -351,6 +361,37 @@ export const LeaveRequestsList = () => {
               Confirmer le refus
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande de congés</DialogTitle>
+          </DialogHeader>
+          <LeaveRequestForm 
+            employees={uniqueEmployees} 
+            onSubmit={async (data) => {
+              try {
+                const { error } = await supabase
+                  .from('leave_requests')
+                  .insert({
+                    ...data,
+                    status: 'approved'
+                  });
+
+                if (error) throw error;
+                
+                toast.success("Demande de congés créée avec succès");
+                setIsNewLeaveOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+              } catch (error) {
+                console.error('Error creating leave request:', error);
+                toast.error("Erreur lors de la création de la demande");
+              }
+            }}
+            isSubmitting={false}
+          />
         </DialogContent>
       </Dialog>
     </Card>
