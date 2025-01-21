@@ -43,7 +43,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
   const queryClient = useQueryClient();
 
   // Fetch all employees if not provided
-  const { data: fetchedEmployees } = useQuery({
+  const { data: fetchedEmployees, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employees-list'],
     queryFn: async () => {
       const { data: employees, error } = await supabase
@@ -85,7 +85,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
       return;
     }
 
-    if (employees && !selectedEmployee) {
+    if (!selectedEmployee) {
       toast.error("Veuillez sélectionner un employé");
       return;
     }
@@ -113,7 +113,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
     try {
       if (onSubmit) {
         await onSubmit({
-          employee_id: selectedEmployee || (await supabase.auth.getUser()).data.user?.id,
+          employee_id: selectedEmployee,
           start_date: startDate,
           end_date: endDate,
           type: leaveType,
@@ -124,18 +124,11 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("Vous devez être connecté pour soumettre une demande");
-        return;
-      }
-
       // Submit leave request
       const { data: leaveRequest, error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
-          employee_id: selectedEmployee || user.id,
+          employee_id: selectedEmployee,
           start_date: startDate,
           end_date: endDate,
           type: leaveType,
@@ -176,7 +169,7 @@ export const LeaveRequestForm = ({ employees, onSubmit, isSubmitting }: LeaveReq
             file_path: filePath,
             file_name: selectedFile.name,
             file_type: selectedFile.type,
-            uploaded_by: user.id
+            uploaded_by: selectedEmployee
           });
 
         if (docError) {
