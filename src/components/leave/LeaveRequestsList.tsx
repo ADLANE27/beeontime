@@ -317,28 +317,26 @@ export const LeaveRequestsList = () => {
                             Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
                           </p>
                           {request.documents && request.documents.length > 0 && (
-                            <div className="mt-3 border-t pt-3">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium text-gray-700">Documents justificatifs :</p>
-                                <div className="flex gap-2">
-                                  {request.documents.map((doc) => (
-                                    <Button
-                                      key={doc.id}
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
-                                      disabled={downloadingDocumentId === doc.id}
-                                      className="flex items-center gap-2 text-sm hover:bg-gray-100"
-                                    >
-                                      {downloadingDocumentId === doc.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Download className="h-4 w-4" />
-                                      )}
-                                      {doc.file_name}
-                                    </Button>
-                                  ))}
-                                </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <p className="text-sm text-gray-600">Documents :</p>
+                              <div className="flex gap-2">
+                                {request.documents.map((doc) => (
+                                  <Button
+                                    key={doc.id}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
+                                    disabled={downloadingDocumentId === doc.id}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {downloadingDocumentId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
+                                    {doc.file_name}
+                                  </Button>
+                                ))}
                               </div>
                             </div>
                           )}
