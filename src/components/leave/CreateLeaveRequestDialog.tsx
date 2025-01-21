@@ -17,10 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+
+type LeaveType = Database["public"]["Enums"]["leave_type"];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/jpg"];
@@ -30,7 +33,7 @@ export const CreateLeaveRequestDialog = () => {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [leaveType, setLeaveType] = useState("");
+  const [leaveType, setLeaveType] = useState<LeaveType>();
   const [reason, setReason] = useState("");
   const [dayType, setDayType] = useState("full");
   const [period, setPeriod] = useState<string | null>(null);
@@ -136,7 +139,7 @@ export const CreateLeaveRequestDialog = () => {
     setSelectedEmployee("");
     setStartDate("");
     setEndDate("");
-    setLeaveType("");
+    setLeaveType(undefined);
     setReason("");
     setDayType("full");
     setPeriod(null);
@@ -195,7 +198,7 @@ export const CreateLeaveRequestDialog = () => {
 
           <div className="space-y-2">
             <Label htmlFor="leaveType">Type de congé</Label>
-            <Select value={leaveType} onValueChange={setLeaveType}>
+            <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un type" />
               </SelectTrigger>
