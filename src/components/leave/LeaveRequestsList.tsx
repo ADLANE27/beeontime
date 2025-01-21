@@ -66,6 +66,7 @@ const leaveTypes = [
   { value: "paternity", label: "Congé paternité" },
   { value: "maternity", label: "Congé maternité" },
   { value: "sickChild", label: "Congé enfant malade" },
+  { value: "sickLeave", label: "Arrêt maladie" },
   { value: "unpaidUnexcused", label: "Absence injustifiée non rémunérée" },
   { value: "unpaidExcused", label: "Absence justifiée non rémunérée" },
   { value: "unpaid", label: "Absence non rémunérée" },

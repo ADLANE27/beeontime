@@ -629,6 +629,7 @@ export type Database = {
         | "unpaid"
         | "rtt"
         | "familyEvent"
+        | "sickLeave"
       request_status: "pending" | "approved" | "rejected"
       user_role: "employee" | "hr"
     }
