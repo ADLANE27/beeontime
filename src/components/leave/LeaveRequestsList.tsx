@@ -38,6 +38,7 @@ type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
     id: string;
     file_path: string;
     file_name: string;
+    file_type: string;
   }[];
 };
 
@@ -102,7 +103,8 @@ export const LeaveRequestsList = () => {
           documents:leave_request_documents (
             id,
             file_path,
-            file_name
+            file_name,
+            file_type
           )
         `)
         .order('created_at', { ascending: false });
@@ -222,169 +224,111 @@ export const LeaveRequestsList = () => {
         </Button>
       </div>
 
-      <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Employé</Label>
-            <Select
-              value={selectedEmployee}
-              onValueChange={setSelectedEmployee}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tous les employés" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les employés</SelectItem>
-                {/* Unique employees mapping */}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="space-y-4">
+        {leaveRequests?.map((request) => (
+          <Card key={request.id} className="p-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <h3 className="font-semibold">
+                  {request.employees.first_name} {request.employees.last_name}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {leaveTypes.find(t => t.value === request.type)?.label}
+                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">
+                    Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                  <p className="font-medium">
+                    au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                  {request.day_type === "half" && request.period && (
+                    <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                  )}
+                </p>
+                {request.reason && (
+                  <p className="text-sm text-gray-600">
+                    Motif : {request.reason}
+                  </p>
+                )}
+                {request.rejection_reason && (
+                  <p className="text-sm text-red-600">
+                    Motif du refus : {request.rejection_reason}
+                  </p>
+                )}
+                <p className="text-sm text-gray-500">
+                  Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                </p>
 
-          <div className="space-y-2">
-            <Label>Type de congé</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Tous les types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les types</SelectItem>
-                {leaveTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Rechercher</Label>
-            <Input type="text" placeholder="Rechercher..." />
-          </div>
-        </div>
-
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="pending">En attente</TabsTrigger>
-            <TabsTrigger value="approved">Acceptée</TabsTrigger>
-            <TabsTrigger value="rejected">Refusée</TabsTrigger>
-          </TabsList>
-
-          {["all", "pending", "approved", "rejected"].map((tab) => (
-            <TabsContent key={tab} value={tab}>
-              <div className="space-y-4">
-                {leaveRequests
-                  ?.filter((request) => {
-                    if (tab === "all") return true;
-                    return request.status === tab;
-                  })
-                  .map((request) => (
-                    <Card key={request.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="font-semibold">
-                            {request.employees.first_name} {request.employees.last_name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {leaveTypes.find(t => t.value === request.type)?.label}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">
-                              Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
-                            </p>
-                            <p className="font-medium">
-                              au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
-                            </p>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                            {request.day_type === "half" && request.period && (
-                              <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
-                            )}
-                          </p>
-                          {request.reason && (
-                            <p className="text-sm text-gray-600">
-                              Motif : {request.reason}
-                            </p>
+                {/* Documents section */}
+                {request.documents && request.documents.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700">Documents :</p>
+                    <div className="flex flex-wrap gap-2">
+                      {request.documents.map((doc) => (
+                        <Button
+                          key={doc.id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
+                          disabled={downloadingDocumentId === doc.id}
+                          className="flex items-center gap-2"
+                        >
+                          {downloadingDocumentId === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
                           )}
-                          {request.rejection_reason && (
-                            <p className="text-sm text-red-600">
-                              Motif du refus : {request.rejection_reason}
-                            </p>
-                          )}
-                          <p className="text-sm text-gray-500">
-                            Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
-                          </p>
-                          {/* Documents section */}
-                          {request.documents && request.documents.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2 border-t pt-2">
-                              <p className="text-sm text-gray-600">Documents :</p>
-                              <div className="flex gap-2">
-                                {request.documents.map((doc) => (
-                                  <Button
-                                    key={doc.id}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
-                                    disabled={downloadingDocumentId === doc.id}
-                                    className="flex items-center gap-2"
-                                  >
-                                    {downloadingDocumentId === doc.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4" />
-                                    )}
-                                    {doc.file_name}
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={getStatusColor(request.status)}>
-                            {getStatusLabel(request.status)}
-                          </Badge>
-                          {request.status === "pending" && (
-                            <div className="flex gap-2 mt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => handleApprove(request)}
-                                disabled={loadingRequestId === request.id}
-                              >
-                                {loadingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
-                                Accepter
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setRejectionDialogOpen(true);
-                                }}
-                                disabled={loadingRequestId === request.id}
-                              >
-                                {loadingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
-                                Refuser
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                          {doc.file_name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+
+              <div className="flex flex-col items-end gap-2">
+                <Badge className={getStatusColor(request.status)}>
+                  {getStatusLabel(request.status)}
+                </Badge>
+                {request.status === "pending" && (
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      onClick={() => handleApprove(request)}
+                      disabled={loadingRequestId === request.id}
+                    >
+                      {loadingRequestId === request.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Accepter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setRejectionDialogOpen(true);
+                      }}
+                      disabled={loadingRequestId === request.id}
+                    >
+                      {loadingRequestId === request.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Refuser
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
