@@ -30,7 +30,6 @@ const HRDashboard = () => {
   const [pendingDelays, setPendingDelays] = useState(0);
 
   useEffect(() => {
-    // Initial fetch of pending counts
     const fetchPendingCounts = async () => {
       console.log('Fetching pending counts...');
       
@@ -101,21 +100,21 @@ const HRDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className="flex flex-wrap gap-2">
-            <TabsTrigger value="employees">
-              <Users className="mr-2 h-4 w-4" />
+          <TabsList className="flex flex-wrap items-center gap-1">
+            <TabsTrigger value="employees" className="text-xs sm:text-sm">
+              <Users className="mr-1.5 h-4 w-4" />
               Employés
             </TabsTrigger>
-            <TabsTrigger value="planning">
-              <Calendar className="mr-2 h-4 w-4" />
+            <TabsTrigger value="planning" className="text-xs sm:text-sm">
+              <Calendar className="mr-1.5 h-4 w-4" />
               Planning
             </TabsTrigger>
-            <TabsTrigger value="events">
-              <ClipboardList className="mr-2 h-4 w-4" />
+            <TabsTrigger value="events" className="text-xs sm:text-sm">
+              <ClipboardList className="mr-1.5 h-4 w-4" />
               Événements RH
             </TabsTrigger>
-            <TabsTrigger value="leave" className="relative">
-              <Clock className="mr-2 h-4 w-4" />
+            <TabsTrigger value="leave" className="relative text-xs sm:text-sm">
+              <Clock className="mr-1.5 h-4 w-4" />
               Demandes de congés
               {pendingLeaves > 0 && (
                 <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
@@ -123,8 +122,8 @@ const HRDashboard = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="overtime" className="relative">
-              <Clock4 className="mr-2 h-4 w-4" />
+            <TabsTrigger value="overtime" className="relative text-xs sm:text-sm">
+              <Clock4 className="mr-1.5 h-4 w-4" />
               Heures supplémentaires
               {pendingOvertimes > 0 && (
                 <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
@@ -132,8 +131,8 @@ const HRDashboard = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="lateness" className="relative">
-              <AlertTriangle className="mr-2 h-4 w-4" />
+            <TabsTrigger value="lateness" className="relative text-xs sm:text-sm">
+              <AlertTriangle className="mr-1.5 h-4 w-4" />
               Retards
               {pendingDelays > 0 && (
                 <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
@@ -141,16 +140,16 @@ const HRDashboard = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="payslips">
-              <FileText className="mr-2 h-4 w-4" />
+            <TabsTrigger value="payslips" className="text-xs sm:text-sm">
+              <FileText className="mr-1.5 h-4 w-4" />
               Documents
             </TabsTrigger>
-            <TabsTrigger value="statistics">
-              <BarChart className="mr-2 h-4 w-4" />
+            <TabsTrigger value="statistics" className="text-xs sm:text-sm">
+              <BarChart className="mr-1.5 h-4 w-4" />
               Statistiques
             </TabsTrigger>
-            <TabsTrigger value="export">
-              <Download className="mr-2 h-4 w-4" />
+            <TabsTrigger value="export" className="text-xs sm:text-sm">
+              <Download className="mr-1.5 h-4 w-4" />
               Export
             </TabsTrigger>
           </TabsList>

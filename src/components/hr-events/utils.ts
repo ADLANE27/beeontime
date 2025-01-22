@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 
 type SubcategoryMap = {
   [key: string]: [string, string][];
@@ -27,8 +28,26 @@ const subcategories: SubcategoryMap = {
   other: [
     ["extended_leave", "Absence prolongée"],
     ["specific_meeting", "Réunion spécifique"],
-    ["feedback", "Feedback exceptionnel"],
+    ["feedback", "Retour exceptionnel"],
   ],
+};
+
+const getCategoryLabel = (category: string): string => {
+  const labels: Record<string, string> = {
+    disciplinary: "Disciplinaire",
+    evaluation: "Évaluation",
+    administrative: "Administratif",
+    other: "Autre"
+  };
+  return labels[category] || category;
+};
+
+const getSubcategoryLabel = (category: string, subcategory: string): string => {
+  const subcategoryList = subcategories[category];
+  if (!subcategoryList) return subcategory;
+  
+  const found = subcategoryList.find(([value]) => value === subcategory);
+  return found ? found[1] : subcategory;
 };
 
 export const getSubcategories = (category: string): [string, string][] => {
@@ -126,5 +145,60 @@ export const downloadDocument = async (filePath: string, fileName: string) => {
   } catch (error) {
     console.error("Error downloading document:", error);
     toast.error("Erreur lors du téléchargement du document");
+  }
+};
+
+export const generateEventPDF = async (event: any) => {
+  try {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+
+    // Add header image
+    const headerImage = "/lovable-uploads/d06996cb-5e7c-4b6d-9272-9bf8de33b774.png";
+    doc.addImage(headerImage, "PNG", 0, 0, 210, 297);
+
+    // Add event details
+    doc.setFontSize(16);
+    doc.text("Détails de l'événement", 20, 70);
+
+    doc.setFontSize(12);
+    doc.text(`Employé: ${event.employees?.first_name} ${event.employees?.last_name}`, 20, 90);
+    doc.text(`Date: ${new Date(event.event_date).toLocaleDateString('fr-FR')}`, 20, 100);
+    doc.text(`Titre: ${event.title}`, 20, 110);
+    
+    // Add description with word wrap
+    const splitDescription = doc.splitTextToSize(`Description: ${event.description || 'Aucune description'}`, 170);
+    doc.text(splitDescription, 20, 120);
+    
+    let yPos = 120 + (splitDescription.length * 7);
+    
+    doc.text(`Catégorie: ${getCategoryLabel(event.category)}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Sous-catégorie: ${getSubcategoryLabel(event.category, event.subcategory)}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Gravité: ${event.severity === 'critical' ? 'Critique' : event.severity === 'minor' ? 'Mineure' : 'Standard'}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Statut: ${event.status === 'open' ? 'Ouvert' : 'Clôturé'}`, 20, yPos);
+    yPos += 20;
+
+    // Add documents section if there are any
+    if (event.documents && event.documents.length > 0) {
+      doc.text("Documents attachés:", 20, yPos);
+      yPos += 10;
+      event.documents.forEach((doc: any) => {
+        doc.text(`- ${doc.file_name}`, 20, yPos);
+        yPos += 7;
+      });
+    }
+
+    // Save the PDF
+    doc.save(`evenement-rh-${event.id}.pdf`);
+    toast.success("PDF généré avec succès");
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    toast.error("Erreur lors de la génération du PDF");
   }
 };

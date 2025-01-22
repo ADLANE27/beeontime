@@ -8,7 +8,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    https: {}, // Changed to empty object to properly type the https configuration
+    https: {
+      // Using default certificates for development
+    },
   },
   plugins: [
     react(),
