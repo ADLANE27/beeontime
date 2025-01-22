@@ -151,11 +151,11 @@ const Portal = () => {
           providers={[]}
           redirectTo={`${window.location.origin}/employee`}
           showLinks={false}
-          attributes={{
-            emailInput: {
+          inputAttributes={{
+            email: {
               autoComplete: 'username'
             },
-            passwordInput: {
+            password: {
               autoComplete: 'current-password'
             }
           }}
