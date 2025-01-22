@@ -24,6 +24,7 @@ const Portal = () => {
         }
 
         if (session) {
+          console.log("Session found, checking role...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -36,9 +37,12 @@ const Portal = () => {
             return;
           }
 
+          console.log("Profile role:", profile?.role);
           if (profile?.role === 'employee') {
+            console.log("Employee role confirmed, redirecting to /employee");
             navigate('/employee');
           } else {
+            console.log("Not employee role, redirecting to /");
             navigate('/');
           }
         }
@@ -68,9 +72,12 @@ const Portal = () => {
             return;
           }
 
+          console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'employee') {
+            console.log("Employee role confirmed after sign in, redirecting to /employee");
             navigate('/employee');
           } else {
+            console.log("Not employee role after sign in, redirecting to /");
             navigate('/');
           }
         } catch (err) {
@@ -79,6 +86,12 @@ const Portal = () => {
         }
       } else if (event === 'SIGNED_OUT') {
         setError(null);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setError(null);
+      } else if (event === 'USER_UPDATED') {
+        setError(null);
+      } else if (event === 'INITIAL_SESSION') {
+        setError(null);
       }
     });
 
@@ -86,6 +99,19 @@ const Portal = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case 'Invalid login credentials':
+        return 'Email ou mot de passe incorrect';
+      case 'Email not confirmed':
+        return 'Veuillez confirmer votre email avant de vous connecter';
+      case 'Invalid email or password':
+        return 'Email ou mot de passe invalide';
+      default:
+        return error.message;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
