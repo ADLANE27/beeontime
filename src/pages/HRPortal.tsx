@@ -5,107 +5,135 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from "@supabase/supabase-js";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  let isSubscribed = true;
+
+  const checkUserRole = async (userId: string) => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        throw new Error("Erreur lors de la vérification du rôle utilisateur");
+      }
+
+      if (!profile) {
+        console.error("No profile found for user:", userId);
+        throw new Error("Profil utilisateur non trouvé");
+      }
+
+      return profile.role;
+    } catch (error) {
+      console.error("Role check error:", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
-    const checkUser = async () => {
+    let timeoutId: NodeJS.Timeout;
+
+    const checkAuth = async () => {
       try {
-        console.log("Vérification de l'accès RH...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error("Erreur de session:", sessionError);
-          setError("Erreur lors de la vérification de l'authentification");
-          return;
+          throw new Error("Erreur lors de la vérification de la session");
         }
 
         if (session) {
-          console.log("Session trouvée, vérification du rôle...");
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Erreur de profil:", profileError);
-            setError("Erreur lors de la vérification du rôle utilisateur");
-            return;
+          const role = await checkUserRole(session.user.id);
+          
+          if (isSubscribed) {
+            if (role === 'hr') {
+              navigate('/hr', { replace: true });
+            } else {
+              setError("Vous n'avez pas accès au portail RH");
+              timeoutId = setTimeout(() => {
+                if (isSubscribed) {
+                  navigate('/portal', { replace: true });
+                }
+              }, 2000);
+            }
           }
-
-          console.log("Rôle du profil:", profile?.role);
-          if (profile?.role === 'hr') {
-            console.log("Rôle RH confirmé, redirection vers /hr");
-            navigate('/hr');
-          } else {
-            console.log("Pas de rôle RH, redirection vers /");
-            navigate('/');
-          }
-        } else {
-          console.log("Pas de session active");
         }
       } catch (err) {
-        console.error("Erreur inattendue:", err);
-        setError("Une erreur inattendue s'est produite lors de la vérification de vos droits d'accès");
+        if (isSubscribed) {
+          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
+      } finally {
+        if (isSubscribed) {
+          setIsLoading(false);
+        }
       }
     };
 
-    checkUser();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Changement d'état d'authentification:", event);
-      
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && session) {
+        setIsLoading(true);
         try {
-          console.log("Utilisateur connecté, vérification du rôle...");
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session?.user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Erreur de profil après connexion:", profileError);
-            setError("Erreur lors de la vérification du rôle utilisateur");
-            return;
-          }
-
-          console.log("Rôle du profil après connexion:", profile?.role);
-          if (profile?.role === 'hr') {
-            console.log("Rôle RH confirmé après connexion, redirection vers /hr");
-            navigate('/hr');
-          } else {
-            console.log("Pas de rôle RH après connexion, redirection vers /");
-            navigate('/');
+          const role = await checkUserRole(session.user.id);
+          
+          if (isSubscribed) {
+            if (role === 'hr') {
+              navigate('/hr', { replace: true });
+            } else {
+              setError("Vous n'avez pas accès au portail RH");
+              timeoutId = setTimeout(() => {
+                if (isSubscribed) {
+                  navigate('/portal', { replace: true });
+                }
+              }, 2000);
+            }
           }
         } catch (err) {
-          console.error("Erreur lors de la vérification du rôle:", err);
-          setError("Erreur lors de la vérification du rôle utilisateur");
+          if (isSubscribed) {
+            const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+            setError(errorMessage);
+            toast.error(errorMessage);
+          }
+        } finally {
+          if (isSubscribed) {
+            setIsLoading(false);
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        if (isSubscribed) {
+          setError(null);
+          setIsLoading(false);
         }
       }
     });
 
+    checkAuth();
+
     return () => {
+      isSubscribed = false;
       subscription.unsubscribe();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [navigate]);
 
-  const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Email ou mot de passe incorrect';
-      case 'Email not confirmed':
-        return 'Veuillez confirmer votre email avant de vous connecter';
-      case 'Invalid email or password':
-        return 'Email ou mot de passe invalide';
-      default:
-        return error.message;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -150,7 +178,7 @@ const HRPortal = () => {
           }}
           theme="light"
           providers={[]}
-          redirectTo={window.location.origin + '/hr'}
+          redirectTo={`${window.location.origin}/hr`}
           showLinks={false}
         />
       </Card>

@@ -9,9 +9,16 @@ import { generateSecurePassword } from "@/utils/passwordGenerator";
 interface PasswordFieldProps {
   value: string;
   onChange: (value: string) => void;
+  isRequired?: boolean;
+  label?: string;
 }
 
-export const PasswordField = ({ value, onChange }: PasswordFieldProps) => {
+export const PasswordField = ({ 
+  value, 
+  onChange, 
+  isRequired = false,
+  label = "Mot de passe initial"
+}: PasswordFieldProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleGeneratePassword = () => {
@@ -21,7 +28,7 @@ export const PasswordField = ({ value, onChange }: PasswordFieldProps) => {
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="password">Mot de passe initial</Label>
+      <Label htmlFor="password">{label}</Label>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Input
@@ -29,7 +36,7 @@ export const PasswordField = ({ value, onChange }: PasswordFieldProps) => {
             type={showPassword ? "text" : "password"}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            required
+            required={isRequired}
             className="pr-10"
           />
           <button

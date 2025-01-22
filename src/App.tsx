@@ -9,69 +9,35 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      networkMode: 'always',
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    // Récupérer la session initiale
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // Écouter les changements de session
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
         setIsAuthorized(false);
         return;
       }
 
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
 
-        if (profileError) {
-          console.error("Erreur lors de la vérification du rôle:", profileError);
-          setIsAuthorized(false);
-          return;
-        }
-
-        setIsAuthorized(profile?.role === requiredRole);
-      } catch (error) {
-        console.error("Erreur inattendue:", error);
-        setIsAuthorized(false);
-      }
+      setIsAuthorized(profile?.role === requiredRole);
     };
 
     checkAuth();
-  }, [session, requiredRole]);
+  }, [requiredRole]);
 
   if (isAuthorized === null) {
-    return null; // État de chargement
+    return null; // Loading state
   }
 
   if (!isAuthorized) {

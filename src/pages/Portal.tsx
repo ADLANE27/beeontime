@@ -5,21 +5,24 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from "@supabase/supabase-js";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.log("Checking employee access...");
+        console.log("Checking user access...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          setError("Erreur lors de la vérification de l'authentification");
+          setError("Error checking authentication status");
+          setIsLoading(false);
           return;
         }
 
@@ -33,22 +36,26 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Erreur lors de la vérification du rôle utilisateur");
+            setError("Error checking user role");
+            setIsLoading(false);
             return;
           }
 
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
-            navigate('/employee');
-          } else {
-            console.log("Not employee role, redirecting to /");
-            navigate('/');
+            navigate('/employee', { replace: true });
+          } else if (profile?.role === 'hr') {
+            console.log("HR role detected, redirecting to HR portal");
+            navigate('/hr-portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail employé");
           }
         }
+        setIsLoading(false);
       } catch (err) {
         console.error("Unexpected error:", err);
         setError("Une erreur inattendue s'est produite");
+        setIsLoading(false);
       }
     };
 
@@ -68,29 +75,24 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Erreur lors de la vérification du rôle utilisateur");
+            setError("Error checking user role");
             return;
           }
 
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed after sign in, redirecting to /employee");
-            navigate('/employee');
-          } else {
-            console.log("Not employee role after sign in, redirecting to /");
-            navigate('/');
+            navigate('/employee', { replace: true });
+          } else if (profile?.role === 'hr') {
+            console.log("HR role detected, redirecting to HR portal");
+            navigate('/hr-portal', { replace: true });
+            toast.error("Vous n'avez pas accès au portail employé");
           }
         } catch (err) {
           console.error("Error during role check:", err);
-          setError("Erreur lors de la vérification du rôle utilisateur");
+          setError("Error checking user role");
         }
       } else if (event === 'SIGNED_OUT') {
-        setError(null);
-      } else if (event === 'PASSWORD_RECOVERY') {
-        setError(null);
-      } else if (event === 'USER_UPDATED') {
-        setError(null);
-      } else if (event === 'INITIAL_SESSION') {
         setError(null);
       }
     });
@@ -100,18 +102,13 @@ const Portal = () => {
     };
   }, [navigate]);
 
-  const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Email ou mot de passe incorrect';
-      case 'Email not confirmed':
-        return 'Veuillez confirmer votre email avant de vous connecter';
-      case 'Invalid email or password':
-        return 'Email ou mot de passe invalide';
-      default:
-        return error.message;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -126,7 +123,11 @@ const Portal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
+              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
+              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
+            </AlertDescription>
           </Alert>
         )}
         <Auth
@@ -156,7 +157,7 @@ const Portal = () => {
           }}
           theme="light"
           providers={[]}
-          redirectTo={window.location.origin + '/employee'}
+          redirectTo={`${window.location.origin}/employee`}
           showLinks={false}
         />
       </Card>

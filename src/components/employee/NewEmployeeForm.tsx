@@ -1,305 +1,126 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { NewEmployee } from "@/types/hr";
 import { PersonalInfoForm } from "./PersonalInfoForm";
+import { AddressInfoForm } from "./AddressInfoForm";
 import { WorkInfoForm } from "./WorkInfoForm";
 import { ScheduleInfoForm } from "./ScheduleInfoForm";
 import { VacationInfoForm } from "./VacationInfoForm";
-import { AddressInfoForm } from "./AddressInfoForm";
+import { PasswordField } from "./PasswordField";
 import { useEmployeeSubmit } from "./hooks/useEmployeeSubmit";
+import { NewEmployee, WorkSchedule } from "@/types/hr";
+import { Loader2 } from "lucide-react";
 
-interface NewEmployeeFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (employee: NewEmployee) => void;
-  employeeToEdit?: NewEmployee;
-  mode?: 'create' | 'edit';
-}
-
-export const NewEmployeeForm = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  employeeToEdit,
-  mode = 'create'
-}: NewEmployeeFormProps) => {
-  // En mode création, on force des valeurs vides
-  // En mode édition, on utilise les valeurs de l'employé à éditer
-  const [firstName, setFirstName] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.firstName : '');
-  const [lastName, setLastName] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.lastName : '');
-  const [email, setEmail] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.email : '');
-  const [phone, setPhone] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.phone : '');
-  const [birthDate, setBirthDate] = useState(mode === 'edit' && employeeToEdit?.birthDate ? 
-    new Date(employeeToEdit.birthDate).toISOString().split('T')[0] : '');
-  const [birthPlace, setBirthPlace] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.birthPlace : '');
-  const [birthCountry, setBirthCountry] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.birthCountry : '');
-  const [socialSecurityNumber, setSocialSecurityNumber] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.socialSecurityNumber : '');
-  const [contractType, setContractType] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.contractType : 'CDI');
-  const [startDate, setStartDate] = useState(mode === 'edit' && employeeToEdit?.startDate ? 
-    new Date(employeeToEdit.startDate).toISOString().split('T')[0] : '');
-  const [position, setPosition] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.position : 'Traducteur');
-  const [workSchedule, setWorkSchedule] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.workSchedule : {
-    startTime: '09:00',
-    endTime: '17:00',
-    breakStartTime: '12:00',
-    breakEndTime: '13:00'
-  });
-  const [currentYearVacationDays, setCurrentYearVacationDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.currentYearVacationDays?.toString() : '0');
-  const [currentYearUsedDays, setCurrentYearUsedDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.currentYearUsedDays?.toString() : '0');
-  const [previousYearVacationDays, setPreviousYearVacationDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.previousYearVacationDays?.toString() : '0');
-  const [previousYearUsedDays, setPreviousYearUsedDays] = useState(mode === 'edit' && employeeToEdit ? 
-    employeeToEdit.previousYearUsedDays?.toString() : '0');
-  const [initialPassword, setInitialPassword] = useState('');
-  const [streetAddress, setStreetAddress] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.streetAddress : '');
-  const [city, setCity] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.city : '');
-  const [postalCode, setPostalCode] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.postalCode : '');
-  const [country, setCountry] = useState(mode === 'edit' && employeeToEdit ? employeeToEdit.country : 'France');
-
-  const { handleSubmit: submitEmployee, isSubmitting } = useEmployeeSubmit(() => {
-    resetForm();
-    onSubmit({
-      id: employeeToEdit?.id,
-      firstName,
-      lastName,
-      email,
-      phone,
-      birthDate: new Date(birthDate).toISOString(),
-      birthPlace,
-      birthCountry,
-      socialSecurityNumber,
-      contractType,
-      startDate: new Date(startDate).toISOString(),
-      position,
-      workSchedule,
-      currentYearVacationDays: Number(currentYearVacationDays),
-      currentYearUsedDays: Number(currentYearUsedDays),
-      previousYearVacationDays: Number(previousYearVacationDays),
-      previousYearUsedDays: Number(previousYearUsedDays),
-      initialPassword,
-      streetAddress,
-      city,
-      postalCode,
-      country
-    });
-    onClose();
-  });
-
-  const handleFieldChange = (field: keyof NewEmployee, value: string) => {
-    switch (field) {
-      case "firstName":
-        setFirstName(value);
-        break;
-      case "lastName":
-        setLastName(value);
-        break;
-      case "email":
-        setEmail(value);
-        break;
-      case "phone":
-        setPhone(value);
-        break;
-      case "birthDate":
-        setBirthDate(value);
-        break;
-      case "birthPlace":
-        setBirthPlace(value);
-        break;
-      case "birthCountry":
-        setBirthCountry(value);
-        break;
-      case "socialSecurityNumber":
-        setSocialSecurityNumber(value);
-        break;
-      case "contractType":
-        setContractType(value as any);
-        break;
-      case "startDate":
-        setStartDate(value);
-        break;
-      case "position":
-        setPosition(value as any);
-        break;
-      case "currentYearVacationDays":
-        setCurrentYearVacationDays(value);
-        break;
-      case "currentYearUsedDays":
-        setCurrentYearUsedDays(value);
-        break;
-      case "previousYearVacationDays":
-        setPreviousYearVacationDays(value);
-        break;
-      case "previousYearUsedDays":
-        setPreviousYearUsedDays(value);
-        break;
-      case "initialPassword":
-        setInitialPassword(value);
-        break;
-      case "streetAddress":
-        setStreetAddress(value);
-        break;
-      case "city":
-        setCity(value);
-        break;
-      case "postalCode":
-        setPostalCode(value);
-        break;
-      case "country":
-        setCountry(value);
-        break;
-    }
-  };
-
-  const resetForm = () => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPhone('');
-    setBirthDate('');
-    setBirthPlace('');
-    setBirthCountry('');
-    setSocialSecurityNumber('');
-    setContractType('CDI');
-    setStartDate('');
-    setPosition('Traducteur');
-    setWorkSchedule({
+export const NewEmployeeForm = ({ 
+  onSuccess, 
+  initialData,
+  isEditing = false 
+}: { 
+  onSuccess: () => void;
+  initialData?: NewEmployee;
+  isEditing?: boolean;
+}) => {
+  const [formData, setFormData] = useState<NewEmployee>({
+    firstName: initialData?.firstName || '',
+    lastName: initialData?.lastName || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    birthDate: initialData?.birthDate || '',
+    birthPlace: initialData?.birthPlace || '',
+    birthCountry: initialData?.birthCountry || '',
+    socialSecurityNumber: initialData?.socialSecurityNumber || '',
+    contractType: initialData?.contractType || 'CDI',
+    startDate: initialData?.startDate || '',
+    position: initialData?.position || 'Traducteur',
+    workSchedule: initialData?.workSchedule || {
       startTime: '09:00',
       endTime: '17:00',
       breakStartTime: '12:00',
       breakEndTime: '13:00'
-    });
-    setCurrentYearVacationDays('0');
-    setCurrentYearUsedDays('0');
-    setPreviousYearVacationDays('0');
-    setPreviousYearUsedDays('0');
-    setInitialPassword('');
-    setStreetAddress('');
-    setCity('');
-    setPostalCode('');
-    setCountry('France');
+    },
+    currentYearVacationDays: initialData?.currentYearVacationDays || 0,
+    currentYearUsedDays: initialData?.currentYearUsedDays || 0,
+    previousYearVacationDays: initialData?.previousYearVacationDays || 0,
+    previousYearUsedDays: initialData?.previousYearUsedDays || 0,
+    initialPassword: initialData?.initialPassword || '',
+    streetAddress: initialData?.streetAddress || '',
+    city: initialData?.city || '',
+    postalCode: initialData?.postalCode || '',
+    country: initialData?.country || 'France'
+  });
+
+  const { handleSubmit, isSubmitting } = useEmployeeSubmit(onSuccess, isEditing);
+
+  const handleFieldChange = (field: keyof NewEmployee, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'create') {
-      await submitEmployee({
-        firstName,
-        lastName,
-        email,
-        phone,
-        birthDate: new Date(birthDate).toISOString(),
-        birthPlace,
-        birthCountry,
-        socialSecurityNumber,
-        contractType,
-        startDate: new Date(startDate).toISOString(),
-        position,
-        workSchedule,
-        currentYearVacationDays: Number(currentYearVacationDays),
-        currentYearUsedDays: Number(currentYearUsedDays),
-        previousYearVacationDays: Number(previousYearVacationDays),
-        previousYearUsedDays: Number(previousYearUsedDays),
-        initialPassword,
-        streetAddress,
-        city,
-        postalCode,
-        country
-      });
-    } else {
-      onSubmit({
-        id: employeeToEdit?.id,
-        firstName,
-        lastName,
-        email,
-        phone,
-        birthDate: new Date(birthDate).toISOString(),
-        birthPlace,
-        birthCountry,
-        socialSecurityNumber,
-        contractType,
-        startDate: new Date(startDate).toISOString(),
-        position,
-        workSchedule,
-        currentYearVacationDays: Number(currentYearVacationDays),
-        currentYearUsedDays: Number(currentYearUsedDays),
-        previousYearVacationDays: Number(previousYearVacationDays),
-        previousYearUsedDays: Number(previousYearUsedDays),
-        initialPassword,
-        streetAddress,
-        city,
-        postalCode,
-        country
-      });
-      onClose();
-    }
+  const handleScheduleChange = (schedule: WorkSchedule) => {
+    setFormData(prev => ({ ...prev, workSchedule: schedule }));
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Ajouter un employé' : 'Modifier un employé'}</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="h-[calc(90vh-8rem)] pr-4">
-          <form onSubmit={handleFormSubmit} className="space-y-8">
-            <PersonalInfoForm
-              firstName={firstName}
-              lastName={lastName}
-              email={email}
-              phone={phone}
-              birthDate={birthDate}
-              birthPlace={birthPlace}
-              birthCountry={birthCountry}
-              socialSecurityNumber={socialSecurityNumber}
-              initialPassword={initialPassword}
-              onFieldChange={handleFieldChange}
-            />
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      handleSubmit(formData);
+    }} className="space-y-8">
+      <PersonalInfoForm
+        firstName={formData.firstName}
+        lastName={formData.lastName}
+        email={formData.email}
+        phone={formData.phone}
+        birthDate={formData.birthDate}
+        birthPlace={formData.birthPlace}
+        birthCountry={formData.birthCountry}
+        socialSecurityNumber={formData.socialSecurityNumber}
+        initialPassword={formData.initialPassword}
+        onFieldChange={handleFieldChange}
+      />
 
-            <AddressInfoForm
-              streetAddress={streetAddress}
-              city={city}
-              postalCode={postalCode}
-              country={country}
-              onFieldChange={handleFieldChange}
-            />
+      <AddressInfoForm
+        streetAddress={formData.streetAddress}
+        city={formData.city}
+        postalCode={formData.postalCode}
+        country={formData.country}
+        onFieldChange={handleFieldChange}
+      />
 
-            <WorkInfoForm
-              contractType={contractType}
-              startDate={startDate}
-              position={position}
-              onFieldChange={handleFieldChange}
-            />
+      <WorkInfoForm
+        contractType={formData.contractType}
+        startDate={formData.startDate}
+        position={formData.position}
+        onFieldChange={handleFieldChange}
+      />
 
-            <ScheduleInfoForm
-              workSchedule={workSchedule}
-              onScheduleChange={setWorkSchedule}
-            />
+      <ScheduleInfoForm
+        workSchedule={formData.workSchedule}
+        onScheduleChange={handleScheduleChange}
+      />
 
-            <VacationInfoForm
-              currentYearVacationDays={currentYearVacationDays}
-              currentYearUsedDays={currentYearUsedDays}
-              previousYearVacationDays={previousYearVacationDays}
-              previousYearUsedDays={previousYearUsedDays}
-              onFieldChange={handleFieldChange}
-            />
+      <VacationInfoForm
+        currentYearVacationDays={formData.currentYearVacationDays.toString()}
+        currentYearUsedDays={formData.currentYearUsedDays.toString()}
+        previousYearVacationDays={formData.previousYearVacationDays.toString()}
+        previousYearUsedDays={formData.previousYearUsedDays.toString()}
+        onFieldChange={(field, value) => handleFieldChange(field, Number(value))}
+      />
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Annuler
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {mode === 'create' ? 'Ajouter' : 'Mettre à jour'}
-              </Button>
-            </div>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      <PasswordField
+        value={formData.initialPassword}
+        onChange={(value) => handleFieldChange('initialPassword', value)}
+        isRequired={!isEditing}
+        label={isEditing ? "Nouveau mot de passe (optionnel)" : "Mot de passe initial"}
+      />
+
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {isEditing ? "Modification en cours..." : "Création en cours..."}
+          </>
+        ) : (
+          isEditing ? "Modifier l'employé" : "Créer l'employé"
+        )}
+      </Button>
+    </form>
   );
 };
-
-export default NewEmployeeForm;

@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,12 +27,19 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
+import { LeaveRequestForm } from "./LeaveRequestForm";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
     first_name: string;
     last_name: string;
   };
+  documents: {
+    id: string;
+    file_path: string;
+    file_name: string;
+    file_type: string;
+  }[];
 };
 
 const getStatusColor = (status: LeaveRequest["status"]) => {
@@ -57,7 +64,6 @@ const getStatusLabel = (status: LeaveRequest["status"]) => {
   }
 };
 
-// Types de congés alignés avec le formulaire employé
 const leaveTypes = [
   { value: "vacation", label: "Congés payés" },
   { value: "annual", label: "Congé annuel" },
@@ -65,6 +71,7 @@ const leaveTypes = [
   { value: "paternity", label: "Congé paternité" },
   { value: "maternity", label: "Congé maternité" },
   { value: "sickChild", label: "Congé enfant malade" },
+  { value: "sickLeave", label: "Arrêt maladie" },
   { value: "unpaidUnexcused", label: "Absence injustifiée non rémunérée" },
   { value: "unpaidExcused", label: "Absence justifiée non rémunérée" },
   { value: "unpaid", label: "Absence non rémunérée" },
@@ -77,11 +84,14 @@ export const LeaveRequestsList = () => {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
+  const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['leave-requests'],
     queryFn: async () => {
+      console.log('Fetching leave requests with documents...');
       const { data, error } = await supabase
         .from('leave_requests')
         .select(`
@@ -89,6 +99,12 @@ export const LeaveRequestsList = () => {
           employees (
             first_name,
             last_name
+          ),
+          documents:leave_request_documents (
+            id,
+            file_path,
+            file_name,
+            file_type
           )
         `)
         .order('created_at', { ascending: false });
@@ -98,26 +114,43 @@ export const LeaveRequestsList = () => {
         throw error;
       }
 
+      console.log('Fetched leave requests:', data);
       return data as LeaveRequest[];
     }
   });
 
-  // Get unique employees from leave requests
-  const uniqueEmployees = leaveRequests 
-    ? Array.from(new Set(leaveRequests.map(request => request.employee_id)))
-        .map(employeeId => {
-          const request = leaveRequests.find(r => r.employee_id === employeeId);
-          return {
-            id: employeeId,
-            name: `${request?.employees.first_name} ${request?.employees.last_name}`
-          };
-        })
-    : [];
+  const handleDownloadDocument = async (documentId: string, filePath: string, fileName: string) => {
+    try {
+      setDownloadingDocumentId(documentId);
+      console.log('Downloading document:', { documentId, filePath, fileName });
+      
+      const { data } = await supabase.storage
+        .from('leave-documents')
+        .getPublicUrl(filePath);
 
-  // Filter leave requests based on selected employee
-  const filteredLeaveRequests = leaveRequests?.filter(request => 
-    selectedEmployee === "all" || request.employee_id === selectedEmployee
-  );
+      console.log('Got public URL:', data.publicUrl);
+
+      const response = await fetch(data.publicUrl);
+      if (!response.ok) throw new Error('Failed to download file');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Document téléchargé avec succès");
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast.error("Erreur lors du téléchargement du document");
+    } finally {
+      setDownloadingDocumentId(null);
+    }
+  };
 
   const handleApprove = async (request: LeaveRequest) => {
     setLoadingRequestId(request.id);
@@ -173,148 +206,129 @@ export const LeaveRequestsList = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Demandes de congés</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Demandes de congés</h2>
+        <Button onClick={() => setIsNewLeaveOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle demande
+        </Button>
+      </div>
 
-      <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Employé</Label>
-            <Select
-              value={selectedEmployee}
-              onValueChange={setSelectedEmployee}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tous les employés" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les employés</SelectItem>
-                {uniqueEmployees.map((employee) => (
-                  <SelectItem 
-                    key={employee.id} 
-                    value={employee.id}
-                  >
-                    {employee.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="space-y-4">
+        {leaveRequests?.map((request) => (
+          <Card key={request.id} className="p-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <h3 className="font-semibold">
+                  {request.employees.first_name} {request.employees.last_name}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {leaveTypes.find(t => t.value === request.type)?.label}
+                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">
+                    Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                  <p className="font-medium">
+                    au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                  {request.day_type === "half" && request.period && (
+                    <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                  )}
+                </p>
+                {request.reason && (
+                  <p className="text-sm text-gray-600">
+                    Motif : {request.reason}
+                  </p>
+                )}
+                {request.rejection_reason && (
+                  <p className="text-sm text-red-600">
+                    Motif du refus : {request.rejection_reason}
+                  </p>
+                )}
+                <p className="text-sm text-gray-500">
+                  Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                </p>
 
-          <div className="space-y-2">
-            <Label>Type de congé</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Tous les types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les types</SelectItem>
-                {leaveTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Rechercher</Label>
-            <Input type="text" placeholder="Rechercher..." />
-          </div>
-        </div>
-
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="pending">En attente</TabsTrigger>
-            <TabsTrigger value="approved">Acceptée</TabsTrigger>
-            <TabsTrigger value="rejected">Refusée</TabsTrigger>
-          </TabsList>
-
-          {["all", "pending", "approved", "rejected"].map((tab) => (
-            <TabsContent key={tab} value={tab}>
-              <div className="space-y-4">
-                {filteredLeaveRequests
-                  ?.filter((request) => {
-                    if (tab === "all") return true;
-                    return request.status === tab;
-                  })
-                  .map((request) => (
-                    <Card key={request.id} className="p-4">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold">
-                          {request.employees.first_name} {request.employees.last_name}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {leaveTypes.find(t => t.value === request.type)?.label}
-                        </p>
-                        <p className="text-sm">
-                          Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })} au{" "}
-                          {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                          {request.period && ` (${request.period === "morning" ? "Matin" : "Après-midi"})`}
-                        </p>
-                        {request.reason && (
-                          <p className="text-sm text-gray-600">
-                            Motif : {request.reason}
-                          </p>
-                        )}
-                        {request.rejection_reason && (
-                          <p className="text-sm text-red-600">
-                            Motif du refus : {request.rejection_reason}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2 items-end">
-                        {request.status === "pending" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => handleApprove(request)}
-                              disabled={loadingRequestId === request.id}
-                            >
-                              {loadingRequestId === request.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Accepter
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setSelectedRequest(request);
-                                setRejectionDialogOpen(true);
-                              }}
-                              disabled={loadingRequestId === request.id}
-                            >
-                              {loadingRequestId === request.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Refuser
-                            </Button>
-                          </>
-                        )}
-                        <Badge className={getStatusColor(request.status)}>
-                          {getStatusLabel(request.status)}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))}
+                {/* Documents section */}
+                {request.documents && request.documents.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700">Documents :</p>
+                    <div className="flex flex-wrap gap-2">
+                      {request.documents.map((doc) => (
+                        <Button
+                          key={doc.id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
+                          disabled={downloadingDocumentId === doc.id}
+                          className="flex items-center gap-2"
+                        >
+                          {downloadingDocumentId === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          {doc.file_name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+
+              <div className="flex flex-col items-end gap-2">
+                <Badge className={getStatusColor(request.status)}>
+                  {getStatusLabel(request.status)}
+                </Badge>
+                {request.status === "pending" && (
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      onClick={() => handleApprove(request)}
+                      disabled={loadingRequestId === request.id}
+                    >
+                      {loadingRequestId === request.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Accepter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setRejectionDialogOpen(true);
+                      }}
+                      disabled={loadingRequestId === request.id}
+                    >
+                      {loadingRequestId === request.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Refuser
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
@@ -351,6 +365,36 @@ export const LeaveRequestsList = () => {
               Confirmer le refus
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande de congés</DialogTitle>
+          </DialogHeader>
+          <LeaveRequestForm 
+            onSubmit={async (data) => {
+              try {
+                const { error } = await supabase
+                  .from('leave_requests')
+                  .insert({
+                    ...data,
+                    status: 'approved'
+                  });
+
+                if (error) throw error;
+                
+                toast.success("Demande de congés créée avec succès");
+                setIsNewLeaveOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+              } catch (error) {
+                console.error('Error creating leave request:', error);
+                toast.error("Erreur lors de la création de la demande");
+              }
+            }}
+            isSubmitting={false}
+          />
         </DialogContent>
       </Dialog>
     </Card>
