@@ -9,4 +9,12 @@
 
 [build.environment]
   VITE_SUPABASE_URL = "https://tedjuorbafahlnplndye.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlZGp1b3JiYWZhaGxucGxuZHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NTY1NzAsImV4cCI6MjAyNTIzMjU3MH0.Pu_IbLBgHBXZX_vBvDySOKqzxR9T99KxXWRZhZPexYk"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlZGp1b3JiYWZhaGxucGxuZHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMzMzIsImV4cCI6MjA1MjUyOTMzMn0.E2MGml0yB8CzI8tCs5EEwl96NDcY9KrpKFTQ_sqfs-8"
+
+[functions]
+  directory = "supabase/functions"
+  node_bundler = "esbuild"
+
+[[edge_functions]]
+  function = "update-user-password"
+  path = "/api/update-user-password"
