@@ -44,10 +44,10 @@ const Portal = () => {
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
-            navigate('/employee');
+            navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
-            navigate('/hr-portal');
+            navigate('/hr-portal', { replace: true });
             toast.error("Vous n'avez pas accès au portail employé");
           }
         }
@@ -58,8 +58,6 @@ const Portal = () => {
         setIsLoading(false);
       }
     };
-
-    checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
@@ -82,10 +80,10 @@ const Portal = () => {
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed after sign in, redirecting to /employee");
-            navigate('/employee');
+            navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
-            navigate('/hr-portal');
+            navigate('/hr-portal', { replace: true });
             toast.error("Vous n'avez pas accès au portail employé");
           }
         } catch (err) {
@@ -96,6 +94,8 @@ const Portal = () => {
         setError(null);
       }
     });
+
+    checkUser();
 
     return () => {
       subscription.unsubscribe();

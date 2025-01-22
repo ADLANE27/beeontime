@@ -43,11 +43,11 @@ const HRPortal = () => {
           
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
-            navigate('/hr');
+            navigate('/hr', { replace: true });
           } else {
             setError("Vous n'avez pas accès au portail RH");
             setTimeout(() => {
-              navigate('/portal');
+              navigate('/portal', { replace: true });
             }, 2000);
           }
         }
@@ -80,11 +80,11 @@ const HRPortal = () => {
           
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
-            navigate('/hr');
+            navigate('/hr', { replace: true });
           } else {
             setError("Vous n'avez pas accès au portail RH");
             setTimeout(() => {
-              navigate('/portal');
+              navigate('/portal', { replace: true });
             }, 2000);
           }
         } catch (err) {
