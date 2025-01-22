@@ -32,7 +32,7 @@ const Portal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) {
             console.error("Profile error:", profileError);
@@ -69,7 +69,7 @@ const Portal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session?.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) {
             console.error("Profile error:", profileError);

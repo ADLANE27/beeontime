@@ -32,7 +32,7 @@ const HRPortal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) {
             console.error("Profile fetch error:", profileError);
@@ -72,7 +72,7 @@ const HRPortal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session?.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) throw profileError;
           
