@@ -79,12 +79,6 @@ const Portal = () => {
         }
       } else if (event === 'SIGNED_OUT') {
         setError(null);
-      } else if (event === 'PASSWORD_RECOVERY') {
-        setError(null);
-      } else if (event === 'USER_UPDATED') {
-        setError(null);
-      } else if (event === 'INITIAL_SESSION') {
-        setError(null);
       }
     });
 
@@ -92,19 +86,6 @@ const Portal = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Email ou mot de passe incorrect';
-      case 'Email not confirmed':
-        return 'Veuillez confirmer votre email avant de vous connecter';
-      case 'Invalid email or password':
-        return 'Email ou mot de passe invalide';
-      default:
-        return error.message;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -149,7 +130,7 @@ const Portal = () => {
           }}
           theme="light"
           providers={[]}
-          redirectTo={`${window.location.origin}/employee`}
+          redirectTo={window.location.origin + '/employee'}
           showLinks={false}
         />
       </Card>
