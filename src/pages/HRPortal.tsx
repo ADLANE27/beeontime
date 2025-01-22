@@ -194,10 +194,6 @@ const HRPortal = () => {
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
           showLinks={false}
-          onError={(error) => {
-            console.error("Auth error:", error);
-            toast.error(error.message);
-          }}
         />
       </Card>
     </div>
