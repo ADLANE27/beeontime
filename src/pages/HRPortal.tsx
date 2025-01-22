@@ -12,38 +12,8 @@ const HRPortal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  let isSubscribed = true;
-
-  const checkUserRole = async (userId: string) => {
-    try {
-      console.log("Checking role for user:", userId);
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Erreur lors de la vérification du rôle utilisateur");
-      }
-
-      if (!profile) {
-        console.error("No profile found for user:", userId);
-        throw new Error("Profil utilisateur non trouvé");
-      }
-
-      console.log("User profile:", profile);
-      return profile.role;
-    } catch (error) {
-      console.error("Role check error:", error);
-      throw error;
-    }
-  };
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
     const checkAuth = async () => {
       try {
         console.log("Checking authentication status...");
@@ -57,33 +27,37 @@ const HRPortal = () => {
         console.log("Session status:", session ? "Active" : "No session");
         
         if (session) {
-          const role = await checkUserRole(session.user.id);
+          console.log("Checking user role for:", session.user.id);
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error("Profile fetch error:", profileError);
+            throw new Error("Erreur lors de la vérification du rôle utilisateur");
+          }
+
+          console.log("User profile:", profile);
           
-          if (isSubscribed) {
-            if (role === 'hr') {
-              console.log("HR role confirmed, redirecting to /hr");
-              navigate('/hr', { replace: true });
-            } else {
-              setError("Vous n'avez pas accès au portail RH");
-              timeoutId = setTimeout(() => {
-                if (isSubscribed) {
-                  navigate('/portal', { replace: true });
-                }
-              }, 2000);
-            }
+          if (profile?.role === 'hr') {
+            console.log("HR role confirmed, redirecting to /hr");
+            navigate('/hr', { replace: true });
+          } else {
+            setError("Vous n'avez pas accès au portail RH");
+            setTimeout(() => {
+              navigate('/portal', { replace: true });
+            }, 2000);
           }
         }
       } catch (err) {
         console.error("Authentication check error:", err);
-        if (isSubscribed) {
-          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          setError(errorMessage);
-          toast.error(errorMessage);
-        }
+        const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
-        if (isSubscribed) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
@@ -94,37 +68,31 @@ const HRPortal = () => {
         setIsLoading(true);
         try {
           console.log("User signed in, checking role...");
-          const role = await checkUserRole(session?.user.id);
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session?.user.id)
+            .maybeSingle();
+
+          if (profileError) throw profileError;
           
-          if (isSubscribed) {
-            if (role === 'hr') {
-              console.log("HR role confirmed after sign in, redirecting to /hr");
-              navigate('/hr', { replace: true });
-            } else {
-              setError("Vous n'avez pas accès au portail RH");
-              timeoutId = setTimeout(() => {
-                if (isSubscribed) {
-                  navigate('/portal', { replace: true });
-                }
-              }, 2000);
-            }
+          console.log("User profile after sign in:", profile);
+          
+          if (profile?.role === 'hr') {
+            console.log("HR role confirmed after sign in, redirecting to /hr");
+            navigate('/hr', { replace: true });
+          } else {
+            setError("Vous n'avez pas accès au portail RH");
+            setTimeout(() => {
+              navigate('/portal', { replace: true });
+            }, 2000);
           }
         } catch (err) {
           console.error("Role check error after sign in:", err);
-          if (isSubscribed) {
-            const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-            setError(errorMessage);
-            toast.error(errorMessage);
-          }
+          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+          setError(errorMessage);
+          toast.error(errorMessage);
         } finally {
-          if (isSubscribed) {
-            setIsLoading(false);
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out");
-        if (isSubscribed) {
-          setError(null);
           setIsLoading(false);
         }
       }
@@ -133,11 +101,7 @@ const HRPortal = () => {
     checkAuth();
 
     return () => {
-      isSubscribed = false;
       subscription.unsubscribe();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
     };
   }, [navigate]);
 
