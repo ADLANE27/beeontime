@@ -14,17 +14,17 @@ const HRPortal = () => {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.log("Checking HR access...");
+        console.log("Vérification de l'accès RH...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error("Session error:", sessionError);
+          console.error("Erreur de session:", sessionError);
           setError("Erreur lors de la vérification de l'authentification");
           return;
         }
 
         if (session) {
-          console.log("Session found, checking role...");
+          console.log("Session trouvée, vérification du rôle...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -32,34 +32,36 @@ const HRPortal = () => {
             .single();
 
           if (profileError) {
-            console.error("Profile error:", profileError);
+            console.error("Erreur de profil:", profileError);
             setError("Erreur lors de la vérification du rôle utilisateur");
             return;
           }
 
-          console.log("Profile role:", profile?.role);
+          console.log("Rôle du profil:", profile?.role);
           if (profile?.role === 'hr') {
-            console.log("HR role confirmed, redirecting to /hr");
+            console.log("Rôle RH confirmé, redirection vers /hr");
             navigate('/hr');
           } else {
-            console.log("Not HR role, redirecting to /");
+            console.log("Pas de rôle RH, redirection vers /");
             navigate('/');
           }
+        } else {
+          console.log("Pas de session active");
         }
       } catch (err) {
-        console.error("Unexpected error:", err);
-        setError("Une erreur inattendue s'est produite");
+        console.error("Erreur inattendue:", err);
+        setError("Une erreur inattendue s'est produite lors de la vérification de vos droits d'accès");
       }
     };
 
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
+      console.log("Changement d'état d'authentification:", event);
       
       if (event === 'SIGNED_IN') {
         try {
-          console.log("User signed in, checking role...");
+          console.log("Utilisateur connecté, vérification du rôle...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -67,31 +69,23 @@ const HRPortal = () => {
             .single();
 
           if (profileError) {
-            console.error("Profile error:", profileError);
+            console.error("Erreur de profil après connexion:", profileError);
             setError("Erreur lors de la vérification du rôle utilisateur");
             return;
           }
 
-          console.log("Profile role after sign in:", profile?.role);
+          console.log("Rôle du profil après connexion:", profile?.role);
           if (profile?.role === 'hr') {
-            console.log("HR role confirmed after sign in, redirecting to /hr");
+            console.log("Rôle RH confirmé après connexion, redirection vers /hr");
             navigate('/hr');
           } else {
-            console.log("Not HR role after sign in, redirecting to /");
+            console.log("Pas de rôle RH après connexion, redirection vers /");
             navigate('/');
           }
         } catch (err) {
-          console.error("Error during role check:", err);
+          console.error("Erreur lors de la vérification du rôle:", err);
           setError("Erreur lors de la vérification du rôle utilisateur");
         }
-      } else if (event === 'SIGNED_OUT') {
-        setError(null);
-      } else if (event === 'PASSWORD_RECOVERY') {
-        setError(null);
-      } else if (event === 'USER_UPDATED') {
-        setError(null);
-      } else if (event === 'INITIAL_SESSION') {
-        setError(null);
       }
     });
 
