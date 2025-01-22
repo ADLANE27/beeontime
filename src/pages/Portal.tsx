@@ -44,10 +44,10 @@ const Portal = () => {
           console.log("Profile role:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
-            navigate('/employee', { replace: true });
+            navigate('/employee');
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
-            navigate('/hr-portal', { replace: true });
+            navigate('/hr-portal');
             toast.error("Vous n'avez pas accès au portail employé");
           }
         }
@@ -82,10 +82,10 @@ const Portal = () => {
           console.log("Profile role after sign in:", profile?.role);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed after sign in, redirecting to /employee");
-            navigate('/employee', { replace: true });
+            navigate('/employee');
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
-            navigate('/hr-portal', { replace: true });
+            navigate('/hr-portal');
             toast.error("Vous n'avez pas accès au portail employé");
           }
         } catch (err) {
@@ -157,7 +157,7 @@ const Portal = () => {
           }}
           theme="light"
           providers={[]}
-          redirectTo={`${window.location.origin}/employee`}
+          redirectTo={window.location.origin}
           showLinks={false}
         />
       </Card>

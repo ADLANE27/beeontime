@@ -32,7 +32,7 @@ const HRPortal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
-            .maybeSingle();
+            .single();
 
           if (profileError) {
             console.error("Profile fetch error:", profileError);
@@ -43,11 +43,11 @@ const HRPortal = () => {
           
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
-            navigate('/hr', { replace: true });
+            navigate('/hr');
           } else {
             setError("Vous n'avez pas accès au portail RH");
             setTimeout(() => {
-              navigate('/portal', { replace: true });
+              navigate('/portal');
             }, 2000);
           }
         }
@@ -72,7 +72,7 @@ const HRPortal = () => {
             .from('profiles')
             .select('role')
             .eq('id', session?.user.id)
-            .maybeSingle();
+            .single();
 
           if (profileError) throw profileError;
           
@@ -80,11 +80,11 @@ const HRPortal = () => {
           
           if (profile?.role === 'hr') {
             console.log("HR role confirmed after sign in, redirecting to /hr");
-            navigate('/hr', { replace: true });
+            navigate('/hr');
           } else {
             setError("Vous n'avez pas accès au portail RH");
             setTimeout(() => {
-              navigate('/portal', { replace: true });
+              navigate('/portal');
             }, 2000);
           }
         } catch (err) {
@@ -156,7 +156,7 @@ const HRPortal = () => {
           }}
           theme="light"
           providers={[]}
-          redirectTo={`${window.location.origin}/hr`}
+          redirectTo={window.location.origin}
           showLinks={false}
         />
       </Card>
