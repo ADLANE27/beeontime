@@ -24,10 +24,8 @@ const HRPortal = () => {
           throw new Error("Erreur lors de la vérification de la session");
         }
 
-        console.log("Session status:", session ? "Active" : "No session");
-        
         if (session) {
-          console.log("Checking user role for:", session.user.id);
+          console.log("Session found, checking user role...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -35,12 +33,11 @@ const HRPortal = () => {
             .maybeSingle();
 
           if (profileError) {
-            console.error("Profile fetch error:", profileError);
-            throw new Error("Erreur lors de la vérification du rôle utilisateur");
+            console.error("Profile error:", profileError);
+            throw new Error("Erreur lors de la vérification du profil");
           }
 
           console.log("User profile:", profile);
-          
           if (profile?.role === 'hr') {
             console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr', { replace: true });
@@ -62,7 +59,7 @@ const HRPortal = () => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
+      console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_IN') {
         setIsLoading(true);
@@ -74,12 +71,14 @@ const HRPortal = () => {
             .eq('id', session?.user.id)
             .maybeSingle();
 
-          if (profileError) throw profileError;
-          
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            throw new Error("Erreur lors de la vérification du profil");
+          }
+
           console.log("User profile after sign in:", profile);
-          
           if (profile?.role === 'hr') {
-            console.log("HR role confirmed after sign in, redirecting to /hr");
+            console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr', { replace: true });
           } else {
             setError("Vous n'avez pas accès au portail RH");
@@ -88,7 +87,7 @@ const HRPortal = () => {
             }, 2000);
           }
         } catch (err) {
-          console.error("Role check error after sign in:", err);
+          console.error("Role check error:", err);
           const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
           setError(errorMessage);
           toast.error(errorMessage);

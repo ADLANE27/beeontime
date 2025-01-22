@@ -16,18 +16,16 @@ const Portal = () => {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.log("Checking user access...");
+        console.log("Checking user session...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          setError("Error checking authentication status");
-          setIsLoading(false);
-          return;
+          throw new Error("Erreur lors de la vérification de la session");
         }
 
         if (session) {
-          console.log("Session found, checking role...");
+          console.log("Session found, checking user profile...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -36,35 +34,35 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Error checking user role");
-            setIsLoading(false);
-            return;
+            throw new Error("Erreur lors de la vérification du profil");
           }
 
-          console.log("Profile role:", profile?.role);
+          console.log("User profile:", profile);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
             navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
             navigate('/hr-portal', { replace: true });
-            toast.error("Vous n'avez pas accès au portail employé");
           }
         }
-        setIsLoading(false);
       } catch (err) {
-        console.error("Unexpected error:", err);
-        setError("Une erreur inattendue s'est produite");
+        console.error("Authentication error:", err);
+        const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
         setIsLoading(false);
       }
     };
 
+    checkUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
-      
       if (event === 'SIGNED_IN') {
         try {
-          console.log("User signed in, checking role...");
+          console.log("User signed in, checking profile...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
@@ -73,29 +71,25 @@ const Portal = () => {
 
           if (profileError) {
             console.error("Profile error:", profileError);
-            setError("Error checking user role");
-            return;
+            throw new Error("Erreur lors de la vérification du profil");
           }
 
-          console.log("Profile role after sign in:", profile?.role);
+          console.log("User profile after sign in:", profile);
           if (profile?.role === 'employee') {
-            console.log("Employee role confirmed after sign in, redirecting to /employee");
+            console.log("Employee role confirmed, redirecting to /employee");
             navigate('/employee', { replace: true });
           } else if (profile?.role === 'hr') {
             console.log("HR role detected, redirecting to HR portal");
             navigate('/hr-portal', { replace: true });
-            toast.error("Vous n'avez pas accès au portail employé");
           }
         } catch (err) {
-          console.error("Error during role check:", err);
-          setError("Error checking user role");
+          console.error("Profile check error:", err);
+          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+          setError(errorMessage);
+          toast.error(errorMessage);
         }
-      } else if (event === 'SIGNED_OUT') {
-        setError(null);
       }
     });
-
-    checkUser();
 
     return () => {
       subscription.unsubscribe();
@@ -123,11 +117,7 @@ const Portal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
-              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
-              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         <Auth
