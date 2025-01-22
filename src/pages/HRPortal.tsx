@@ -16,6 +16,7 @@ const HRPortal = () => {
 
   const checkUserRole = async (userId: string) => {
     try {
+      console.log("Checking role for user:", userId);
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -32,6 +33,7 @@ const HRPortal = () => {
         throw new Error("Profil utilisateur non trouvé");
       }
 
+      console.log("User profile:", profile);
       return profile.role;
     } catch (error) {
       console.error("Role check error:", error);
@@ -44,17 +46,22 @@ const HRPortal = () => {
 
     const checkAuth = async () => {
       try {
+        console.log("Checking authentication status...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
+          console.error("Session error:", sessionError);
           throw new Error("Erreur lors de la vérification de la session");
         }
 
+        console.log("Session status:", session ? "Active" : "No session");
+        
         if (session) {
           const role = await checkUserRole(session.user.id);
           
           if (isSubscribed) {
             if (role === 'hr') {
+              console.log("HR role confirmed, redirecting to /hr");
               navigate('/hr', { replace: true });
             } else {
               setError("Vous n'avez pas accès au portail RH");
@@ -67,6 +74,7 @@ const HRPortal = () => {
           }
         }
       } catch (err) {
+        console.error("Authentication check error:", err);
         if (isSubscribed) {
           const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
           setError(errorMessage);
@@ -80,13 +88,17 @@ const HRPortal = () => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      console.log("Auth state changed:", event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN') {
         setIsLoading(true);
         try {
-          const role = await checkUserRole(session.user.id);
+          console.log("User signed in, checking role...");
+          const role = await checkUserRole(session?.user.id);
           
           if (isSubscribed) {
             if (role === 'hr') {
+              console.log("HR role confirmed after sign in, redirecting to /hr");
               navigate('/hr', { replace: true });
             } else {
               setError("Vous n'avez pas accès au portail RH");
@@ -98,6 +110,7 @@ const HRPortal = () => {
             }
           }
         } catch (err) {
+          console.error("Role check error after sign in:", err);
           if (isSubscribed) {
             const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
             setError(errorMessage);
@@ -109,6 +122,7 @@ const HRPortal = () => {
           }
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out");
         if (isSubscribed) {
           setError(null);
           setIsLoading(false);
@@ -180,6 +194,10 @@ const HRPortal = () => {
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
           showLinks={false}
+          onError={(error) => {
+            console.error("Auth error:", error);
+            toast.error(error.message);
+          }}
         />
       </Card>
     </div>
