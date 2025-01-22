@@ -5,135 +5,84 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { toast } from "sonner";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  let isSubscribed = true;
-
-  const checkUserRole = async (userId: string) => {
-    try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Erreur lors de la vérification du rôle utilisateur");
-      }
-
-      if (!profile) {
-        console.error("No profile found for user:", userId);
-        throw new Error("Profil utilisateur non trouvé");
-      }
-
-      return profile.role;
-    } catch (error) {
-      console.error("Role check error:", error);
-      throw error;
-    }
-  };
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const checkAuth = async () => {
+    const checkUser = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          throw new Error("Erreur lors de la vérification de la session");
+          console.error("Session error:", sessionError);
+          setError("Error checking authentication status");
+          return;
         }
 
         if (session) {
-          const role = await checkUserRole(session.user.id);
-          
-          if (isSubscribed) {
-            if (role === 'hr') {
-              navigate('/hr', { replace: true });
-            } else {
-              setError("Vous n'avez pas accès au portail RH");
-              timeoutId = setTimeout(() => {
-                if (isSubscribed) {
-                  navigate('/portal', { replace: true });
-                }
-              }, 2000);
-            }
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setError("Error checking user role");
+            return;
+          }
+
+          if (profile?.role === 'hr') {
+            navigate('/hr');
+          } else {
+            navigate('/');
           }
         }
       } catch (err) {
-        if (isSubscribed) {
-          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          setError(errorMessage);
-          toast.error(errorMessage);
-        }
-      } finally {
-        if (isSubscribed) {
-          setIsLoading(false);
-        }
+        console.error("Unexpected error:", err);
+        setError("An unexpected error occurred");
       }
     };
 
+    checkUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setIsLoading(true);
+      console.log("Auth state changed:", event);
+      
+      if (event === 'SIGNED_IN') {
         try {
-          const role = await checkUserRole(session.user.id);
-          
-          if (isSubscribed) {
-            if (role === 'hr') {
-              navigate('/hr', { replace: true });
-            } else {
-              setError("Vous n'avez pas accès au portail RH");
-              timeoutId = setTimeout(() => {
-                if (isSubscribed) {
-                  navigate('/portal', { replace: true });
-                }
-              }, 2000);
-            }
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session?.user.id)
+            .single();
+
+          if (profileError) {
+            console.error("Profile error:", profileError);
+            setError("Error checking user role");
+            return;
+          }
+
+          if (profile?.role === 'hr') {
+            navigate('/hr');
+          } else {
+            navigate('/');
           }
         } catch (err) {
-          if (isSubscribed) {
-            const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-            setError(errorMessage);
-            toast.error(errorMessage);
-          }
-        } finally {
-          if (isSubscribed) {
-            setIsLoading(false);
-          }
+          console.error("Error during role check:", err);
+          setError("Error checking user role");
         }
       } else if (event === 'SIGNED_OUT') {
-        if (isSubscribed) {
-          setError(null);
-          setIsLoading(false);
-        }
+        setError(null);
       }
     });
 
-    checkAuth();
-
     return () => {
-      isSubscribed = false;
       subscription.unsubscribe();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
     };
   }, [navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -148,7 +97,11 @@ const HRPortal = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Portail RH</h1>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error === "Error checking authentication status" && "Erreur lors de la vérification de l'authentification"}
+              {error === "Error checking user role" && "Erreur lors de la vérification du rôle utilisateur"}
+              {error === "An unexpected error occurred" && "Une erreur inattendue s'est produite"}
+            </AlertDescription>
           </Alert>
         )}
         <Auth

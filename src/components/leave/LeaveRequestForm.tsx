@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -16,56 +15,23 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { useState } from "react";
-import { Calendar, Clock, Upload } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
-interface LeaveRequestFormProps {
-  onSubmit?: (data: any) => Promise<void>;
-  isSubmitting?: boolean;
-}
-
-export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormProps) => {
+export const LeaveRequestForm = () => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
   const [dayType, setDayType] = useState("full");
   const [period, setPeriod] = useState<string>();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<string>();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
-
-  // Fetch all employees
-  const { data: employees, isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ['employees-list'],
-    queryFn: async () => {
-      console.log('Fetching employees...');
-      const { data: employees, error } = await supabase
-        .from('employees')
-        .select('id, first_name, last_name')
-        .order('last_name', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching employees:', error);
-        throw error;
-      }
-
-      console.log('Fetched employees:', employees);
-      return employees;
-    }
-  });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,11 +43,6 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
 
     if (dayType === "half" && !period) {
       toast.error("Veuillez sélectionner la période (matin ou après-midi)");
-      return;
-    }
-
-    if (!selectedEmployee) {
-      toast.error("Veuillez sélectionner un employé");
       return;
     }
 
@@ -106,72 +67,74 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
     }
 
     try {
-      if (onSubmit) {
-        await onSubmit({
-          employee_id: selectedEmployee,
-          start_date: startDate,
-          end_date: endDate,
-          type: leaveType,
-          day_type: dayType,
-          period: dayType === "half" ? period : null,
-          reason: reason,
-        });
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour soumettre une demande");
         return;
       }
 
+      // Check if employee record exists
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (employeeError) {
+        console.error('Error checking employee record:', employeeError);
+        toast.error("Erreur lors de la vérification du profil employé");
+        return;
+      }
+
+      // If no employee record exists, create one
+      if (!employee) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Error fetching profile:', profileError);
+          toast.error("Erreur lors de la récupération du profil");
+          return;
+        }
+
+        const { error: createEmployeeError } = await supabase
+          .from('employees')
+          .insert({
+            id: user.id,
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            email: profile.email
+          });
+
+        if (createEmployeeError) {
+          console.error('Error creating employee record:', createEmployeeError);
+          toast.error("Erreur lors de la création du profil employé");
+          return;
+        }
+      }
+
       // Submit leave request
-      const { data: leaveRequest, error: leaveRequestError } = await supabase
+      const { error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
-          employee_id: selectedEmployee,
+          employee_id: user.id,
           start_date: startDate,
           end_date: endDate,
           type: leaveType,
           day_type: dayType,
           period: dayType === "half" ? period : null,
           reason: reason,
-          status: 'approved' // Auto-approve when HR creates the request
-        })
-        .select()
-        .single();
+          status: 'pending'
+        });
 
       if (leaveRequestError) {
         console.error('Error submitting leave request:', leaveRequestError);
         toast.error("Erreur lors de la soumission de la demande");
         return;
-      }
-
-      // Upload file if selected
-      if (selectedFile && leaveRequest) {
-        const fileExt = selectedFile.name.split('.').pop();
-        const filePath = `${leaveRequest.id}/${crypto.randomUUID()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('leave-documents')
-          .upload(filePath, selectedFile);
-
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          toast.error("Erreur lors de l'upload du fichier");
-          return;
-        }
-
-        // Save document reference
-        const { error: docError } = await supabase
-          .from('leave_request_documents')
-          .insert({
-            leave_request_id: leaveRequest.id,
-            file_path: filePath,
-            file_name: selectedFile.name,
-            file_type: selectedFile.type,
-            uploaded_by: selectedEmployee
-          });
-
-        if (docError) {
-          console.error('Error saving document reference:', docError);
-          toast.error("Erreur lors de l'enregistrement du document");
-          return;
-        }
       }
 
       toast.success("Demande de congé soumise avec succès");
@@ -182,10 +145,8 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
       setStartDate("");
       setEndDate("");
       setReason("");
-      setSelectedEmployee(undefined);
-      setSelectedFile(null);
       // Refresh the leave requests list
-      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-leave-requests'] });
     } catch (error) {
       console.error('Error:', error);
       toast.error("Une erreur est survenue");
@@ -194,46 +155,56 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
 
   return (
     <Card className="p-6">
-      <ScrollArea className="h-[calc(100vh-200px)] pr-4">
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="employee">Employé</Label>
-            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un employé" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees?.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.first_name} {employee.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <h2 className="text-2xl font-bold mb-6">Demande de congé</h2>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-2">
+          <Label htmlFor="type">Type de congé</Label>
+          <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez un type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
+              <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
+              <SelectItem value="paternity">Congé paternité</SelectItem>
+              <SelectItem value="maternity">Congé maternité</SelectItem>
+              <SelectItem value="sickChild">Congé enfant malade</SelectItem>
+              <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
+              <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
+              <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
+              <SelectItem value="rtt">RTT</SelectItem>
+              <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="type">Type de congé</Label>
-            <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
-                <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
-                <SelectItem value="paternity">Congé paternité</SelectItem>
-                <SelectItem value="maternity">Congé maternité</SelectItem>
-                <SelectItem value="sickChild">Congé enfant malade</SelectItem>
-                <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
-                <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
-                <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
-                <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
-                <SelectItem value="rtt">RTT</SelectItem>
-                <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label>Type de journée</Label>
+          <ToggleGroup
+            type="single"
+            value={dayType}
+            onValueChange={(value) => {
+              if (value) {
+                setDayType(value);
+                if (value === "full") {
+                  setPeriod(undefined);
+                }
+              }
+            }}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="full" aria-label="Journée complète" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Journée complète
+            </ToggleGroupItem>
+            <ToggleGroupItem value="half" aria-label="Demi-journée" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Demi-journée
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startDate">Date de début</Label>
             <Input 
@@ -254,72 +225,37 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
               required
             />
           </div>
+        </div>
 
+        {dayType === "half" && (
           <div className="space-y-2">
-            <Label htmlFor="dayType">Type de journée</Label>
-            <ToggleGroup type="single" value={dayType} onValueChange={(value) => value && setDayType(value)}>
-              <ToggleGroupItem value="full">Journée complète</ToggleGroupItem>
-              <ToggleGroupItem value="half">Demi-journée</ToggleGroupItem>
-            </ToggleGroup>
+            <Label htmlFor="period">Période</Label>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez la période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Matin</SelectItem>
+                <SelectItem value="afternoon">Après-midi</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        )}
 
-          {dayType === "half" && (
-            <div className="space-y-2">
-              <Label htmlFor="period">Période</Label>
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez la période" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">Matin</SelectItem>
-                  <SelectItem value="afternoon">Après-midi</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="reason">Motif</Label>
+          <Textarea 
+            id="reason" 
+            placeholder="Décrivez la raison de votre demande"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reason">Motif</Label>
-            <Textarea 
-              id="reason" 
-              placeholder="Décrivez la raison de votre demande"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="file">Pièce jointe</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="file"
-                type="file"
-                onChange={handleFileChange}
-                className="flex-1"
-              />
-              {selectedFile && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSelectedFile(null)}
-                >
-                  ×
-                </Button>
-              )}
-            </div>
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                Fichier sélectionné : {selectedFile.name}
-              </p>
-            )}
-          </div>
-
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            Soumettre la demande
-          </Button>
-        </form>
-      </ScrollArea>
+        <Button type="submit" className="w-full">
+          Soumettre la demande
+        </Button>
+      </form>
     </Card>
   );
 };
