@@ -142,14 +142,6 @@ const HRPortal = () => {
           providers={[]}
           redirectTo={`${window.location.origin}/hr`}
           showLinks={false}
-          attributes={{
-            emailInput: {
-              autoComplete: 'username'
-            },
-            passwordInput: {
-              autoComplete: 'current-password'
-            }
-          }}
         />
       </Card>
     </div>

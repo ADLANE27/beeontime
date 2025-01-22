@@ -151,14 +151,6 @@ const Portal = () => {
           providers={[]}
           redirectTo={`${window.location.origin}/employee`}
           showLinks={false}
-          attributes={{
-            emailInput: {
-              autoComplete: 'username'
-            },
-            passwordInput: {
-              autoComplete: 'current-password'
-            }
-          }}
         />
       </Card>
     </div>
