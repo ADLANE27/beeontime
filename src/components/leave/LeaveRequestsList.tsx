@@ -216,8 +216,7 @@ export const LeaveRequestsList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Demandes de congés</h2>
+      <div className="flex justify-end mb-6">
         <Button onClick={() => setIsNewLeaveOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle demande
