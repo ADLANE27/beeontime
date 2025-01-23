@@ -167,7 +167,6 @@ const Portal = () => {
           showLinks={false}
           view="sign_in"
           magicLink={false}
-          initialSession={null}
         />
         <div className="mt-4 flex items-center space-x-2">
           <Checkbox 
