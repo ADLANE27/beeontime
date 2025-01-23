@@ -203,7 +203,10 @@ const HRDashboard = () => {
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
                         {item.badge && item.badge > 0 && (
-                          <Badge variant="destructive" className="ml-auto">
+                          <Badge 
+                            variant="secondary" 
+                            className="ml-auto bg-muted/50 text-muted-foreground text-xs px-1.5"
+                          >
                             {item.badge}
                           </Badge>
                         )}
@@ -220,7 +223,10 @@ const HRDashboard = () => {
                   <item.icon className="mr-1.5 h-4 w-4" />
                   {item.label}
                   {item.badge && item.badge > 0 && (
-                    <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                    <Badge 
+                      variant="secondary"
+                      className="ml-2 bg-muted/50 text-muted-foreground text-xs px-1.5 min-w-[1.25rem] h-5"
+                    >
                       {item.badge}
                     </Badge>
                   )}
