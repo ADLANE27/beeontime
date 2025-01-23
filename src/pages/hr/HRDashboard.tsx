@@ -117,19 +117,19 @@ const HRDashboard = () => {
       value: "leave", 
       label: "Demandes de congés", 
       icon: Clock,
-      badge: pendingLeaves 
+      badge: pendingLeaves > 0 ? pendingLeaves : null 
     },
     { 
       value: "overtime", 
       label: "Heures supplémentaires", 
       icon: Clock4,
-      badge: pendingOvertimes 
+      badge: pendingOvertimes > 0 ? pendingOvertimes : null
     },
     { 
       value: "lateness", 
       label: "Retards", 
       icon: AlertTriangle,
-      badge: pendingDelays 
+      badge: pendingDelays > 0 ? pendingDelays : null
     },
     { value: "payslips", label: "Documents", icon: FileText },
     { value: "statistics", label: "Statistiques", icon: BarChart },
@@ -202,7 +202,7 @@ const HRDashboard = () => {
                       >
                         <item.icon className="h-4 w-4" />
                         <span className="flex-1">{item.label}</span>
-                        {item.badge && item.badge > 0 && (
+                        {item.badge && (
                           <Badge 
                             variant="secondary" 
                             className="bg-muted/50 text-muted-foreground text-xs px-1.5"
@@ -222,7 +222,7 @@ const HRDashboard = () => {
                 <TabsTrigger key={item.value} value={item.value} className="text-xs sm:text-sm">
                   <item.icon className="mr-1.5 h-4 w-4" />
                   <span>{item.label}</span>
-                  {item.badge && item.badge > 0 && (
+                  {item.badge && (
                     <Badge 
                       variant="secondary"
                       className="ml-2 bg-muted/50 text-muted-foreground text-xs px-1.5 min-w-[1.25rem] h-5"
