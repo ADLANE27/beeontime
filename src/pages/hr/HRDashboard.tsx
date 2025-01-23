@@ -201,11 +201,11 @@ const HRDashboard = () => {
                         onClick={() => handleTabChange(item.value)}
                       >
                         <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                        <span className="flex-1">{item.label}</span>
                         {item.badge && item.badge > 0 && (
                           <Badge 
                             variant="secondary" 
-                            className="ml-auto bg-muted/50 text-muted-foreground text-xs px-1.5"
+                            className="bg-muted/50 text-muted-foreground text-xs px-1.5"
                           >
                             {item.badge}
                           </Badge>
@@ -221,7 +221,7 @@ const HRDashboard = () => {
               {menuItems.map((item) => (
                 <TabsTrigger key={item.value} value={item.value} className="text-xs sm:text-sm">
                   <item.icon className="mr-1.5 h-4 w-4" />
-                  {item.label}
+                  <span>{item.label}</span>
                   {item.badge && item.badge > 0 && (
                     <Badge 
                       variant="secondary"
