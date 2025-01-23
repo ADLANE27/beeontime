@@ -173,8 +173,7 @@ export const HREventsList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Événements RH</h2>
+      <div className="flex justify-end">
         <Button onClick={() => setIsNewEventOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvel événement
