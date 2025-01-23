@@ -7,7 +7,7 @@ import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { LoadingSpinner } from "./components/ui/loading-spinner";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ const queryClient = new QueryClient({
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -33,14 +34,18 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          toast.error("Erreur lors de la vérification de la session");
-          setIsAuthorized(false);
+          if (mounted.current) {
+            setIsAuthorized(false);
+            toast.error("Erreur lors de la vérification de la session");
+          }
           return;
         }
 
         if (!session) {
           console.log('No session found');
-          setIsAuthorized(false);
+          if (mounted.current) {
+            setIsAuthorized(false);
+          }
           return;
         }
 
@@ -53,35 +58,43 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
         if (profileError) {
           console.error('Profile error:', profileError);
-          toast.error("Erreur lors de la vérification du profil");
-          setIsAuthorized(false);
+          if (mounted.current) {
+            setIsAuthorized(false);
+            toast.error("Erreur lors de la vérification du profil");
+          }
           return;
         }
 
-        const isAuthorized = profile?.role === requiredRole;
-        console.log('Authorization result:', { role: profile?.role, requiredRole, isAuthorized });
-        setIsAuthorized(isAuthorized);
+        if (mounted.current) {
+          const isAuthorized = profile?.role === requiredRole;
+          console.log('Authorization result:', { role: profile?.role, requiredRole, isAuthorized });
+          setIsAuthorized(isAuthorized);
+        }
       } catch (error) {
         console.error('Unexpected error:', error);
-        toast.error("Une erreur inattendue est survenue");
-        setIsAuthorized(false);
+        if (mounted.current) {
+          setIsAuthorized(false);
+          toast.error("Une erreur inattendue est survenue");
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Initial check
-    checkAuth();
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
-      setIsLoading(true);
+      if (mounted.current) {
+        setIsLoading(true);
+      }
       
       if (!session) {
         console.log('No session after auth change');
-        setIsAuthorized(false);
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsAuthorized(false);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -94,24 +107,35 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
         if (profileError) {
           console.error('Profile error:', profileError);
-          toast.error("Erreur lors de la vérification du profil");
-          setIsAuthorized(false);
+          if (mounted.current) {
+            setIsAuthorized(false);
+            toast.error("Erreur lors de la vérification du profil");
+          }
           return;
         }
 
-        const isAuthorized = profile?.role === requiredRole;
-        console.log('Authorization result after auth change:', { role: profile?.role, requiredRole, isAuthorized });
-        setIsAuthorized(isAuthorized);
+        if (mounted.current) {
+          const isAuthorized = profile?.role === requiredRole;
+          console.log('Authorization result after auth change:', { role: profile?.role, requiredRole, isAuthorized });
+          setIsAuthorized(isAuthorized);
+        }
       } catch (error) {
         console.error('Unexpected error:', error);
-        toast.error("Une erreur inattendue est survenue");
-        setIsAuthorized(false);
+        if (mounted.current) {
+          setIsAuthorized(false);
+          toast.error("Une erreur inattendue est survenue");
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     });
 
+    checkAuth();
+
     return () => {
+      mounted.current = false;
       subscription.unsubscribe();
     };
   }, [requiredRole]);
