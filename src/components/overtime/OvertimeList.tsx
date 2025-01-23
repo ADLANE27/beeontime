@@ -49,7 +49,6 @@ export const OvertimeList = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Si l'utilisateur est RH, récupérer toutes les demandes
       if (profile?.role === 'hr') {
         const { data, error } = await supabase
           .from('overtime_requests')
@@ -69,7 +68,6 @@ export const OvertimeList = () => {
         return data;
       }
 
-      // Sinon, récupérer uniquement les demandes de l'employé
       const { data, error } = await supabase
         .from('overtime_requests')
         .select(`
@@ -111,7 +109,6 @@ export const OvertimeList = () => {
       queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
       toast.success("Demande d'heures supplémentaires enregistrée");
       setOpenManual(false);
-      // Reset form
       setDate("");
       setStartTime("");
       setEndTime("");
@@ -167,7 +164,6 @@ export const OvertimeList = () => {
       return;
     }
 
-    // Calculate hours between start and end time
     const start = new Date(`2000-01-01T${startTime}`);
     const end = new Date(`2000-01-01T${endTime}`);
     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
@@ -177,7 +173,6 @@ export const OvertimeList = () => {
       return;
     }
 
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Vous devez être connecté pour faire une demande");
@@ -212,12 +207,12 @@ export const OvertimeList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Heures supplémentaires</h2>
         {profile?.role !== 'hr' && (
           <Dialog open={openManual} onOpenChange={setOpenManual}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto whitespace-nowrap">
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter des heures
               </Button>
