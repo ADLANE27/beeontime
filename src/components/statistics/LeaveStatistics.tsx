@@ -104,8 +104,7 @@ export const LeaveStatistics = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Statistiques des congés</h3>
+      <div className="flex justify-center items-center mb-4">
         <Select
           value={selectedMonth.toString()}
           onValueChange={(value) => setSelectedMonth(parseInt(value))}
