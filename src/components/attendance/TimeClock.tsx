@@ -90,38 +90,36 @@ export const TimeClock = () => {
       console.log("Checking for delay - User ID:", userId);
       console.log("Actual arrival time:", actualTime);
 
-      // Récupérer l'emploi du temps de l'employé
+      // Get employee's work schedule using employee_id
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
-        .select('work_schedule')
+        .select('work_schedule, first_name, last_name')
         .eq('id', userId)
         .maybeSingle();
 
       if (employeeError) {
-        console.error("Erreur lors de la récupération de l'emploi du temps:", employeeError);
+        console.error("Error fetching employee schedule:", employeeError);
         return;
       }
 
       if (!employee?.work_schedule) {
-        console.log("Pas d'emploi du temps trouvé pour l'employé");
+        console.log("No work schedule found for employee:", userId);
         return;
       }
 
-      console.log("Emploi du temps récupéré:", employee.work_schedule);
+      console.log("Employee data:", employee);
+      console.log("Work schedule:", employee.work_schedule);
 
-      // Vérifier que work_schedule a la bonne structure
       const workSchedule = employee.work_schedule as unknown as WorkSchedule;
       if (!workSchedule.startTime) {
-        console.log("Heure de début non définie dans l'emploi du temps");
+        console.log("Start time not defined in work schedule for employee:", userId);
         return;
       }
 
       const scheduledTime = workSchedule.startTime;
-      console.log("Heure prévue:", scheduledTime);
-
       const today = format(new Date(), "yyyy-MM-dd");
 
-      // Comparer l'heure d'arrivée avec l'heure prévue
+      // Compare arrival time with scheduled time
       const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
       const [actualHour, actualMinute] = actualTime.split(':').map(Number);
 
@@ -131,18 +129,18 @@ export const TimeClock = () => {
       const actualDate = new Date();
       actualDate.setHours(actualHour, actualMinute, 0);
 
-      console.log("Date prévue:", scheduledDate);
-      console.log("Date réelle:", actualDate);
+      console.log("Scheduled time:", scheduledDate);
+      console.log("Actual time:", actualDate);
 
-      // Si l'employé est en retard, créer une entrée dans la table delays
+      // If employee is late, create a delay entry
       if (actualDate > scheduledDate) {
-        const duration = (actualDate.getTime() - scheduledDate.getTime()) / (1000 * 60); // en minutes
+        const duration = (actualDate.getTime() - scheduledDate.getTime()) / (1000 * 60);
         const hours = Math.floor(duration / 60);
         const minutes = duration % 60;
         const formattedDuration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 
-        console.log("Retard détecté!");
-        console.log("Durée du retard:", formattedDuration);
+        console.log("Delay detected for employee:", employee.first_name, employee.last_name);
+        console.log("Delay duration:", formattedDuration);
 
         const { error: delayError } = await supabase
           .from('delays')
@@ -156,18 +154,18 @@ export const TimeClock = () => {
           });
 
         if (delayError) {
-          console.error("Erreur lors de l'enregistrement du retard:", delayError);
+          console.error("Error recording delay:", delayError);
           toast.error("Erreur lors de l'enregistrement du retard");
           return;
         }
 
         toast.info("Retard détecté et enregistré pour validation par les RH");
-        console.log("Retard enregistré avec succès");
+        console.log("Delay successfully recorded");
       } else {
-        console.log("Pas de retard détecté");
+        console.log("No delay detected for employee:", employee.first_name, employee.last_name);
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification du retard:", error);
+      console.error("Error in delay check process:", error);
       toast.error("Erreur lors de la vérification du retard");
     }
   };
@@ -210,7 +208,7 @@ export const TimeClock = () => {
           evening_out: data.evening_out
         });
 
-        // Si c'est le pointage du matin, vérifier s'il y a un retard
+        // Check for delay only on morning check-in
         if (nextAction === "morning_in") {
           await checkForDelay(user.id, currentTimeStr);
         }
