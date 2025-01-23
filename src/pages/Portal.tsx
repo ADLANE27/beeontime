@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -13,6 +13,7 @@ const Portal = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -54,16 +55,18 @@ const Portal = () => {
       } catch (err) {
         console.error("Authentication error:", err);
         const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-        setError(errorMessage);
-        if (!sessionExpired) {
-          toast.error(errorMessage);
+        if (mounted.current) {
+          setError(errorMessage);
+          if (!sessionExpired) {
+            toast.error(errorMessage);
+          }
         }
       } finally {
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     };
-
-    checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
@@ -96,14 +99,19 @@ const Portal = () => {
           }
         } catch (err) {
           console.error("Profile check error:", err);
-          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          setError(errorMessage);
-          toast.error(errorMessage);
+          if (mounted.current) {
+            const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+            setError(errorMessage);
+            toast.error(errorMessage);
+          }
         }
       }
     });
 
+    checkUser();
+
     return () => {
+      mounted.current = false;
       subscription.unsubscribe();
     };
   }, [navigate, sessionExpired]);
