@@ -17,9 +17,6 @@ const HRPortal = () => {
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem("rememberMe") === "true";
   });
-  const [rememberedEmail, setRememberedEmail] = useState(() => {
-    return localStorage.getItem("rememberedEmail") || "";
-  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -113,6 +110,15 @@ const HRPortal = () => {
         }
       }
     });
+
+    // Pre-fill email if remembered
+    const rememberedEmail = localStorage.getItem("rememberedEmail");
+    if (rememberedEmail) {
+      const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement;
+      if (emailInput) {
+        emailInput.value = rememberedEmail;
+      }
+    }
 
     checkAuth();
 
