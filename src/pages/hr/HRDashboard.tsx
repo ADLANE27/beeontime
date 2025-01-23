@@ -9,7 +9,8 @@ import {
   Download, 
   Users, 
   BarChart,
-  ClipboardList 
+  ClipboardList,
+  Menu 
 } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
@@ -23,11 +24,23 @@ import { HREventsList } from "@/components/hr-events/HREventsList";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 const HRDashboard = () => {
   const [pendingLeaves, setPendingLeaves] = useState(0);
   const [pendingOvertimes, setPendingOvertimes] = useState(0);
   const [pendingDelays, setPendingDelays] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("employees");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchPendingCounts = async () => {
@@ -96,99 +109,126 @@ const HRDashboard = () => {
     };
   }, []);
 
+  const menuItems = [
+    { value: "employees", label: "Employés", icon: Users },
+    { value: "planning", label: "Planning", icon: Calendar },
+    { value: "events", label: "Événements RH", icon: ClipboardList },
+    { 
+      value: "leave", 
+      label: "Demandes de congés", 
+      icon: Clock,
+      badge: pendingLeaves 
+    },
+    { 
+      value: "overtime", 
+      label: "Heures supplémentaires", 
+      icon: Clock4,
+      badge: pendingOvertimes 
+    },
+    { 
+      value: "lateness", 
+      label: "Retards", 
+      icon: AlertTriangle,
+      badge: pendingDelays 
+    },
+    { value: "payslips", label: "Documents", icon: FileText },
+    { value: "statistics", label: "Statistiques", icon: BarChart },
+    { value: "export", label: "Export", icon: Download },
+  ];
+
+  const handleTabChange = (value: string) => {
+    setSelectedTab(value);
+    setIsDrawerOpen(false);
+  };
+
+  const renderTabContent = () => (
+    <div className="space-y-6">
+      <TabsContent value="employees">
+        <EmployeesList />
+      </TabsContent>
+      <TabsContent value="planning">
+        <AdminPlanning />
+      </TabsContent>
+      <TabsContent value="events">
+        <HREventsList />
+      </TabsContent>
+      <TabsContent value="leave">
+        <LeaveRequestsList />
+      </TabsContent>
+      <TabsContent value="overtime">
+        <OvertimeList />
+      </TabsContent>
+      <TabsContent value="lateness">
+        <DelayList />
+      </TabsContent>
+      <TabsContent value="payslips">
+        <PayslipManagement />
+      </TabsContent>
+      <TabsContent value="statistics">
+        <StatisticsTab />
+      </TabsContent>
+      <TabsContent value="export">
+        <ExportDataTab />
+      </TabsContent>
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className="flex flex-wrap items-center gap-1">
-            <TabsTrigger value="employees" className="text-xs sm:text-sm">
-              <Users className="mr-1.5 h-4 w-4" />
-              Employés
-            </TabsTrigger>
-            <TabsTrigger value="planning" className="text-xs sm:text-sm">
-              <Calendar className="mr-1.5 h-4 w-4" />
-              Planning
-            </TabsTrigger>
-            <TabsTrigger value="events" className="text-xs sm:text-sm">
-              <ClipboardList className="mr-1.5 h-4 w-4" />
-              Événements RH
-            </TabsTrigger>
-            <TabsTrigger value="leave" className="relative text-xs sm:text-sm">
-              <Clock className="mr-1.5 h-4 w-4" />
-              Demandes de congés
-              {pendingLeaves > 0 && (
-                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
-                  {pendingLeaves}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="overtime" className="relative text-xs sm:text-sm">
-              <Clock4 className="mr-1.5 h-4 w-4" />
-              Heures supplémentaires
-              {pendingOvertimes > 0 && (
-                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
-                  {pendingOvertimes}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="lateness" className="relative text-xs sm:text-sm">
-              <AlertTriangle className="mr-1.5 h-4 w-4" />
-              Retards
-              {pendingDelays > 0 && (
-                <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
-                  {pendingDelays}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="payslips" className="text-xs sm:text-sm">
-              <FileText className="mr-1.5 h-4 w-4" />
-              Documents
-            </TabsTrigger>
-            <TabsTrigger value="statistics" className="text-xs sm:text-sm">
-              <BarChart className="mr-1.5 h-4 w-4" />
-              Statistiques
-            </TabsTrigger>
-            <TabsTrigger value="export" className="text-xs sm:text-sm">
-              <Download className="mr-1.5 h-4 w-4" />
-              Export
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="employees">
-            <EmployeesList />
-          </TabsContent>
-
-          <TabsContent value="planning">
-            <AdminPlanning />
-          </TabsContent>
-
-          <TabsContent value="events">
-            <HREventsList />
-          </TabsContent>
-
-          <TabsContent value="leave">
-            <LeaveRequestsList />
-          </TabsContent>
-
-          <TabsContent value="overtime">
-            <OvertimeList />
-          </TabsContent>
-
-          <TabsContent value="lateness">
-            <DelayList />
-          </TabsContent>
-
-          <TabsContent value="payslips">
-            <PayslipManagement />
-          </TabsContent>
-
-          <TabsContent value="statistics">
-            <StatisticsTab />
-          </TabsContent>
-
-          <TabsContent value="export">
-            <ExportDataTab />
-          </TabsContent>
+        <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4">
+          {isMobile ? (
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold">
+                {menuItems.find(item => item.value === selectedTab)?.label}
+              </h1>
+              <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent side="left" className="w-[300px] p-4">
+                  <DrawerHeader className="p-0">
+                    <DrawerTitle>Menu</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="mt-4 flex flex-col gap-2">
+                    {menuItems.map((item) => (
+                      <Button
+                        key={item.value}
+                        variant={selectedTab === item.value ? "default" : "ghost"}
+                        className="w-full justify-start gap-2"
+                        onClick={() => handleTabChange(item.value)}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {item.badge && item.badge > 0 && (
+                          <Badge variant="destructive" className="ml-auto">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </div>
+          ) : (
+            <TabsList className="flex flex-wrap items-center gap-1">
+              {menuItems.map((item) => (
+                <TabsTrigger key={item.value} value={item.value} className="text-xs sm:text-sm">
+                  <item.icon className="mr-1.5 h-4 w-4" />
+                  {item.label}
+                  {item.badge && item.badge > 0 && (
+                    <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
+          {renderTabContent()}
         </Tabs>
       </div>
     </DashboardLayout>
