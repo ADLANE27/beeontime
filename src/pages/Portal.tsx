@@ -7,15 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const Portal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem("rememberMe") === "true";
-  });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -78,15 +74,6 @@ const Portal = () => {
             throw new Error("Erreur lors de la vérification du profil");
           }
 
-          // Si "Se souvenir de moi" est activé, sauvegarder les identifiants
-          if (rememberMe && session?.user) {
-            localStorage.setItem("rememberedEmail", session.user.email || "");
-            localStorage.setItem("rememberMe", "true");
-          } else {
-            localStorage.removeItem("rememberedEmail");
-            localStorage.removeItem("rememberMe");
-          }
-
           console.log("User profile after sign in:", profile);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
@@ -104,19 +91,10 @@ const Portal = () => {
       }
     });
 
-    // Pre-fill email if remembered
-    const rememberedEmail = localStorage.getItem("rememberedEmail");
-    if (rememberedEmail) {
-      const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement;
-      if (emailInput) {
-        emailInput.value = rememberedEmail;
-      }
-    }
-
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, rememberMe]);
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -174,25 +152,6 @@ const Portal = () => {
           view="sign_in"
           magicLink={false}
         />
-        <div className="mt-4 flex items-center space-x-2">
-          <Checkbox 
-            id="rememberMe" 
-            checked={rememberMe}
-            onCheckedChange={(checked) => {
-              setRememberMe(checked === true);
-              if (!checked) {
-                localStorage.removeItem("rememberedEmail");
-                localStorage.removeItem("rememberMe");
-              }
-            }}
-          />
-          <label 
-            htmlFor="rememberMe" 
-            className="text-sm text-gray-600 cursor-pointer"
-          >
-            Se souvenir de moi
-          </label>
-        </div>
       </Card>
     </div>
   );
