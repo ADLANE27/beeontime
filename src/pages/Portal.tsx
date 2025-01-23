@@ -16,6 +16,9 @@ const Portal = () => {
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem("rememberMe") === "true";
   });
+  const [rememberedEmail, setRememberedEmail] = useState(() => {
+    return localStorage.getItem("rememberedEmail") || "";
+  });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -117,8 +120,6 @@ const Portal = () => {
     );
   }
 
-  const rememberedEmail = localStorage.getItem("rememberedEmail") || "";
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
@@ -165,9 +166,8 @@ const Portal = () => {
           redirectTo={window.location.origin}
           showLinks={false}
           view="sign_in"
-          defaultValues={{
-            email: rememberedEmail,
-          }}
+          magicLink={false}
+          initialSession={null}
         />
         <div className="mt-4 flex items-center space-x-2">
           <Checkbox 

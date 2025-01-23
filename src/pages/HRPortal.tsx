@@ -17,6 +17,9 @@ const HRPortal = () => {
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem("rememberMe") === "true";
   });
+  const [rememberedEmail, setRememberedEmail] = useState(() => {
+    return localStorage.getItem("rememberedEmail") || "";
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -126,8 +129,6 @@ const HRPortal = () => {
     );
   }
 
-  const rememberedEmail = localStorage.getItem("rememberedEmail") || "";
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -208,9 +209,8 @@ const HRPortal = () => {
             redirectTo={window.location.origin}
             showLinks={false}
             view="sign_in"
-            defaultValues={{
-              email: rememberedEmail,
-            }}
+            magicLink={false}
+            initialSession={null}
           />
 
           <div className="mt-4 flex items-center space-x-2">
