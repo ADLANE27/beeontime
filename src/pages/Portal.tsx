@@ -12,6 +12,7 @@ const Portal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -21,6 +22,10 @@ const Portal = () => {
         
         if (sessionError) {
           console.error("Session error:", sessionError);
+          if (sessionError.message.includes('expired')) {
+            setSessionExpired(true);
+            toast.error("Votre session a expiré, veuillez vous reconnecter");
+          }
           throw new Error("Erreur lors de la vérification de la session");
         }
 
@@ -50,7 +55,9 @@ const Portal = () => {
         console.error("Authentication error:", err);
         const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
         setError(errorMessage);
-        toast.error(errorMessage);
+        if (!sessionExpired) {
+          toast.error(errorMessage);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -60,6 +67,11 @@ const Portal = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
+      
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        setSessionExpired(false);
+      }
+      
       if (event === 'SIGNED_IN') {
         try {
           console.log("User signed in, checking profile...");
@@ -94,7 +106,7 @@ const Portal = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, sessionExpired]);
 
   if (isLoading) {
     return (
@@ -115,7 +127,14 @@ const Portal = () => {
           />
         </div>
         <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
-        {error && (
+        {sessionExpired && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              Votre session a expiré. Veuillez vous reconnecter pour continuer.
+            </AlertDescription>
+          </Alert>
+        )}
+        {error && !sessionExpired && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
