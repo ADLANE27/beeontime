@@ -7,11 +7,15 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Portal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("rememberMe") === "true";
+  });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -74,6 +78,15 @@ const Portal = () => {
             throw new Error("Erreur lors de la vérification du profil");
           }
 
+          // Si "Se souvenir de moi" est activé, sauvegarder les identifiants
+          if (rememberMe && session?.user) {
+            localStorage.setItem("rememberedEmail", session.user.email || "");
+            localStorage.setItem("rememberMe", "true");
+          } else {
+            localStorage.removeItem("rememberedEmail");
+            localStorage.removeItem("rememberMe");
+          }
+
           console.log("User profile after sign in:", profile);
           if (profile?.role === 'employee') {
             console.log("Employee role confirmed, redirecting to /employee");
@@ -94,7 +107,7 @@ const Portal = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, rememberMe]);
 
   if (isLoading) {
     return (
@@ -103,6 +116,8 @@ const Portal = () => {
       </div>
     );
   }
+
+  const rememberedEmail = localStorage.getItem("rememberedEmail") || "";
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -149,7 +164,30 @@ const Portal = () => {
           providers={[]}
           redirectTo={window.location.origin}
           showLinks={false}
+          view="sign_in"
+          defaultValues={{
+            email: rememberedEmail,
+          }}
         />
+        <div className="mt-4 flex items-center space-x-2">
+          <Checkbox 
+            id="rememberMe" 
+            checked={rememberMe}
+            onCheckedChange={(checked) => {
+              setRememberMe(checked === true);
+              if (!checked) {
+                localStorage.removeItem("rememberedEmail");
+                localStorage.removeItem("rememberMe");
+              }
+            }}
+          />
+          <label 
+            htmlFor="rememberMe" 
+            className="text-sm text-gray-600 cursor-pointer"
+          >
+            Se souvenir de moi
+          </label>
+        </div>
       </Card>
     </div>
   );
