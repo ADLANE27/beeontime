@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -12,8 +12,6 @@ const Portal = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sessionExpired, setSessionExpired] = useState(false);
-  const mounted = useRef(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -23,10 +21,6 @@ const Portal = () => {
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          if (sessionError.message.includes('expired')) {
-            setSessionExpired(true);
-            toast.error("Votre session a expiré, veuillez vous reconnecter");
-          }
           throw new Error("Erreur lors de la vérification de la session");
         }
 
@@ -55,26 +49,17 @@ const Portal = () => {
       } catch (err) {
         console.error("Authentication error:", err);
         const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-        if (mounted.current) {
-          setError(errorMessage);
-          if (!sessionExpired) {
-            toast.error(errorMessage);
-          }
-        }
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
-        if (mounted.current) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
+    checkUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
-      
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        setSessionExpired(false);
-      }
-      
       if (event === 'SIGNED_IN') {
         try {
           console.log("User signed in, checking profile...");
@@ -99,22 +84,17 @@ const Portal = () => {
           }
         } catch (err) {
           console.error("Profile check error:", err);
-          if (mounted.current) {
-            const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-            setError(errorMessage);
-            toast.error(errorMessage);
-          }
+          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
+          setError(errorMessage);
+          toast.error(errorMessage);
         }
       }
     });
 
-    checkUser();
-
     return () => {
-      mounted.current = false;
       subscription.unsubscribe();
     };
-  }, [navigate, sessionExpired]);
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -135,14 +115,7 @@ const Portal = () => {
           />
         </div>
         <h1 className="text-2xl font-bold text-center mb-8">Portail Employé</h1>
-        {sessionExpired && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              Votre session a expiré. Veuillez vous reconnecter pour continuer.
-            </AlertDescription>
-          </Alert>
-        )}
-        {error && !sessionExpired && (
+        {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
