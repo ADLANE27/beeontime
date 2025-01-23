@@ -188,7 +188,7 @@ const HRDashboard = () => {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent side="left" className="w-[300px] p-4">
+                <DrawerContent className="w-[300px] p-4">
                   <DrawerHeader className="p-0">
                     <DrawerTitle>Menu</DrawerTitle>
                   </DrawerHeader>
