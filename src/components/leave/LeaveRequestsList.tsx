@@ -216,7 +216,7 @@ export const LeaveRequestsList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-center mb-6">
         <Button onClick={() => setIsNewLeaveOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle demande
