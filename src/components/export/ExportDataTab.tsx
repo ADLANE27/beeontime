@@ -265,8 +265,7 @@ export const ExportDataTab = () => {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Export des données</h2>
+        <div className="flex items-center justify-center">
           <div className="w-64">
             <Label>Période</Label>
             <Select
