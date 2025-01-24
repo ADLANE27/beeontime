@@ -25,6 +25,15 @@ const Portal = () => {
         }
 
         if (session) {
+          // Check session expiration
+          const expiresAt = new Date(session.expires_at! * 1000);
+          if (expiresAt <= new Date()) {
+            console.log("Session expired");
+            await supabase.auth.signOut();
+            setIsLoading(false);
+            return;
+          }
+
           console.log("Session found, checking user profile...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -60,13 +69,22 @@ const Portal = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && session) {
+        // Check session expiration on auth state change
+        const expiresAt = new Date(session.expires_at! * 1000);
+        if (expiresAt <= new Date()) {
+          console.log("Session expired during auth state change");
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+
         try {
           console.log("User signed in, checking profile...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
-            .eq('id', session?.user.id)
+            .eq('id', session.user.id)
             .maybeSingle();
 
           if (profileError) {
