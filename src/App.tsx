@@ -135,20 +135,23 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       }
     });
 
-    // Add visibility change listener
+    // Force sign out when tab/window is closed
+    const handleTabClose = async () => {
+      console.log('Tab is being closed, signing out...');
+      await supabase.auth.signOut();
+    };
+
+    // Add event listeners for tab/window close
+    window.addEventListener('beforeunload', handleTabClose);
+    window.addEventListener('unload', handleTabClose);
+
+    // Add visibility change listener for when tab becomes visible again
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        console.log('Tab became visible, checking session...');
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const expiresAt = new Date(session.expires_at! * 1000);
-          if (expiresAt <= new Date()) {
-            console.log('Session expired on tab visibility change');
-            await supabase.auth.signOut();
-            setIsAuthorized(false);
-            setIsLoading(false);
-          }
-        }
+        console.log('Tab became visible, forcing sign out...');
+        await supabase.auth.signOut();
+        setIsAuthorized(false);
+        setIsLoading(false);
       }
     };
 
@@ -156,6 +159,8 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleTabClose);
+      window.removeEventListener('unload', handleTabClose);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [requiredRole]);
