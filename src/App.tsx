@@ -135,8 +135,28 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       }
     });
 
+    // Add visibility change listener
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, checking session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const expiresAt = new Date(session.expires_at! * 1000);
+          if (expiresAt <= new Date()) {
+            console.log('Session expired on tab visibility change');
+            await supabase.auth.signOut();
+            setIsAuthorized(false);
+            setIsLoading(false);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [requiredRole]);
 
