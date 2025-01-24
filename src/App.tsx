@@ -35,12 +35,24 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           console.error('Session error:', sessionError);
           toast.error("Erreur lors de la vérification de la session");
           setIsAuthorized(false);
+          setIsLoading(false);
           return;
         }
 
         if (!session) {
           console.log('No session found');
           setIsAuthorized(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Check session expiration
+        const expiresAt = new Date(session.expires_at! * 1000);
+        if (expiresAt <= new Date()) {
+          console.log('Session expired');
+          await supabase.auth.signOut();
+          setIsAuthorized(false);
+          setIsLoading(false);
           return;
         }
 
@@ -55,17 +67,18 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           console.error('Profile error:', profileError);
           toast.error("Erreur lors de la vérification du profil");
           setIsAuthorized(false);
+          setIsLoading(false);
           return;
         }
 
         const isAuthorized = profile?.role === requiredRole;
         console.log('Authorization result:', { role: profile?.role, requiredRole, isAuthorized });
         setIsAuthorized(isAuthorized);
+        setIsLoading(false);
       } catch (error) {
         console.error('Unexpected error:', error);
         toast.error("Une erreur inattendue est survenue");
         setIsAuthorized(false);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -85,6 +98,16 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         return;
       }
 
+      // Check session expiration on auth state change
+      const expiresAt = new Date(session.expires_at! * 1000);
+      if (expiresAt <= new Date()) {
+        console.log('Session expired during auth state change');
+        await supabase.auth.signOut();
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -96,6 +119,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           console.error('Profile error:', profileError);
           toast.error("Erreur lors de la vérification du profil");
           setIsAuthorized(false);
+          setIsLoading(false);
           return;
         }
 
