@@ -22,30 +22,17 @@ const queryClient = new QueryClient({
   },
 });
 
-const MAX_VERIFICATION_ATTEMPTS = 3;
-const RETRY_DELAY = 2000; // 2 seconds
-
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
   const { session, isLoading: isAuthLoading, signOut } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
-    let retryTimeout: NodeJS.Timeout;
-
     const checkAuth = async () => {
       if (!session?.user) {
-        if (isMounted) {
-          setIsAuthorized(false);
-          // Si pas de session, on force la déconnexion pour nettoyer
-          await signOut();
-        }
+        await signOut();
         return;
       }
 
       try {
-        console.log("Checking auth for user:", session.user.email);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
@@ -54,65 +41,41 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
         if (error) {
           console.error("Profile fetch error:", error);
-          throw error;
+          toast.error("Erreur de vérification du profil");
+          await signOut();
+          return;
         }
 
         if (!profile) {
           console.error("Profile not found");
-          throw new Error("Profile not found");
+          toast.error("Profil non trouvé");
+          await signOut();
+          return;
         }
 
-        const hasRequiredRole = profile.role === requiredRole;
-        console.log("Has required role:", hasRequiredRole);
-        
-        if (!hasRequiredRole) {
+        if (profile.role !== requiredRole) {
           console.log("Unauthorized access attempt");
           toast.error("Accès non autorisé");
           await signOut();
         }
-
-        if (isMounted) {
-          setIsAuthorized(hasRequiredRole);
-          if (hasRequiredRole) {
-            setVerificationAttempts(0); // Reset attempts on success
-          }
-        }
       } catch (error) {
         console.error('Auth check error:', error);
-        
-        if (isMounted) {
-          if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS - 1) {
-            console.log(`Retry attempt ${verificationAttempts + 1}/${MAX_VERIFICATION_ATTEMPTS}`);
-            setVerificationAttempts(prev => prev + 1);
-            retryTimeout = setTimeout(checkAuth, RETRY_DELAY);
-          } else {
-            console.log("Max verification attempts reached");
-            toast.error("Erreur de vérification du profil");
-            await signOut();
-            setIsAuthorized(false);
-          }
-        }
+        toast.error("Erreur de vérification du profil");
+        await signOut();
       }
     };
 
-    if (!isAuthLoading) {
+    if (!isAuthLoading && session) {
       checkAuth();
     }
-
-    return () => {
-      isMounted = false;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-    };
-  }, [session, requiredRole, isAuthLoading, verificationAttempts, signOut]);
+  }, [session, requiredRole, isAuthLoading, signOut]);
 
   if (isAuthLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Vérification de l'authentification...</p>
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
@@ -120,22 +83,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
-  }
-
-  if (!isAuthorized) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Vérification du profil...</p>
-          {verificationAttempts > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Tentative {verificationAttempts + 1}/{MAX_VERIFICATION_ATTEMPTS}
-            </p>
-          )}
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;
