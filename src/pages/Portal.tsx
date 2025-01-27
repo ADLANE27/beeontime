@@ -12,9 +12,12 @@ const Portal = () => {
   const navigate = useNavigate();
   const { session, isLoading: isAuthLoading } = useAuth();
   const [isCheckingRole, setIsCheckingRole] = useState(false);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const MAX_VERIFICATION_ATTEMPTS = 3;
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimeout: NodeJS.Timeout;
 
     const checkUserRole = async () => {
       if (!session?.user) return;
@@ -31,7 +34,16 @@ const Portal = () => {
 
         if (error) {
           console.error("Profile fetch error:", error);
-          toast.error("Erreur lors de la vérification du profil");
+          if (isMounted) {
+            toast.error("Erreur lors de la vérification du profil");
+            if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
+              setVerificationAttempts(prev => prev + 1);
+              retryTimeout = setTimeout(checkUserRole, 2000);
+            } else {
+              toast.error("Impossible de vérifier votre profil. Veuillez réessayer plus tard.");
+              await supabase.auth.signOut();
+            }
+          }
           return;
         }
 
@@ -45,10 +57,15 @@ const Portal = () => {
         } else if (profile?.role === 'hr') {
           console.log("User has HR role, redirecting to /hr");
           navigate('/hr', { replace: true });
+        } else {
+          toast.error("Rôle utilisateur non reconnu");
+          await supabase.auth.signOut();
         }
       } catch (error) {
         console.error("Role check error:", error);
-        toast.error("Erreur lors de la vérification du rôle");
+        if (isMounted) {
+          toast.error("Erreur lors de la vérification du rôle");
+        }
       } finally {
         if (isMounted) {
           setIsCheckingRole(false);
@@ -56,12 +73,17 @@ const Portal = () => {
       }
     };
 
-    checkUserRole();
+    if (session?.user && !isCheckingRole) {
+      checkUserRole();
+    }
 
     return () => {
       isMounted = false;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
-  }, [session, navigate]);
+  }, [session, navigate, verificationAttempts]);
 
   if (isAuthLoading || isCheckingRole) {
     return (
@@ -71,6 +93,11 @@ const Portal = () => {
           <p className="text-muted-foreground">
             {isAuthLoading ? "Vérification de l'authentification..." : "Vérification du profil..."}
           </p>
+          {verificationAttempts > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Tentative {verificationAttempts}/{MAX_VERIFICATION_ATTEMPTS}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -160,6 +187,7 @@ const Portal = () => {
       </div>
     </div>
   );
+
 };
 
 export default Portal;
