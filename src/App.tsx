@@ -25,35 +25,31 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
-    // Immediately sign out when tab/window closes or hides
+    let mounted = true;
+
+    // Force sign out and clear session when tab/window closes or hides
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
         supabase.auth.signOut();
-        setIsAuthorized(false);
+        if (mounted) {
+          setIsAuthorized(false);
+        }
       }
     };
 
-    // Immediately sign out before unload
+    // Force sign out before unload
     const handleBeforeUnload = () => {
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
       supabase.auth.signOut();
-      setIsAuthorized(false);
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Synchronous initial check
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsAuthorized(false);
-        return;
-      }
-
-      checkAuth(session);
-    };
-
-    // Check role and set authorization
+    // Immediate session check
     const checkAuth = async (session: any) => {
       try {
         const { data: profile } = await supabase
@@ -65,31 +61,47 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         const hasRequiredRole = profile?.role === requiredRole;
         
         if (!hasRequiredRole) {
+          localStorage.removeItem('supabase.auth.token');
+          sessionStorage.clear();
           await supabase.auth.signOut();
           toast.error("Accès non autorisé");
         }
 
-        setIsAuthorized(hasRequiredRole);
+        if (mounted) {
+          setIsAuthorized(hasRequiredRole);
+        }
       } catch (error) {
         console.error('Auth check error:', error);
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
         await supabase.auth.signOut();
-        setIsAuthorized(false);
+        if (mounted) {
+          setIsAuthorized(false);
+        }
         toast.error("Erreur d'authentification");
       }
     };
 
-    checkInitialSession();
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && mounted) {
+        setIsAuthorized(false);
+      } else if (session) {
+        checkAuth(session);
+      }
+    });
 
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' && mounted) {
         setIsAuthorized(false);
-      } else if (session) {
+      } else if (session && mounted) {
         await checkAuth(session);
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
