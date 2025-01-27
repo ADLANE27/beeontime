@@ -116,13 +116,10 @@ const Portal = () => {
             theme="light"
             providers={[]}
             redirectTo={window.location.origin}
-            onError={(error) => {
-              console.error("Auth error:", error);
-              toast.error("Erreur de connexion. Vérifiez vos identifiants.");
-            }}
+            onlyThirdPartyProviders={false}
+            magicLink={false}
             showLinks={false}
             view="sign_in"
-            magicLink={false}
           />
         </div>
 
