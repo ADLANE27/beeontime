@@ -15,12 +15,16 @@ const HRPortal = () => {
     const checkUserRole = async () => {
       if (session?.user) {
         try {
-          const { data: profile } = await supabase
+          console.log("Checking user role for:", session.user.email);
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
 
+          if (error) throw error;
+
+          console.log("User profile:", profile);
           if (profile?.role === 'hr') {
             navigate('/hr');
           } else {

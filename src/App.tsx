@@ -29,18 +29,23 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   useEffect(() => {
     const checkAuth = async () => {
       if (!session) {
+        console.log("No session found, setting isAuthorized to false");
         setIsAuthorized(false);
         return;
       }
 
       try {
-        const { data: profile } = await supabase
+        console.log("Checking authorization for user:", session.user.email);
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
+        if (error) throw error;
+
         const hasRequiredRole = profile?.role === requiredRole;
+        console.log("User role check:", { profile, hasRequiredRole });
         
         if (!hasRequiredRole) {
           toast.error("Accès non autorisé");
