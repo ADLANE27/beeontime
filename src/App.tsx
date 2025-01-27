@@ -22,20 +22,27 @@ const queryClient = new QueryClient({
   },
 });
 
+const MAX_VERIFICATION_ATTEMPTS = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const { session, isLoading } = useAuth();
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const { session, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
+    let isMounted = true;
+    let retryTimeout: NodeJS.Timeout;
+
     const checkAuth = async () => {
-      if (!session) {
-        console.log("No session found, setting isAuthorized to false");
-        setIsAuthorized(false);
+      if (!session?.user) {
+        if (isMounted) {
+          setIsAuthorized(false);
+        }
         return;
       }
 
       try {
-        console.log("Checking authorization for user:", session.user.email);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
@@ -44,36 +51,77 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
         if (error) throw error;
 
-        const hasRequiredRole = profile?.role === requiredRole;
-        console.log("User role check:", { profile, hasRequiredRole });
+        if (!profile) {
+          throw new Error("Profile not found");
+        }
+
+        const hasRequiredRole = profile.role === requiredRole;
         
         if (!hasRequiredRole) {
           toast.error("Accès non autorisé");
           await supabase.auth.signOut();
         }
 
-        setIsAuthorized(hasRequiredRole);
+        if (isMounted) {
+          setIsAuthorized(hasRequiredRole);
+        }
       } catch (error) {
         console.error('Auth check error:', error);
-        toast.error("Erreur d'authentification");
-        await supabase.auth.signOut();
-        setIsAuthorized(false);
+        
+        if (isMounted) {
+          if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS - 1) {
+            setVerificationAttempts(prev => prev + 1);
+            retryTimeout = setTimeout(checkAuth, RETRY_DELAY);
+          } else {
+            toast.error("Erreur de vérification du profil");
+            await supabase.auth.signOut();
+            setIsAuthorized(false);
+          }
+        }
       }
     };
 
-    checkAuth();
-  }, [session, requiredRole]);
+    if (!isAuthLoading) {
+      checkAuth();
+    }
 
-  if (isLoading) {
+    return () => {
+      isMounted = false;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [session, requiredRole, isAuthLoading, verificationAttempts]);
+
+  if (isAuthLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Vérification...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <div className="space-y-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Vérification de l'authentification...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthorized) {
+  if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <div className="space-y-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Vérification du profil...</p>
+          {verificationAttempts > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Tentative {verificationAttempts + 1}/{MAX_VERIFICATION_ATTEMPTS}
+            </p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
