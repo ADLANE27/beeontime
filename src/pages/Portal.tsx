@@ -5,31 +5,23 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
+import { Building2, Lock } from "lucide-react";
 
 const Portal = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .maybeSingle();
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        handleAuthenticatedUser(session);
+      }
+    });
 
-          if (profile?.role === 'employee') {
-            navigate('/employee');
-          } else if (profile?.role === 'hr') {
-            navigate('/hr');
-          }
-        } catch (err) {
-          console.error("Profile check error:", err);
-          toast.error("Une erreur est survenue lors de la connexion");
-          await supabase.auth.signOut();
-        }
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        handleAuthenticatedUser(session);
       }
     });
 
@@ -38,29 +30,53 @@ const Portal = () => {
     };
   }, [navigate]);
 
+  const handleAuthenticatedUser = async (session: any) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role === 'employee') {
+        navigate('/employee');
+      } else if (profile?.role === 'hr') {
+        navigate('/hr');
+      } else {
+        throw new Error("Rôle non reconnu");
+      }
+    } catch (err) {
+      console.error("Auth error:", err);
+      toast.error("Erreur d'authentification");
+      await supabase.auth.signOut();
+      navigate('/portal');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <div className="flex flex-col items-center space-y-6">
-          <div className="bg-primary/5 p-3 rounded-full">
-            <Lock className="h-6 w-6 text-primary" />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="bg-white p-3 rounded-full shadow-sm">
+            <Building2 className="h-8 w-8 text-primary" />
           </div>
-          
           <img 
             src="/lovable-uploads/ebd70f88-aacb-40cd-b225-d94a0c0f1903.png" 
             alt="AFTraduction Logo" 
             className="h-16 w-auto"
           />
-          
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">Portail Employé</h1>
-            <p className="text-sm text-gray-600">
-              Connectez-vous pour accéder à votre espace
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Portail Employé</h1>
+          <p className="text-sm text-gray-600 text-center">
+            Connectez-vous pour accéder à votre espace
+          </p>
         </div>
 
-        <div className="mt-8">
+        <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-6 p-3 bg-primary/5 rounded-lg">
+            <Lock className="h-4 w-4 text-primary" />
+            <span className="text-sm text-primary">Connexion sécurisée</span>
+          </div>
+
           <Auth
             supabaseClient={supabase}
             appearance={{ 
@@ -100,7 +116,7 @@ const Portal = () => {
                   email_label: 'Adresse email',
                   password_label: 'Mot de passe',
                   button_label: 'Se connecter',
-                  loading_button_label: 'Connexion...',
+                  loading_button_label: 'Vérification...',
                   email_input_placeholder: 'Votre adresse email',
                   password_input_placeholder: 'Votre mot de passe'
                 }
@@ -109,17 +125,16 @@ const Portal = () => {
             theme="light"
             providers={[]}
             redirectTo={window.location.origin}
-            onlyThirdPartyProviders={false}
-            magicLink={false}
             showLinks={false}
             view="sign_in"
+            magicLink={false}
           />
-        </div>
+        </Card>
 
         <p className="text-center text-sm text-gray-600 mt-8">
           © {new Date().getFullYear()} AFTraduction. Tous droits réservés.
         </p>
-      </Card>
+      </div>
     </div>
   );
 };

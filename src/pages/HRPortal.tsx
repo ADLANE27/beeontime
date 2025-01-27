@@ -11,27 +11,17 @@ const HRPortal = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .maybeSingle();
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        handleAuthenticatedUser(session);
+      }
+    });
 
-          if (profile?.role === 'hr') {
-            navigate('/hr');
-          } else {
-            await supabase.auth.signOut();
-            toast.error("Vous n'avez pas accès au portail RH");
-            navigate('/portal');
-          }
-        } catch (err) {
-          console.error("Role check error:", err);
-          toast.error("Une erreur est survenue lors de la connexion");
-          await supabase.auth.signOut();
-        }
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        handleAuthenticatedUser(session);
       }
     });
 
@@ -39,6 +29,29 @@ const HRPortal = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const handleAuthenticatedUser = async (session: any) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role === 'hr') {
+        navigate('/hr');
+      } else {
+        await supabase.auth.signOut();
+        toast.error("Vous n'avez pas accès au portail RH");
+        navigate('/portal');
+      }
+    } catch (err) {
+      console.error("Auth error:", err);
+      toast.error("Erreur d'authentification");
+      await supabase.auth.signOut();
+      navigate('/portal');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
@@ -103,7 +116,7 @@ const HRPortal = () => {
                   email_label: 'Adresse email',
                   password_label: 'Mot de passe',
                   button_label: 'Se connecter',
-                  loading_button_label: 'Connexion...',
+                  loading_button_label: 'Vérification...',
                   email_input_placeholder: 'Votre adresse email',
                   password_input_placeholder: 'Votre mot de passe'
                 }
