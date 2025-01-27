@@ -14,7 +14,10 @@ const HRPortal = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      if (!session?.user) return;
+      if (!session?.user) {
+        console.log("No session found, skipping role check");
+        return;
+      }
 
       try {
         console.log("Checking role for user:", session.user.email);
@@ -26,7 +29,11 @@ const HRPortal = () => {
 
         if (error) {
           console.error("Profile fetch error:", error);
-          toast.error("Erreur lors de la vérification du profil");
+          if (error.message.includes("Failed to fetch")) {
+            toast.error("Erreur de connexion au serveur. Veuillez vérifier votre connexion internet.");
+          } else {
+            toast.error("Erreur lors de la vérification du profil");
+          }
           return;
         }
 
@@ -43,8 +50,10 @@ const HRPortal = () => {
       }
     };
 
-    checkUserRole();
-  }, [session, navigate]);
+    if (!isLoading) {
+      checkUserRole();
+    }
+  }, [session, navigate, isLoading]);
 
   if (isLoading) {
     return (
