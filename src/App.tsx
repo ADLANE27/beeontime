@@ -23,11 +23,12 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const { session, isLoading: isAuthLoading, signOut } = useAuth();
+  const { session, isLoading, signOut } = useAuth();
 
   useEffect(() => {
     const checkAuth = async () => {
       if (!session?.user) {
+        console.log("No session found, redirecting to login");
         await signOut();
         return;
       }
@@ -46,15 +47,8 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           return;
         }
 
-        if (!profile) {
-          console.error("Profile not found");
-          toast.error("Profil non trouvé");
-          await signOut();
-          return;
-        }
-
-        if (profile.role !== requiredRole) {
-          console.log("Unauthorized access attempt");
+        if (!profile || profile.role !== requiredRole) {
+          console.log("Unauthorized access or profile not found");
           toast.error("Accès non autorisé");
           await signOut();
         }
@@ -65,12 +59,12 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       }
     };
 
-    if (!isAuthLoading && session) {
+    if (!isLoading && session) {
       checkAuth();
     }
-  }, [session, requiredRole, isAuthLoading, signOut]);
+  }, [session, requiredRole, isLoading, signOut]);
 
-  if (isAuthLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
