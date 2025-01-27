@@ -10,6 +10,7 @@
 [build.environment]
   VITE_SUPABASE_URL = "https://tedjuorbafahlnplndye.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlZGp1b3JiYWZhaGxucGxuZHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMzMzIsImV4cCI6MjA1MjUyOTMzMn0.E2MGml0yB8CzI8tCs5EEwl96NDcY9KrpKFTQ_sqfs-8"
+  VITE_SITE_URL = "https://beeontime.lovable.app"
 
 [functions]
   directory = "supabase/functions"
