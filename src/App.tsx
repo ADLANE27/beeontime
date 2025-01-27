@@ -43,14 +43,18 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Synchronous initial check
-    const session = supabase.auth.session();
-    if (!session) {
-      setIsAuthorized(false);
-      return;
-    }
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsAuthorized(false);
+        return;
+      }
+
+      checkAuth(session);
+    };
 
     // Check role and set authorization
-    const checkAuth = async () => {
+    const checkAuth = async (session: any) => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -74,14 +78,14 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       }
     };
 
-    checkAuth();
+    checkInitialSession();
 
     // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setIsAuthorized(false);
-      } else {
-        await checkAuth();
+      } else if (session) {
+        await checkAuth(session);
       }
     });
 
