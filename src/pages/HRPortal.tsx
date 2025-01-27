@@ -30,7 +30,10 @@ const HRPortal = () => {
         if (error) {
           console.error("Profile fetch error:", error);
           if (error.message.includes("Failed to fetch")) {
-            toast.error("Erreur de connexion au serveur. Veuillez vérifier votre connexion internet.");
+            toast.error("Erreur de connexion au serveur. Veuillez réessayer.");
+          } else if (error.code === 'PGRST301') {
+            toast.error("Erreur d'authentification. Veuillez vous reconnecter.");
+            await supabase.auth.signOut();
           } else {
             toast.error("Erreur lors de la vérification du profil");
           }
@@ -42,6 +45,7 @@ const HRPortal = () => {
         if (profile?.role === 'hr') {
           navigate('/hr');
         } else {
+          console.log("User does not have HR role, redirecting to portal");
           navigate('/portal');
         }
       } catch (error) {
