@@ -23,36 +23,35 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Immediately sign out when tab/window closes or hides
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        setIsAuthorized(false);
-        setIsLoading(false);
         supabase.auth.signOut();
+        setIsAuthorized(false);
       }
     };
 
+    // Immediately sign out before unload
     const handleBeforeUnload = () => {
-      setIsAuthorized(false);
-      setIsLoading(false);
       supabase.auth.signOut();
+      setIsAuthorized(false);
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
+    // Synchronous initial check
+    const session = supabase.auth.session();
+    if (!session) {
+      setIsAuthorized(false);
+      return;
+    }
+
+    // Check role and set authorization
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          setIsAuthorized(false);
-          setIsLoading(false);
-          return;
-        }
-
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -67,26 +66,23 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         }
 
         setIsAuthorized(hasRequiredRole);
-        setIsLoading(false);
       } catch (error) {
         console.error('Auth check error:', error);
-        setIsAuthorized(false);
-        setIsLoading(false);
         await supabase.auth.signOut();
+        setIsAuthorized(false);
         toast.error("Erreur d'authentification");
       }
     };
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
         setIsAuthorized(false);
-        setIsLoading(false);
-        return;
+      } else {
+        await checkAuth();
       }
-
-      await checkAuth();
     });
 
     return () => {
@@ -95,14 +91,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [requiredRole]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   if (!isAuthorized) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
