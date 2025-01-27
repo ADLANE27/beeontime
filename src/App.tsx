@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +9,9 @@ import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { supabase } from "./integrations/supabase/client";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
