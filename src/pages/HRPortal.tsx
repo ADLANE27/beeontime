@@ -4,54 +4,44 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
 import { Building2, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HRPortal = () => {
   const navigate = useNavigate();
+  const { session, isLoading } = useAuth();
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        handleAuthenticatedUser(session);
-      }
-    });
+    const checkUserRole = async () => {
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        handleAuthenticatedUser(session);
+          if (profile?.role === 'hr') {
+            navigate('/hr');
+          } else {
+            navigate('/portal');
+          }
+        } catch (error) {
+          console.error("Error checking user role:", error);
+        }
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
-  }, [navigate]);
 
-  const handleAuthenticatedUser = async (session: any) => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+    checkUserRole();
+  }, [session, navigate]);
 
-      if (profile?.role === 'hr') {
-        navigate('/hr');
-      } else {
-        await supabase.auth.signOut();
-        toast.error("Vous n'avez pas accès au portail RH");
-        navigate('/portal');
-      }
-    } catch (err) {
-      console.error("Auth error:", err);
-      toast.error("Erreur d'authentification");
-      await supabase.auth.signOut();
-      navigate('/portal');
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <p className="text-muted-foreground">Vérification...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
