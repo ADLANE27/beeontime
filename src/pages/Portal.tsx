@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -6,39 +6,72 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
-  const { session, isLoading } = useAuth();
+  const { session, isLoading: isAuthLoading } = useAuth();
+  const [isCheckingRole, setIsCheckingRole] = useState(false);
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (session?.user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
+    let isMounted = true;
 
-          if (profile?.role === 'employee') {
-            navigate('/employee');
-          } else if (profile?.role === 'hr') {
-            navigate('/hr');
-          }
-        } catch (error) {
-          console.error("Error checking user role:", error);
+    const checkUserRole = async () => {
+      if (!session?.user) return;
+
+      try {
+        setIsCheckingRole(true);
+        console.log("Checking role for user:", session.user.email);
+        
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Profile fetch error:", error);
+          toast.error("Erreur lors de la vérification du profil");
+          return;
+        }
+
+        if (!isMounted) return;
+
+        console.log("User profile data:", profile);
+        
+        if (profile?.role === 'employee') {
+          console.log("User has employee role, redirecting to /employee");
+          navigate('/employee', { replace: true });
+        } else if (profile?.role === 'hr') {
+          console.log("User has HR role, redirecting to /hr");
+          navigate('/hr', { replace: true });
+        }
+      } catch (error) {
+        console.error("Role check error:", error);
+        toast.error("Erreur lors de la vérification du rôle");
+      } finally {
+        if (isMounted) {
+          setIsCheckingRole(false);
         }
       }
     };
 
     checkUserRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [session, navigate]);
 
-  if (isLoading) {
+  if (isAuthLoading || isCheckingRole) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <p className="text-muted-foreground">Vérification...</p>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">
+            {isAuthLoading ? "Vérification de l'authentification..." : "Vérification du profil..."}
+          </p>
+        </div>
       </div>
     );
   }
