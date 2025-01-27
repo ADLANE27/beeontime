@@ -10,6 +10,7 @@ import HRDashboard from "./pages/hr/HRDashboard";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { toast } from "sonner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,12 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
+    const cleanupAuth = () => {
+      supabase.auth.signOut().then(() => {
+        setIsAuthorized(false);
+      });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session) {
         setIsAuthorized(false);
@@ -37,33 +44,28 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           .eq('id', session.user.id)
           .maybeSingle();
 
-        setIsAuthorized(profile?.role === requiredRole);
+        const hasRequiredRole = profile?.role === requiredRole;
+        setIsAuthorized(hasRequiredRole);
+        
+        if (!hasRequiredRole) {
+          cleanupAuth();
+          toast.error("Accès non autorisé");
+        }
       } catch (error) {
         console.error('Auth state change error:', error);
         setIsAuthorized(false);
+        cleanupAuth();
+        toast.error("Erreur d'authentification");
       }
     });
 
-    const handleTabClose = () => {
-      supabase.auth.signOut();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        supabase.auth.signOut();
-        setIsAuthorized(false);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleTabClose);
-    window.addEventListener('unload', handleTabClose);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', cleanupAuth);
+    window.addEventListener('unload', cleanupAuth);
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('beforeunload', handleTabClose);
-      window.removeEventListener('unload', handleTabClose);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', cleanupAuth);
+      window.removeEventListener('unload', cleanupAuth);
     };
   }, [requiredRole]);
 
@@ -75,36 +77,38 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/portal" replace />} />
-          <Route path="/portal" element={<Portal />} />
-          <Route path="/hr-portal" element={<HRPortal />} />
-          <Route 
-            path="/employee/*" 
-            element={
-              <ProtectedRoute requiredRole="employee">
-                <EmployeeDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hr/*" 
-            element={
-              <ProtectedRoute requiredRole="hr">
-                <HRDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<Navigate to="/portal" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/portal" replace />} />
+            <Route path="/portal" element={<Portal />} />
+            <Route path="/hr-portal" element={<HRPortal />} />
+            <Route 
+              path="/employee/*" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <EmployeeDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hr/*" 
+              element={
+                <ProtectedRoute requiredRole="hr">
+                  <HRDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/portal" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -23,6 +23,7 @@ const HRPortal = () => {
           if (profile?.role === 'hr') {
             navigate('/hr', { replace: true });
           } else {
+            await supabase.auth.signOut();
             toast.error("Vous n'avez pas accès au portail RH");
             navigate('/portal', { replace: true });
           }
@@ -30,6 +31,7 @@ const HRPortal = () => {
           console.error("Role check error:", err);
           const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
           toast.error(errorMessage);
+          await supabase.auth.signOut();
         }
       }
     });

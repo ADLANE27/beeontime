@@ -28,6 +28,7 @@ const Portal = () => {
           console.error("Profile check error:", err);
           const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
           toast.error(errorMessage);
+          await supabase.auth.signOut();
         }
       }
     });
