@@ -23,21 +23,36 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const cleanupAuth = () => {
-      supabase.auth.signOut().then(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
         setIsAuthorized(false);
-      });
+        setIsLoading(false);
+        supabase.auth.signOut();
+      }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!session) {
-        setIsAuthorized(false);
-        return;
-      }
+    const handleBeforeUnload = () => {
+      setIsAuthorized(false);
+      setIsLoading(false);
+      supabase.auth.signOut();
+    };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    const checkAuth = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setIsAuthorized(false);
+          setIsLoading(false);
+          return;
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -45,29 +60,49 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           .maybeSingle();
 
         const hasRequiredRole = profile?.role === requiredRole;
-        setIsAuthorized(hasRequiredRole);
         
         if (!hasRequiredRole) {
-          cleanupAuth();
+          await supabase.auth.signOut();
           toast.error("Accès non autorisé");
         }
+
+        setIsAuthorized(hasRequiredRole);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Auth state change error:', error);
+        console.error('Auth check error:', error);
         setIsAuthorized(false);
-        cleanupAuth();
+        setIsLoading(false);
+        await supabase.auth.signOut();
         toast.error("Erreur d'authentification");
       }
-    });
+    };
 
-    window.addEventListener('beforeunload', cleanupAuth);
-    window.addEventListener('unload', cleanupAuth);
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
+      }
+
+      await checkAuth();
+    });
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('beforeunload', cleanupAuth);
-      window.removeEventListener('unload', cleanupAuth);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [requiredRole]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!isAuthorized) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
