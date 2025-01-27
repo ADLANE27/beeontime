@@ -43,10 +43,11 @@ const HRPortal = () => {
         console.log("User profile data:", profile);
         
         if (profile?.role === 'hr') {
-          navigate('/hr');
+          console.log("User has HR role, redirecting to /hr");
+          navigate('/hr', { replace: true });
         } else {
           console.log("User does not have HR role, redirecting to portal");
-          navigate('/portal');
+          navigate('/portal', { replace: true });
         }
       } catch (error) {
         console.error("Role check error:", error);
@@ -54,15 +55,26 @@ const HRPortal = () => {
       }
     };
 
-    if (!isLoading) {
+    // Only check role when we have a session and we're not loading
+    if (session && !isLoading) {
       checkUserRole();
     }
   }, [session, navigate, isLoading]);
 
+  // Show loading state while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <p className="text-muted-foreground">Vérification...</p>
+      </div>
+    );
+  }
+
+  // If we have a session, show loading while we check the role
+  if (session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <p className="text-muted-foreground">Redirection...</p>
       </div>
     );
   }
