@@ -18,15 +18,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          toast.error("Erreur de connexion");
+          return;
+        }
+
+        if (initialSession?.user) {
+          console.log("Initial session user:", initialSession.user.email);
+          setSession(initialSession);
+          setUser(initialSession.user);
+        }
       } catch (error) {
-        console.error("Error getting initial session:", error);
-        toast.error("Erreur lors de l'initialisation de la session");
+        console.error("Auth initialization error:", error);
+        toast.error("Erreur d'initialisation");
       } finally {
         setIsLoading(false);
       }
@@ -34,15 +43,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log("Auth state changed:", _event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("Auth state changed:", event, currentSession?.user?.email);
+      
+      if (currentSession?.user) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+      } else {
+        setSession(null);
+        setUser(null);
       }
-    );
+      
+      setIsLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -51,10 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       toast.success("Déconnexion réussie");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Sign out error:", error);
       toast.error("Erreur lors de la déconnexion");
     }
   };

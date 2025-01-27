@@ -6,6 +6,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const HRPortal = () => {
   const navigate = useNavigate();
@@ -13,26 +14,32 @@ const HRPortal = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      if (session?.user) {
-        try {
-          console.log("Checking user role for:", session.user.email);
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
+      if (!session?.user) return;
 
-          if (error) throw error;
+      try {
+        console.log("Checking role for user:", session.user.email);
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-          console.log("User profile:", profile);
-          if (profile?.role === 'hr') {
-            navigate('/hr');
-          } else {
-            navigate('/portal');
-          }
-        } catch (error) {
-          console.error("Error checking user role:", error);
+        if (error) {
+          console.error("Profile fetch error:", error);
+          toast.error("Erreur lors de la vérification du profil");
+          return;
         }
+
+        console.log("User profile data:", profile);
+        
+        if (profile?.role === 'hr') {
+          navigate('/hr');
+        } else {
+          navigate('/portal');
+        }
+      } catch (error) {
+        console.error("Role check error:", error);
+        toast.error("Erreur de vérification du rôle");
       }
     };
 
