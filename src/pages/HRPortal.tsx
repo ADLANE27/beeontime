@@ -21,16 +21,15 @@ const HRPortal = () => {
             .maybeSingle();
 
           if (profile?.role === 'hr') {
-            navigate('/hr', { replace: true });
+            navigate('/hr');
           } else {
             await supabase.auth.signOut();
             toast.error("Vous n'avez pas accès au portail RH");
-            navigate('/portal', { replace: true });
+            navigate('/portal');
           }
         } catch (err) {
           console.error("Role check error:", err);
-          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          toast.error(errorMessage);
+          toast.error("Une erreur est survenue lors de la connexion");
           await supabase.auth.signOut();
         }
       }
@@ -104,7 +103,7 @@ const HRPortal = () => {
                   email_label: 'Adresse email',
                   password_label: 'Mot de passe',
                   button_label: 'Se connecter',
-                  loading_button_label: 'Connexion en cours...',
+                  loading_button_label: 'Connexion...',
                   email_input_placeholder: 'Votre adresse email',
                   password_input_placeholder: 'Votre mot de passe'
                 }

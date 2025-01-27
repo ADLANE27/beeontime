@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -9,33 +9,26 @@ import { Lock } from "lucide-react";
 
 const Portal = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        setIsLoading(true);
         try {
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profileError) throw profileError;
-
           if (profile?.role === 'employee') {
-            navigate('/employee', { replace: true });
+            navigate('/employee');
           } else if (profile?.role === 'hr') {
-            navigate('/hr-portal', { replace: true });
+            navigate('/hr');
           }
         } catch (err) {
           console.error("Profile check error:", err);
-          const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          toast.error(errorMessage);
+          toast.error("Une erreur est survenue lors de la connexion");
           await supabase.auth.signOut();
-        } finally {
-          setIsLoading(false);
         }
       }
     });
@@ -106,8 +99,8 @@ const Portal = () => {
                 sign_in: {
                   email_label: 'Adresse email',
                   password_label: 'Mot de passe',
-                  button_label: isLoading ? 'Connexion en cours...' : 'Se connecter',
-                  loading_button_label: 'Connexion en cours...',
+                  button_label: 'Se connecter',
+                  loading_button_label: 'Connexion...',
                   email_input_placeholder: 'Votre adresse email',
                   password_input_placeholder: 'Votre mot de passe'
                 }
