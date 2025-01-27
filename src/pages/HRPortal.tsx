@@ -1,107 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { Building2, Lock } from "lucide-react";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log("Checking authentication status...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          throw new Error("Erreur lors de la vérification de la session");
-        }
+        if (!session) return;
 
-        if (session) {
-          // Check session expiration
-          const expiresAt = new Date(session.expires_at! * 1000);
-          if (expiresAt <= new Date()) {
-            console.log("Session expired");
-            await supabase.auth.signOut();
-            setIsLoading(false);
-            return;
-          }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-          console.log("Session found, checking user role...");
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error("Profile error:", profileError);
-            throw new Error("Erreur lors de la vérification du profil");
-          }
-
-          console.log("User profile:", profile);
-          if (profile?.role === 'hr') {
-            console.log("HR role confirmed, redirecting to /hr");
-            navigate('/hr', { replace: true });
-          } else {
-            setError("Vous n'avez pas accès au portail RH");
-            setTimeout(() => {
-              navigate('/portal', { replace: true });
-            }, 2000);
-          }
+        if (profile?.role === 'hr') {
+          navigate('/hr', { replace: true });
+        } else {
+          toast.error("Vous n'avez pas accès au portail RH");
+          setTimeout(() => {
+            navigate('/portal', { replace: true });
+          }, 2000);
         }
       } catch (err) {
         console.error("Authentication check error:", err);
         const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-        setError(errorMessage);
         toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
-      
-      if (event === 'SIGNED_IN' && session) {
-        setIsLoading(true);
-        
-        // Check session expiration on auth state change
-        const expiresAt = new Date(session.expires_at! * 1000);
-        if (expiresAt <= new Date()) {
-          console.log("Session expired during auth state change");
-          await supabase.auth.signOut();
-          setIsLoading(false);
-          return;
-        }
+    checkAuth();
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
         try {
-          console.log("User signed in, checking role...");
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profileError) {
-            console.error("Profile error:", profileError);
-            throw new Error("Erreur lors de la vérification du profil");
-          }
-
-          console.log("User profile after sign in:", profile);
           if (profile?.role === 'hr') {
-            console.log("HR role confirmed, redirecting to /hr");
             navigate('/hr', { replace: true });
           } else {
-            setError("Vous n'avez pas accès au portail RH");
+            toast.error("Vous n'avez pas accès au portail RH");
             setTimeout(() => {
               navigate('/portal', { replace: true });
             }, 2000);
@@ -109,28 +61,15 @@ const HRPortal = () => {
         } catch (err) {
           console.error("Role check error:", err);
           const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-          setError(errorMessage);
           toast.error(errorMessage);
-        } finally {
-          setIsLoading(false);
         }
       }
     });
-
-    checkAuth();
 
     return () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
@@ -151,12 +90,6 @@ const HRPortal = () => {
         </div>
 
         <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
           <div className="flex items-center gap-2 mb-6 p-3 bg-primary/5 rounded-lg">
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>

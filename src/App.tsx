@@ -26,40 +26,22 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError || !session) {
-          console.log('No valid session found');
+        if (!session) {
           setIsAuthorized(false);
           return;
         }
 
-        // Check session expiration
-        const expiresAt = new Date(session.expires_at! * 1000);
-        if (expiresAt <= new Date()) {
-          console.log('Session expired');
-          await supabase.auth.signOut();
-          setIsAuthorized(false);
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profileError) {
-          console.error('Profile error:', profileError);
-          toast.error("Erreur lors de la vérification du profil");
-          setIsAuthorized(false);
-          return;
-        }
-
         setIsAuthorized(profile?.role === requiredRole);
       } catch (error) {
-        console.error('Unexpected error:', error);
-        toast.error("Une erreur inattendue est survenue");
+        console.error('Auth error:', error);
         setIsAuthorized(false);
       }
     };
@@ -72,56 +54,31 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         return;
       }
 
-      const expiresAt = new Date(session.expires_at! * 1000);
-      if (expiresAt <= new Date()) {
-        await supabase.auth.signOut();
-        setIsAuthorized(false);
-        return;
-      }
-
       try {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profileError) {
-          toast.error("Erreur lors de la vérification du profil");
-          setIsAuthorized(false);
-          return;
-        }
-
         setIsAuthorized(profile?.role === requiredRole);
       } catch (error) {
-        toast.error("Une erreur inattendue est survenue");
+        console.error('Auth state change error:', error);
         setIsAuthorized(false);
       }
     });
 
-    // Force sign out when tab/window is closed
-    const handleTabClose = async () => {
-      await supabase.auth.signOut();
+    const handleTabClose = () => {
+      supabase.auth.signOut();
     };
 
     window.addEventListener('beforeunload', handleTabClose);
     window.addEventListener('unload', handleTabClose);
 
-    // Add visibility change listener
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        await supabase.auth.signOut();
-        setIsAuthorized(false);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('beforeunload', handleTabClose);
       window.removeEventListener('unload', handleTabClose);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [requiredRole]);
 
