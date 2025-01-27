@@ -24,30 +24,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          setIsAuthorized(false);
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        setIsAuthorized(profile?.role === requiredRole);
-      } catch (error) {
-        console.error('Auth error:', error);
-        setIsAuthorized(false);
-      }
-    };
-
-    checkAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session) {
         setIsAuthorized(false);
@@ -72,13 +48,22 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       supabase.auth.signOut();
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.signOut();
+        setIsAuthorized(false);
+      }
+    };
+
     window.addEventListener('beforeunload', handleTabClose);
     window.addEventListener('unload', handleTabClose);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('beforeunload', handleTabClose);
       window.removeEventListener('unload', handleTabClose);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [requiredRole]);
 

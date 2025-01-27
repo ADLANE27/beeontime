@@ -4,39 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) return;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (profile?.role === 'employee') {
-          navigate('/employee', { replace: true });
-        } else if (profile?.role === 'hr') {
-          navigate('/hr-portal', { replace: true });
-        }
-      } catch (err) {
-        console.error("Authentication error:", err);
-        const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-        toast.error(errorMessage);
-      }
-    };
-
-    checkUser();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         try {

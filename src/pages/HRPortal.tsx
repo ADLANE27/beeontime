@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Building2, Lock } from "lucide-react";
 
@@ -12,35 +11,6 @@ const HRPortal = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) return;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (profile?.role === 'hr') {
-          navigate('/hr', { replace: true });
-        } else {
-          toast.error("Vous n'avez pas accès au portail RH");
-          setTimeout(() => {
-            navigate('/portal', { replace: true });
-          }, 2000);
-        }
-      } catch (err) {
-        console.error("Authentication check error:", err);
-        const errorMessage = err instanceof Error ? err.message : "Une erreur inattendue s'est produite";
-        toast.error(errorMessage);
-      }
-    };
-
-    checkAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         try {
@@ -54,9 +24,7 @@ const HRPortal = () => {
             navigate('/hr', { replace: true });
           } else {
             toast.error("Vous n'avez pas accès au portail RH");
-            setTimeout(() => {
-              navigate('/portal', { replace: true });
-            }, 2000);
+            navigate('/portal', { replace: true });
           }
         } catch (err) {
           console.error("Role check error:", err);
