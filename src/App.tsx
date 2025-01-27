@@ -28,7 +28,7 @@ const RETRY_DELAY = 2000; // 2 seconds
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const { session, isLoading: isAuthLoading } = useAuth();
+  const { session, isLoading: isAuthLoading, signOut } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -38,43 +38,57 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       if (!session?.user) {
         if (isMounted) {
           setIsAuthorized(false);
+          // Si pas de session, on force la déconnexion pour nettoyer
+          await signOut();
         }
         return;
       }
 
       try {
+        console.log("Checking auth for user:", session.user.email);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Profile fetch error:", error);
+          throw error;
+        }
 
         if (!profile) {
+          console.error("Profile not found");
           throw new Error("Profile not found");
         }
 
         const hasRequiredRole = profile.role === requiredRole;
+        console.log("Has required role:", hasRequiredRole);
         
         if (!hasRequiredRole) {
+          console.log("Unauthorized access attempt");
           toast.error("Accès non autorisé");
-          await supabase.auth.signOut();
+          await signOut();
         }
 
         if (isMounted) {
           setIsAuthorized(hasRequiredRole);
+          if (hasRequiredRole) {
+            setVerificationAttempts(0); // Reset attempts on success
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
         
         if (isMounted) {
           if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS - 1) {
+            console.log(`Retry attempt ${verificationAttempts + 1}/${MAX_VERIFICATION_ATTEMPTS}`);
             setVerificationAttempts(prev => prev + 1);
             retryTimeout = setTimeout(checkAuth, RETRY_DELAY);
           } else {
+            console.log("Max verification attempts reached");
             toast.error("Erreur de vérification du profil");
-            await supabase.auth.signOut();
+            await signOut();
             setIsAuthorized(false);
           }
         }
@@ -91,7 +105,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         clearTimeout(retryTimeout);
       }
     };
-  }, [session, requiredRole, isAuthLoading, verificationAttempts]);
+  }, [session, requiredRole, isAuthLoading, verificationAttempts, signOut]);
 
   if (isAuthLoading) {
     return (
