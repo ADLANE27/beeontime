@@ -1,15 +1,17 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Phone, Building, Calendar, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ContractType, Position, WorkSchedule } from "@/types/hr";
+import { toast } from "sonner";
 
 interface Employee {
   id: string;
@@ -145,10 +147,56 @@ const EmployeeCard = ({ employee }: { employee: Employee }) => {
 
 export const EmployeesList = () => {
   const [isNewEmployeeDialogOpen, setIsNewEmployeeDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
+  // Set up real-time subscription
+  useEffect(() => {
+    console.log('Setting up real-time subscription for employees...');
+    
+    const channel = supabase
+      .channel('employees-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'employees'
+        },
+        async (payload) => {
+          console.log('Received real-time update:', payload);
+          // Invalidate and refetch the employees query
+          await queryClient.invalidateQueries({ queryKey: ['employees'] });
+          
+          // Show toast notification for updates
+          const action = payload.eventType === 'INSERT' ? 'ajouté' 
+            : payload.eventType === 'DELETE' ? 'supprimé' 
+            : 'mis à jour';
+          toast.info(`Un employé a été ${action}`);
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to employees changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to employees changes');
+          toast.error("Erreur de connexion aux mises à jour en temps réel");
+        }
+      });
+
+    // Cleanup subscription on component unmount
+    return () => {
+      console.log('Cleaning up employees subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Query with automatic background updates
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
+      console.log('Fetching employees data...');
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -163,7 +211,11 @@ export const EmployeesList = () => {
         ...employee,
         work_schedule: employee.work_schedule as WorkSchedule
       })) as Employee[];
-    }
+    },
+    // Enable background refetching
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 30000, // Refetch every 30 seconds as a fallback
   });
 
   if (isLoading) {
