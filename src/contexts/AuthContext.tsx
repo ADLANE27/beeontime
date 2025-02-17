@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,36 +17,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds
 
-  useEffect(() => {
-    console.log("AuthProvider: Initializing");
-    
-    const initializeAuth = async () => {
-      try {
-        console.log("AuthProvider: Getting initial session");
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+  // Initialize auth with retry mechanism
+  const initializeAuth = useCallback(async (retry = 0) => {
+    try {
+      console.log(`AuthProvider: Initializing (attempt ${retry + 1})`);
+      const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Session initialization error:", sessionError);
         
-        if (sessionError) {
-          console.error("Session initialization error:", sessionError);
-          toast.error("Erreur d'initialisation de la session");
+        if (retry < MAX_RETRIES) {
+          console.log(`Retrying initialization in ${RETRY_DELAY}ms...`);
+          setTimeout(() => initializeAuth(retry + 1), RETRY_DELAY);
           return;
         }
-
-        if (initialSession?.user) {
-          console.log("Initial session found for user:", initialSession.user.email);
-          setSession(initialSession);
-          setUser(initialSession.user);
-        } else {
-          console.log("No initial session found");
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        toast.error("Erreur d'initialisation de l'authentification");
-      } finally {
-        setIsLoading(false);
+        
+        toast.error("Erreur de connexion au service d'authentification");
+        return;
       }
+
+      if (initialSession?.user) {
+        console.log("Initial session found for user:", initialSession.user.email);
+        setSession(initialSession);
+        setUser(initialSession.user);
+        
+        // Check token expiration
+        const expiresAt = new Date((initialSession.expires_at ?? 0) * 1000);
+        const now = new Date();
+        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+        
+        if (timeUntilExpiry < 600000) { // Less than 10 minutes until expiry
+          console.log("Token expiring soon, refreshing...");
+          const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+          if (!error && refreshedSession) {
+            setSession(refreshedSession);
+            setUser(refreshedSession.user);
+          }
+        }
+      } else {
+        console.log("No initial session found");
+      }
+    } catch (error) {
+      console.error("Auth initialization error:", error);
+      if (retry < MAX_RETRIES) {
+        setTimeout(() => initializeAuth(retry + 1), RETRY_DELAY);
+        return;
+      }
+      toast.error("Erreur d'initialisation de l'authentification");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Handle network status changes
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("Network is online, reinitializing auth...");
+      initializeAuth();
     };
 
+    const handleOffline = () => {
+      console.log("Network is offline");
+      toast.error("Connexion internet perdue");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [initializeAuth]);
+
+  // Initialize auth and set up auth state change listener
+  useEffect(() => {
+    console.log("AuthProvider: Setting up auth state listener");
     initializeAuth();
 
     const {
@@ -53,34 +104,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log("Auth state changed:", event, currentSession?.user?.email);
       
-      if (event === 'SIGNED_IN') {
-        console.log("User signed in:", currentSession?.user?.email);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        toast.success("Connexion réussie");
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out");
-        setSession(null);
-        setUser(null);
-        toast.success("Déconnexion réussie");
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log("Token refreshed for user:", currentSession?.user?.email);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      } else if (event === 'USER_UPDATED') {
-        console.log("User updated:", currentSession?.user?.email);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+      switch (event) {
+        case 'SIGNED_IN':
+          console.log("User signed in:", currentSession?.user?.email);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          toast.success("Connexion réussie");
+          break;
+          
+        case 'SIGNED_OUT':
+          console.log("User signed out");
+          setSession(null);
+          setUser(null);
+          toast.success("Déconnexion réussie");
+          break;
+          
+        case 'TOKEN_REFRESHED':
+          console.log("Token refreshed for user:", currentSession?.user?.email);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          break;
+          
+        case 'USER_UPDATED':
+          console.log("User updated:", currentSession?.user?.email);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          break;
+          
+        case 'INITIAL_SESSION':
+          console.log("Initial session received");
+          if (currentSession) {
+            setSession(currentSession);
+            setUser(currentSession.user);
+          }
+          break;
       }
       
       setIsLoading(false);
     });
 
+    // Cleanup subscription on unmount
     return () => {
-      console.log("AuthProvider: Cleaning up");
+      console.log("AuthProvider: Cleaning up auth state listener");
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initializeAuth]);
 
   const signOut = async () => {
     try {
