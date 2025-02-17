@@ -17,25 +17,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 2000; // 2 seconds
+  const [lastActiveTimestamp, setLastActiveTimestamp] = useState<number>(Date.now());
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
-  // Initialize auth with retry mechanism
-  const initializeAuth = useCallback(async (retry = 0) => {
+  const handleVisibilityChange = useCallback(() => {
+    if (document.hidden) {
+      // User is leaving the tab
+      setLastActiveTimestamp(Date.now());
+    } else {
+      // User is returning to the tab
+      const timeAway = Date.now() - lastActiveTimestamp;
+      
+      if (timeAway >= SESSION_TIMEOUT && session) {
+        console.log("Session expired after inactivity:", timeAway / 1000, "seconds");
+        toast.error("Session expirée, veuillez vous reconnecter");
+        signOut();
+      }
+    }
+  }, [lastActiveTimestamp, session]);
+
+  // Initialize auth
+  const initializeAuth = useCallback(async () => {
     try {
-      console.log(`AuthProvider: Initializing (attempt ${retry + 1})`);
+      console.log("AuthProvider: Initializing");
       const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error("Session initialization error:", sessionError);
-        
-        if (retry < MAX_RETRIES) {
-          console.log(`Retrying initialization in ${RETRY_DELAY}ms...`);
-          setTimeout(() => initializeAuth(retry + 1), RETRY_DELAY);
-          return;
-        }
-        
         toast.error("Erreur de connexion au service d'authentification");
         return;
       }
@@ -63,15 +71,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
-      if (retry < MAX_RETRIES) {
-        setTimeout(() => initializeAuth(retry + 1), RETRY_DELAY);
-        return;
-      }
       toast.error("Erreur d'initialisation de l'authentification");
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Handle visibility changes
+  useEffect(() => {
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [handleVisibilityChange]);
 
   // Handle network status changes
   useEffect(() => {
@@ -109,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("User signed in:", currentSession?.user?.email);
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          setLastActiveTimestamp(Date.now());
           toast.success("Connexion réussie");
           break;
           
@@ -123,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("Token refreshed for user:", currentSession?.user?.email);
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          setLastActiveTimestamp(Date.now());
           break;
           
         case 'USER_UPDATED':
@@ -136,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (currentSession) {
             setSession(currentSession);
             setUser(currentSession.user);
+            setLastActiveTimestamp(Date.now());
           }
           break;
       }
