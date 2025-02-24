@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -24,8 +25,11 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const { session, isLoading, signOut } = useAuth();
+  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const checkAuth = async () => {
       if (!session?.user) {
         console.log("No session found, redirecting to login");
@@ -33,18 +37,33 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         return;
       }
 
+      setIsCheckingProfile(true);
+
       try {
-        const { data: profile, error } = await supabase
+        // Set a timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Profile verification timeout'));
+          }, 5000); // 5 second timeout
+        });
+
+        // Profile verification
+        const profilePromise = supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
+        // Race between timeout and profile verification
+        const { data: profile, error } = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]) as { data: { role: string } | null, error: Error | null };
+
+        clearTimeout(timeoutId);
+
         if (error) {
-          console.error("Profile fetch error:", error);
-          toast.error("Erreur de vérification du profil");
-          await signOut();
-          return;
+          throw error;
         }
 
         if (!profile || profile.role !== requiredRole) {
@@ -56,25 +75,36 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         console.error('Auth check error:', error);
         toast.error("Erreur de vérification du profil");
         await signOut();
+      } finally {
+        setIsCheckingProfile(false);
       }
     };
 
     if (!isLoading && session) {
       checkAuth();
     }
+
+    return () => {
+      clearTimeout(timeoutId);
+      setIsCheckingProfile(false);
+    };
   }, [session, requiredRole, isLoading, signOut]);
 
-  if (isLoading && session) {
+  // Show loading state only during initial auth check or profile verification
+  if (isLoading || isCheckingProfile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
+          <p className="text-muted-foreground">
+            {isCheckingProfile ? "Vérification du profil..." : "Chargement..."}
+          </p>
         </div>
       </div>
     );
   }
 
+  // If no session, redirect to appropriate portal
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
