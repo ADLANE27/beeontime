@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -6,98 +7,23 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
-  const { session, isLoading: isAuthLoading } = useAuth();
-  const [isCheckingRole, setIsCheckingRole] = useState(false);
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const MAX_VERIFICATION_ATTEMPTS = 3;
+  const { session, isLoading } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
-    let retryTimeout: NodeJS.Timeout;
-
-    const checkUserRole = async () => {
-      if (!session?.user) return;
-
-      try {
-        setIsCheckingRole(true);
-        console.log("Checking role for user:", session.user.email);
-        
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Profile fetch error:", error);
-          if (isMounted) {
-            toast.error("Erreur lors de la vérification du profil");
-            if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
-              setVerificationAttempts(prev => prev + 1);
-              retryTimeout = setTimeout(checkUserRole, 2000);
-            } else {
-              toast.error("Impossible de vérifier votre profil. Veuillez réessayer plus tard.");
-              await supabase.auth.signOut();
-            }
-          }
-          return;
-        }
-
-        if (!isMounted) return;
-
-        console.log("User profile data:", profile);
-        
-        if (profile?.role === 'employee') {
-          console.log("User has employee role, redirecting to /employee");
-          navigate('/employee', { replace: true });
-        } else if (profile?.role === 'hr') {
-          console.log("User has HR role, redirecting to /hr");
-          navigate('/hr', { replace: true });
-        } else {
-          toast.error("Rôle utilisateur non reconnu");
-          await supabase.auth.signOut();
-        }
-      } catch (error) {
-        console.error("Role check error:", error);
-        if (isMounted) {
-          toast.error("Erreur lors de la vérification du rôle");
-        }
-      } finally {
-        if (isMounted) {
-          setIsCheckingRole(false);
-        }
-      }
-    };
-
-    if (session?.user && !isCheckingRole) {
-      checkUserRole();
+    if (session?.user) {
+      navigate('/employee', { replace: true });
     }
+  }, [session, navigate]);
 
-    return () => {
-      isMounted = false;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-    };
-  }, [session, navigate, verificationAttempts]);
-
-  if (isAuthLoading || isCheckingRole) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">
-            {isAuthLoading ? "Vérification de l'authentification..." : "Vérification du profil..."}
-          </p>
-          {verificationAttempts > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Tentative {verificationAttempts}/{MAX_VERIFICATION_ATTEMPTS}
-            </p>
-          )}
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
@@ -187,7 +113,6 @@ const Portal = () => {
       </div>
     </div>
   );
-
 };
 
 export default Portal;
