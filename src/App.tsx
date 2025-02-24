@@ -64,7 +64,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     }
   }, [session, requiredRole, isLoading, signOut]);
 
-  if (isLoading) {
+  if (isLoading && session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">

@@ -52,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (timeAway >= SESSION_TIMEOUT && session) {
         console.log("Session expired after inactivity:", timeAway / 1000, "seconds");
-        toast.error("Session expirée, veuillez vous reconnecter");
         signOut();
       } else {
         // Reset timestamp only if we're still within session timeout
@@ -70,13 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Session refresh error:", error);
         
         if (retryCount < MAX_REFRESH_RETRIES) {
-          const delay = REFRESH_RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
+          const delay = REFRESH_RETRY_DELAY * Math.pow(2, retryCount);
           console.log(`Retrying refresh in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return refreshSession(retryCount + 1);
         }
         
-        toast.error("Erreur de rafraîchissement de la session");
+        setIsLoading(false); // Ensure loading state is reset on error
         return false;
       }
 
@@ -86,26 +85,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(refreshedSession.user);
         updateLastActiveTimestamp();
         refreshRetryCount.current = 0;
+        setIsLoading(false);
         return true;
       }
 
+      setIsLoading(false);
       return false;
     } catch (error) {
       console.error("Session refresh error:", error);
-      toast.error("Erreur de rafraîchissement de la session");
+      setIsLoading(false);
       return false;
     }
   }, [updateLastActiveTimestamp]);
 
   const validateSession = useCallback(async () => {
-    if (!session) return;
+    if (!session) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
       if (error || !currentSession) {
         console.log("Session validation failed:", error);
-        signOut();
+        await signOut();
         return;
       }
 
@@ -115,9 +119,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (timeUntilExpiry < 600000) { // Less than 10 minutes until expiry
         await refreshSession();
+      } else {
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Session validation error:", error);
+      setIsLoading(false);
     }
   }, [session, refreshSession]);
 
@@ -129,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (sessionError) {
         console.error("Session initialization error:", sessionError);
-        toast.error("Erreur de connexion au service d'authentification");
+        setIsLoading(false);
         return;
       }
 
@@ -138,19 +145,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(initialSession);
         setUser(initialSession.user);
         updateLastActiveTimestamp();
-        
-        // Validate the session immediately
         await validateSession();
       } else {
         console.log("No initial session found");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
-      toast.error("Erreur d'initialisation de l'authentification");
-    } finally {
       setIsLoading(false);
     }
   }, [validateSession, updateLastActiveTimestamp]);
+
+  const signOut = async () => {
+    try {
+      console.log("Signing out user");
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        throw error;
+      }
+      setSession(null);
+      setUser(null);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.LAST_ACTIVE);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.SESSION_ID);
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast.error("Erreur lors de la déconnexion");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle visibility changes
   useEffect(() => {
@@ -198,7 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEYS.SESSION_ID && e.newValue !== tabId.current) {
-        // Another tab has become active
         console.log("Session managed by another tab");
       }
     };
@@ -223,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
           updateLastActiveTimestamp();
-          toast.success("Connexion réussie");
+          setIsLoading(false);
           break;
           
         case 'SIGNED_OUT':
@@ -232,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           localStorage.removeItem(LOCAL_STORAGE_KEYS.LAST_ACTIVE);
           localStorage.removeItem(LOCAL_STORAGE_KEYS.SESSION_ID);
-          toast.success("Déconnexion réussie");
+          setIsLoading(false);
           break;
           
         case 'TOKEN_REFRESHED':
@@ -240,12 +264,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
           updateLastActiveTimestamp();
+          setIsLoading(false);
           break;
           
         case 'USER_UPDATED':
           console.log("User updated:", currentSession?.user?.email);
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          setIsLoading(false);
           break;
           
         case 'INITIAL_SESSION':
@@ -255,10 +281,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentSession.user);
             updateLastActiveTimestamp();
           }
+          setIsLoading(false);
           break;
       }
-      
-      setIsLoading(false);
     });
 
     // Cleanup subscription on unmount
@@ -270,20 +295,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [initializeAuth, updateLastActiveTimestamp]);
-
-  const signOut = async () => {
-    try {
-      console.log("Signing out user");
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-        throw error;
-      }
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
 
   return (
     <AuthContext.Provider value={{ session, user, isLoading, signOut }}>
