@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PersonalInfoForm } from "./PersonalInfoForm";
@@ -13,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PasswordField } from "./PasswordField";
 
 export const NewEmployeeForm = ({ 
   onSuccess, 
@@ -147,14 +147,11 @@ export const NewEmployeeForm = ({
             </div>
             
             <div className="space-y-3 mt-4">
-              <Label htmlFor="initialPassword">Mot de passe initial</Label>
-              <Input
-                id="initialPassword"
-                type="text"
+              <PasswordField 
                 value={formData.initialPassword}
-                onChange={(e) => handleFieldChange("initialPassword", e.target.value)}
-                className="h-12"
-                required={!isEditing}
+                onChange={(value) => handleFieldChange("initialPassword", value)}
+                isRequired={!isEditing}
+                label="Mot de passe initial"
               />
             </div>
             

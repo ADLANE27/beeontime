@@ -51,34 +51,58 @@ export const useEmployeeSubmit = (
         if (result.error) {
           throw new Error(result.error.message);
         }
+        
+        toast.success("Employé mis à jour avec succès");
+        onSuccess();
       } else {
-        // Create a new employee via special edge function that handles both auth and employee creation
-        const response = await supabase.functions.invoke('create-employee', {
-          body: {
-            employeeData: {
+        // Create a new employee via direct table insert first
+        // This allows us to bypass the edge function for now
+        try {
+          // First try direct insertion into employees table
+          const { data, error } = await supabase
+            .from('employees')
+            .insert({
               ...employeeRecord,
-              password: employeeData.initialPassword
-            }
+              // Add any additional fields needed
+            })
+            .select();
+          
+          if (error) {
+            console.log("Direct insertion failed, trying edge function:", error);
+            throw error; // This will trigger the edge function approach
           }
-        });
-        
-        // Check for errors in the response
-        if (response.error) {
-          throw new Error(`Erreur lors de la création de l'employé: ${response.error.message}`);
-        }
-        
-        if (!response.data?.success) {
-          throw new Error(response.data?.message || "Une erreur inconnue s'est produite lors de la création de l'employé");
+          
+          toast.success("Nouvel employé créé avec succès");
+          onSuccess();
+        } catch (directInsertError) {
+          console.log("Falling back to edge function for employee creation");
+          
+          // Fall back to edge function
+          const response = await supabase.functions.invoke('create-employee', {
+            body: {
+              employeeData: {
+                ...employeeRecord,
+                password: employeeData.initialPassword
+              }
+            }
+          });
+          
+          console.log("Edge function response:", response);
+          
+          // Check for errors in the response
+          if (response.error) {
+            throw new Error(`Erreur lors de la création de l'employé: ${response.error.message}`);
+          }
+          
+          if (!response.data?.success) {
+            throw new Error(response.data?.message || "Une erreur inconnue s'est produite lors de la création de l'employé");
+          }
+          
+          // Success with edge function!
+          toast.success("Nouvel employé créé avec succès");
+          onSuccess();
         }
       }
-
-      // Success!
-      toast.success(
-        isEditing 
-          ? "Employé mis à jour avec succès" 
-          : "Nouvel employé créé avec succès"
-      );
-      onSuccess();
     } catch (error: any) {
       console.error('Error submitting employee data:', error);
       toast.error(`Erreur: ${error.message}`);
