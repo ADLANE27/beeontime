@@ -40,7 +40,7 @@ export const useEmployeeSubmit = (
       };
 
       if (isEditing && employeeId) {
-        // Vérifier si le mot de passe a été modifié
+        // Vérifier si le mot de passe et/ou l'email a été modifié
         const { data: currentEmployee } = await supabase
           .from('employees')
           .select('initial_password, email')
@@ -64,8 +64,11 @@ export const useEmployeeSubmit = (
               throw new Error("Le mot de passe doit contenir au moins 8 caractères");
             }
             
+            // Vérifier si c'est l'utilisateur courant qui modifie son propre mot de passe
+            const { data: currentSession } = await supabase.auth.getSession();
+            const isSelfUpdate = currentSession?.session?.user?.id === employeeId;
+            
             // Utiliser une Edge Function pour mettre à jour le mot de passe
-            // car l'opération nécessite des privilèges admin
             const { data: updateResult, error: updateError } = await supabase.functions.invoke('update-user-password', {
               body: {
                 userId: employeeId,
@@ -81,12 +84,20 @@ export const useEmployeeSubmit = (
             console.log("Mot de passe mis à jour avec succès dans auth.users");
             toast.success("Mot de passe mis à jour avec succès");
             
-            // Déconnecter l'utilisateur si c'est le même que celui qui est en cours d'édition
-            const { data: currentSession } = await supabase.auth.getSession();
-            if (currentSession?.session?.user?.id === employeeId) {
+            // Si c'est l'utilisateur courant, le déconnecter complètement
+            if (isSelfUpdate) {
               console.log("L'utilisateur courant est celui dont le mot de passe a été modifié. Déconnexion...");
-              await supabase.auth.signOut();
-              toast.info("Votre mot de passe a été modifié, veuillez vous reconnecter.");
+              
+              // Utiliser un délai pour s'assurer que la mise à jour est enregistrée
+              setTimeout(async () => {
+                await supabase.auth.signOut();
+                toast.info("Votre mot de passe a été modifié, veuillez vous reconnecter.");
+                
+                // Rediriger vers la page de connexion après une courte pause
+                setTimeout(() => {
+                  window.location.href = '/portal';
+                }, 1000);
+              }, 500);
             }
           } catch (passwordError: any) {
             console.error("Erreur lors de la mise à jour du mot de passe:", passwordError);

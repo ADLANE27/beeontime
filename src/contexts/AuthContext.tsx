@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    console.log("Checking initial session...");
+    console.log("Setting up auth state listeners");
     
     // Créer une variable pour suivre si le composant est toujours monté
     let isMounted = true;
@@ -134,16 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log("Initial session check result:", session ? "Session found" : "No session");
       
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user?.id) {
-        const profile = await fetchProfile(session.user.id);
-        if (isMounted) {
-          setProfile(profile);
-          if (!profile) {
-            console.warn("No profile found for authenticated user, attempting to create one");
-            await refreshProfile();
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        
+        if (session.user.id) {
+          const profile = await fetchProfile(session.user.id);
+          if (isMounted) {
+            setProfile(profile);
+            if (!profile) {
+              console.warn("No profile found for authenticated user, attempting to create one");
+              await refreshProfile();
+            }
           }
         }
       }
@@ -162,27 +164,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state event:", event);
+      async (event, newSession) => {
+        console.log("Auth state event:", event, newSession ? "With session" : "No session");
         
         if (!isMounted) return;
+
+        // Pour les événements SIGNED_OUT, réinitialiser complètement l'état
+        if (event === 'SIGNED_OUT') {
+          console.log("Signed out, clearing all auth state");
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          return;
+        }
         
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user?.id) {
-          const profile = await fetchProfile(session.user.id);
-          if (isMounted) {
-            setProfile(profile);
-            if (!profile && event === 'SIGNED_IN') {
-              console.warn("No profile found for authenticated user after sign in, attempting to create one");
-              await refreshProfile();
+        // Pour PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user);
+          
+          if (newSession.user.id) {
+            const profile = await fetchProfile(newSession.user.id);
+            if (isMounted) {
+              setProfile(profile);
+              if (!profile && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+                console.warn("No profile found after auth event, attempting to create one");
+                await refreshProfile();
+              }
             }
           }
-        } else {
-          if (isMounted) {
-            setProfile(null);
-          }
+        } else if (event !== 'SIGNED_OUT') {
+          // Si pas de session mais ce n'est pas SIGNED_OUT, c'est probablement une erreur
+          console.warn(`Auth event ${event} occurred but no session was provided`);
         }
       }
     );

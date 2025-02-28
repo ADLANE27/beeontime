@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -45,11 +44,26 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       retryCount
     });
     
+    // Éviter de manipuler l'état directement au premier rendu
+    if (isLoading && !hasCheckedAuth && retryCount === 0) {
+      console.log("Initial loading, waiting for auth to complete");
+      return;
+    }
+    
     let timeoutId: number;
     
-    // Only process when we have a definitive auth state or timeout reached
+    // Si le chargement est en cours mais qu'on a déjà un nombre de tentatives élevé, on force la fin
+    if (isLoading && retryCount >= 2) {
+      console.log("Too many retries while loading, forcing completion");
+      setIsLoading(false);
+      setHasCheckedAuth(true);
+      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      return;
+    }
+    
+    // Si le chargement est terminé, on peut prendre des décisions
     if (!isLoading) {
-      // Si la session existe mais pas le profil, essayer de récupérer le profil
+      // Si session existe mais pas le profil, essayer de récupérer le profil une fois
       if (session && !profile && retryCount < 2) {
         console.log("Session exists but no profile, attempting to refresh profile");
         setRetryCount(prev => prev + 1);
@@ -67,11 +81,13 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
         console.log("User is not HR, redirecting to employee dashboard");
         setRedirectPath("/employee");
       } else if (session && !profile) {
-        console.log("Session exists but no profile found, redirecting to portal");
+        console.log("Session exists but no profile found after retries, redirecting to portal and signing out");
         toast.error("Erreur de profil utilisateur. Veuillez vous reconnecter.");
         setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
         // Force signout to clean state
-        supabase.auth.signOut();
+        supabase.auth.signOut().then(() => {
+          console.log("User signed out due to missing profile");
+        });
       } else {
         console.log("Auth check passed, showing protected content");
         setRedirectPath(null); // No redirect needed
@@ -93,17 +109,23 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [isLoading, session, profile, requiredRole, navigate, refreshProfile, retryCount]);
+  }, [isLoading, session, profile, requiredRole, navigate, refreshProfile, retryCount, hasCheckedAuth]);
 
   // Show loading state only during initial auth check and before timeout
-  if (isLoading && showLoading && !hasCheckedAuth) {
+  if ((isLoading || (!hasCheckedAuth && retryCount > 0)) && showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
+          <p className="text-muted-foreground">Chargement... {retryCount > 0 ? `(tentative ${retryCount})` : ''}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              setRetryCount(0);
+              setShowLoading(false);
+              setHasCheckedAuth(true);
+              setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+              supabase.auth.signOut();
+            }} 
             className="text-sm text-primary hover:underline mt-4"
           >
             Cliquez ici si le chargement persiste

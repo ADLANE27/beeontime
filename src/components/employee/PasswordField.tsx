@@ -104,7 +104,7 @@ export const PasswordField = ({
     if (value) {
       validatePassword(value);
     }
-  }, []);
+  }, [value]);
 
   return (
     <div className="space-y-2">
