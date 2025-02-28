@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +10,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, profileFetchAttempted, authError } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted, authError, authReady } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
