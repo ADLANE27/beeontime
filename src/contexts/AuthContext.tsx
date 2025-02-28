@@ -23,14 +23,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log("SignOut triggered from AuthContext");
+      // First clear all local state
       setSession(null);
       setUser(null);
       setProfile(null);
+      
+      // Then call Supabase's signOut method
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error during Supabase signOut:", error);
+        throw error;
+      }
+      
       toast.success("Déconnexion réussie");
+      
+      // Return successfully to inform caller
+      return;
     } catch (error) {
       console.error("Sign out error:", error);
       toast.error("Erreur lors de la déconnexion");
+      
+      // Re-throw to allow caller to handle
+      throw error;
     }
   };
 
@@ -100,6 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("User profile loaded:", profile);
           setProfile(profile);
         }
+      } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out event received");
       }
       
       // Always update loading state after auth change

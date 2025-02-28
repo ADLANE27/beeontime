@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,22 +15,27 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isAdmin = location.pathname === "/hr";
+  const { signOut } = useAuth(); // Use signOut from auth context
+  const isAdmin = location.pathname.startsWith("/hr");
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     const getUserData = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        const { data: userData, error } = await supabase
-          .from('employees')
-          .select('first_name, last_name')
-          .eq('id', data.session.user.id)
-          .single();
-        
-        if (!error && userData) {
-          setUserName(`${userData.first_name} ${userData.last_name}`);
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          const { data: userData, error } = await supabase
+            .from('employees')
+            .select('first_name, last_name')
+            .eq('id', data.session.user.id)
+            .single();
+          
+          if (!error && userData) {
+            setUserName(`${userData.first_name} ${userData.last_name}`);
+          }
         }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
       }
     };
     
@@ -37,9 +43,31 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/portal", { replace: true }); // Redirect to main portal instead of HR portal
-    toast.success("Vous avez été déconnecté avec succès");
+    try {
+      console.log("Logout initiated");
+      // Use the signOut method from AuthContext
+      await signOut();
+      
+      // As a safety measure, also try to sign out directly with Supabase
+      // in case something goes wrong with the context method
+      try {
+        await supabase.auth.signOut();
+      } catch (directError) {
+        console.error("Direct signout attempt failed:", directError);
+      }
+      
+      // Force navigation to portal regardless of any errors
+      navigate("/portal", { replace: true });
+      toast.success("Vous avez été déconnecté avec succès");
+    } catch (error) {
+      console.error('Error during logout:', error);
+      toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
+      
+      // As a last resort, reload the page
+      setTimeout(() => {
+        window.location.href = "/portal";
+      }, 1000);
+    }
   };
 
   return (
