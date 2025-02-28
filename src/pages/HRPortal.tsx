@@ -13,11 +13,12 @@ import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, authReady, profileFetchAttempted, authError } = useAuth();
+  const { session, isLoading, profile, authInitialized, profileFetchAttempted, authError } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [manualSignInAttempted, setManualSignInAttempted] = useState(false);
 
   // Check network status
   useEffect(() => {
@@ -45,7 +46,7 @@ const HRPortal = () => {
         console.warn("Loading timeout detected in HRPortal");
         setLoadingTimeout(true);
       }
-    }, 15000); // 15 seconds timeout
+    }, 12000); // 12 seconds timeout (reduced from 15)
 
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
@@ -54,8 +55,8 @@ const HRPortal = () => {
   useEffect(() => {
     let redirectTimeout: NodeJS.Timeout | null = null;
 
-    // Check if we can make a decision about authentication state
-    const canDetermineAuthState = authReady || authError || loadingTimeout;
+    // Check if we can determine authentication state
+    const canDetermineAuthState = authInitialized || authError || loadingTimeout;
     
     if (canDetermineAuthState) {
       // User is authenticated and has a profile
@@ -86,7 +87,7 @@ const HRPortal = () => {
     return () => {
       if (redirectTimeout) clearTimeout(redirectTimeout);
     };
-  }, [session, profile, navigate, authReady, profileFetchAttempted, authError, loadingTimeout]);
+  }, [session, profile, navigate, authInitialized, profileFetchAttempted, authError, loadingTimeout]);
 
   // Check for error parameters in URL
   useEffect(() => {
@@ -107,6 +108,13 @@ const HRPortal = () => {
     }
   }, []);
 
+  // Display auth errors from auth state
+  useEffect(() => {
+    if (authError && !loginError) {
+      setLoginError(`Problème d'authentification: ${authError.message}`);
+    }
+  }, [authError, loginError]);
+
   // Manual sign-in handler to provide better error feedback
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -120,7 +128,10 @@ const HRPortal = () => {
     }
     
     try {
+      setManualSignInAttempted(true);
       setLoginError(null);
+      
+      console.log("Attempting manual sign in for:", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
@@ -130,10 +141,12 @@ const HRPortal = () => {
         } else {
           setLoginError(`Erreur de connexion: ${error.message}`);
         }
+        setManualSignInAttempted(false);
       }
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
+      setManualSignInAttempted(false);
     }
   };
 
@@ -142,8 +155,19 @@ const HRPortal = () => {
     window.location.reload();
   };
 
+  // Handle manual sign out
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      window.location.reload();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Erreur lors de la déconnexion. Veuillez rafraîchir la page.");
+    }
+  };
+
   // Show clear loading state during authentication check
-  if (!authCheckComplete && isLoading && !loadingTimeout) {
+  if ((!authCheckComplete && isLoading && !loadingTimeout) || manualSignInAttempted) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -156,6 +180,7 @@ const HRPortal = () => {
             variant="link" 
             className="text-sm text-muted-foreground"
             onClick={handleManualRefresh}
+            disabled={manualSignInAttempted}
           >
             <RefreshCw className="h-3 w-3 mr-2" />
             Rafraîchir
@@ -186,6 +211,16 @@ const HRPortal = () => {
               <RefreshCw className="h-4 w-4 mr-2" />
               Rafraîchir la page
             </Button>
+            
+            {session && (
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleSignOut}
+              >
+                Se déconnecter
+              </Button>
+            )}
           </div>
         </Card>
       </div>
@@ -217,10 +252,7 @@ const HRPortal = () => {
             <Button 
               variant="outline" 
               className="w-full" 
-              onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.reload();
-              }}
+              onClick={handleSignOut}
             >
               Se déconnecter
             </Button>
@@ -271,7 +303,7 @@ const HRPortal = () => {
             </Alert>
           )}
 
-          {authError && (
+          {authError && !loginError && (
             <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-500" />
               <AlertTitle>Problème d'authentification</AlertTitle>
@@ -281,59 +313,51 @@ const HRPortal = () => {
             </Alert>
           )}
 
-          <Auth
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#0F172A',
-                    brandAccent: '#1E293B',
-                    inputBackground: 'white',
-                    inputText: '#0F172A',
-                    inputBorder: '#E2E8F0',
-                    inputBorderHover: '#CBD5E1',
-                    inputBorderFocus: '#0F172A',
-                  },
-                  borderWidths: {
-                    buttonBorderWidth: '1px',
-                    inputBorderWidth: '1px',
-                  },
-                  radii: {
-                    borderRadiusButton: '0.5rem',
-                    buttonBorderRadius: '0.5rem',
-                    inputBorderRadius: '0.5rem',
-                  },
-                }
-              },
-              className: {
-                container: 'space-y-4',
-                button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
-                input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
-                label: 'text-sm font-medium text-gray-700',
-                message: 'text-sm text-red-600'
-              }
-            }}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Adresse email',
-                  password_label: 'Mot de passe',
-                  button_label: 'Se connecter',
-                  loading_button_label: 'Vérification...',
-                  email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe'
-                }
-              }
-            }}
-            theme="light"
-            providers={[]}
-            redirectTo={window.location.origin}
-            showLinks={false}
-            view="sign_in"
-            magicLink={false}
-          />
+          {/* Manual sign-in form instead of Supabase Auth UI */}
+          <form onSubmit={handleManualSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Adresse email
+              </label>
+              <input 
+                id="email"
+                name="email"
+                type="email" 
+                className="bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full p-2.5 border"
+                placeholder="Votre adresse email"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Mot de passe
+              </label>
+              <input 
+                id="password"
+                name="password"
+                type="password" 
+                className="bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full p-2.5 border"
+                placeholder="Votre mot de passe"
+                required
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg transition-colors"
+              disabled={manualSignInAttempted}
+            >
+              {manualSignInAttempted ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Vérification...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </Button>
+          </form>
 
           {networkStatus === 'offline' && (
             <div className="mt-4 text-center">

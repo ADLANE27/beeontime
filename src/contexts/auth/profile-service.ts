@@ -42,7 +42,8 @@ async function fetchProfileFromProfilesTable(userId: string): Promise<Profile | 
 async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile | null> {
   try {
     console.log("Attempting to fetch employee data for:", userId);
-    // Select only columns that actually exist in the employees table
+    
+    // Important: Select only columns that actually exist in the employees table
     const { data, error } = await supabase
       .from("employees")
       .select("id, first_name, last_name, email")
@@ -62,10 +63,9 @@ async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile |
     console.log("Employee record found:", data);
     
     // Create a profile from employee data
-    // The 'role' field doesn't exist in the employees table, so we set a default value
     return {
       id: data.id,
-      role: "employee", // Default role for employees
+      role: "employee", // Default role for employees - 'role' doesn't exist in employees table
       first_name: data.first_name,
       last_name: data.last_name,
       email: data.email
