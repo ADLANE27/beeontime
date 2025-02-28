@@ -48,33 +48,27 @@ export const useEmployeeSubmit = (
           .update(employeeRecord)
           .eq('id', employeeId);
       } else {
-        // Create new employee and associated profile
+        // Pour la création d'un nouvel employé, nous allons d'abord essayer d'insérer directement 
+        // l'employé sans créer de profil, car il semble que le profil soit créé automatiquement 
+        // par un trigger dans Supabase lors de la création d'un utilisateur dans auth.users
         
-        // 1. Generate UUID for the new user
+        // Generate UUID for the new employee
         const id = crypto.randomUUID();
         
-        // 2. First create a profile record (because of foreign key constraint)
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id,
-            email: employeeData.email,
-            first_name: employeeData.firstName,
-            last_name: employeeData.lastName,
-            role: 'employee'
-          });
-          
-        if (profileError) {
-          throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
-        }
-        
-        // 3. Create employee record
+        // Créer l'employé directement
         result = await supabase
           .from('employees')
           .insert({
             id,
             ...employeeRecord
           });
+          
+        // Si cela échoue en raison de la contrainte de clé étrangère, nous informons l'utilisateur
+        if (result.error && result.error.message.includes('violates foreign key constraint')) {
+          throw new Error(
+            "Impossible de créer l'employé. Veuillez d'abord créer un compte utilisateur dans le système d'authentification."
+          );
+        }
       }
       
       if (result.error) {
