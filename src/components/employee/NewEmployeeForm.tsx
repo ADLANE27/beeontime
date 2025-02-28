@@ -9,9 +9,10 @@ import { VacationInfoForm } from "./VacationInfoForm";
 import { PasswordField } from "./PasswordField";
 import { useEmployeeSubmit } from "./hooks/useEmployeeSubmit";
 import { NewEmployee, WorkSchedule } from "@/types/hr";
-import { Loader2, User, MapPin, Briefcase, Clock, Calendar, KeyRound } from "lucide-react";
+import { Loader2, User, MapPin, Briefcase, Clock, Calendar, KeyRound, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const NewEmployeeForm = ({ 
   onSuccess, 
@@ -37,13 +38,13 @@ export const NewEmployeeForm = ({
     workSchedule: initialData?.workSchedule || {
       startTime: '09:00',
       endTime: '17:00',
-      breakStartTime: '12:00',
-      breakEndTime: '13:00'
+      breakStartTime: '12:30',
+      breakEndTime: '13:30'
     },
-    currentYearVacationDays: initialData?.currentYearVacationDays || 0,
-    currentYearUsedDays: initialData?.currentYearUsedDays || 0,
-    previousYearVacationDays: initialData?.previousYearVacationDays || 0,
-    previousYearUsedDays: initialData?.previousYearUsedDays || 0,
+    currentYearVacationDays: initialData?.currentYearVacationDays || 17.5,
+    currentYearUsedDays: initialData?.currentYearUsedDays || 6,
+    previousYearVacationDays: initialData?.previousYearVacationDays || 28,
+    previousYearUsedDays: initialData?.previousYearUsedDays || 28,
     initialPassword: initialData?.initialPassword || '',
     streetAddress: initialData?.streetAddress || '',
     city: initialData?.city || '',
@@ -61,146 +62,185 @@ export const NewEmployeeForm = ({
     setFormData(prev => ({ ...prev, workSchedule: schedule }));
   };
 
+  const currentYearBalance = formData.currentYearVacationDays - formData.currentYearUsedDays;
+  const previousYearBalance = formData.previousYearVacationDays - formData.previousYearUsedDays;
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white overflow-auto p-4">
-      <div className="w-full max-w-3xl">
+    <div className="fixed inset-0 bg-white z-50 overflow-auto">
+      <div className="max-w-3xl mx-auto px-6 py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-xl font-bold">{isEditing ? "Modifier l'employé" : "Nouvel employé"}</h1>
+          <button onClick={onSuccess} className="text-gray-500 hover:text-gray-800">
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
         <form 
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit(formData);
-          }} 
-          className="space-y-4"
+          }}
+          className="space-y-6"
         >
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-blue-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-blue-600 mr-2" />
-                <h3 className="text-base font-medium text-blue-800">Informations personnelles</h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <PersonalInfoForm
-                firstName={formData.firstName}
-                lastName={formData.lastName}
-                email={formData.email}
-                phone={formData.phone}
-                birthDate={formData.birthDate}
-                birthPlace={formData.birthPlace}
-                birthCountry={formData.birthCountry}
-                socialSecurityNumber={formData.socialSecurityNumber}
-                initialPassword={formData.initialPassword}
-                onFieldChange={handleFieldChange}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-indigo-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 text-indigo-600 mr-2" />
-                <h3 className="text-base font-medium text-indigo-800">Adresse</h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <AddressInfoForm
-                streetAddress={formData.streetAddress}
-                city={formData.city}
-                postalCode={formData.postalCode}
-                country={formData.country}
-                onFieldChange={handleFieldChange}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-green-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <Briefcase className="h-4 w-4 text-green-600 mr-2" />
-                <h3 className="text-base font-medium text-green-800">Informations professionnelles</h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <WorkInfoForm
-                contractType={formData.contractType}
-                startDate={formData.startDate}
-                position={formData.position}
-                onFieldChange={handleFieldChange}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-amber-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 text-amber-600 mr-2" />
-                <h3 className="text-base font-medium text-amber-800">Horaires de travail</h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <ScheduleInfoForm
-                workSchedule={formData.workSchedule}
-                onScheduleChange={handleScheduleChange}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-purple-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 text-purple-600 mr-2" />
-                <h3 className="text-base font-medium text-purple-800">Congés</h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <VacationInfoForm
-                currentYearVacationDays={formData.currentYearVacationDays.toString()}
-                currentYearUsedDays={formData.currentYearUsedDays.toString()}
-                previousYearVacationDays={formData.previousYearVacationDays.toString()}
-                previousYearUsedDays={formData.previousYearUsedDays.toString()}
-                onFieldChange={(field, value) => handleFieldChange(field, Number(value))}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="bg-blue-50/80 py-3 px-4 border-b border-slate-200">
-              <div className="flex items-center">
-                <KeyRound className="h-4 w-4 text-blue-600 mr-2" />
-                <h3 className="text-base font-medium text-blue-800">
-                  {isEditing ? "Nouveau mot de passe (optionnel)" : "Mot de passe initial"}
-                </h3>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <PasswordField
-                value={formData.initialPassword}
-                onChange={(value) => handleFieldChange('initialPassword', value)}
-                isRequired={!isEditing}
-                label={isEditing ? "Nouveau mot de passe (optionnel)" : "Mot de passe initial"}
-              />
-            </CardContent>
-          </Card>
-
-          <div className="sticky bottom-0 bg-white py-4 z-10">
-            <Separator className="mb-4" />
-            
-            <div className="flex justify-end">
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="px-6"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isEditing ? "Modification en cours..." : "Création en cours..."}
-                  </>
-                ) : (
-                  isEditing ? "Mettre à jour l'employé" : "Créer l'employé"
-                )}
-              </Button>
+          {/* Horaires de travail */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex items-center bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <Clock className="h-5 w-5 text-gray-700 mr-2" />
+              <h2 className="font-medium">Horaires de travail</h2>
             </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-6 mb-4">
+                <div>
+                  <Label htmlFor="startTime" className="block mb-2">Début journée</Label>
+                  <div className="relative">
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.workSchedule.startTime}
+                      onChange={(e) => handleScheduleChange({...formData.workSchedule, startTime: e.target.value})}
+                      className="pl-3 pr-9"
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="endTime" className="block mb-2">Fin journée</Label>
+                  <div className="relative">
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.workSchedule.endTime}
+                      onChange={(e) => handleScheduleChange({...formData.workSchedule, endTime: e.target.value})}
+                      className="pl-3 pr-9"
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="breakStartTime" className="block mb-2">Début pause déjeuner</Label>
+                  <div className="relative">
+                    <Input
+                      id="breakStartTime"
+                      type="time"
+                      value={formData.workSchedule.breakStartTime}
+                      onChange={(e) => handleScheduleChange({...formData.workSchedule, breakStartTime: e.target.value})}
+                      className="pl-3 pr-9"
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="breakEndTime" className="block mb-2">Fin pause déjeuner</Label>
+                  <div className="relative">
+                    <Input
+                      id="breakEndTime"
+                      type="time"
+                      value={formData.workSchedule.breakEndTime}
+                      onChange={(e) => handleScheduleChange({...formData.workSchedule, breakEndTime: e.target.value})}
+                      className="pl-3 pr-9"
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Congés */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex items-center bg-purple-50 px-4 py-3 border-b border-gray-200">
+              <Calendar className="h-5 w-5 text-purple-600 mr-2" />
+              <h2 className="font-medium text-purple-900">Congés</h2>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <Calendar className="h-5 w-5 text-gray-700 mr-2" />
+                <h3 className="font-medium">Congés</h3>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Année en cours</h4>
+                  
+                  <div>
+                    <Label htmlFor="currentYearVacationDays" className="block mb-2">Congés acquis</Label>
+                    <Input
+                      id="currentYearVacationDays"
+                      type="number"
+                      step="0.5"
+                      value={formData.currentYearVacationDays}
+                      onChange={(e) => handleFieldChange("currentYearVacationDays", parseFloat(e.target.value))}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="currentYearUsedDays" className="block mb-2">Congés pris</Label>
+                    <Input
+                      id="currentYearUsedDays"
+                      type="number"
+                      step="0.5"
+                      value={formData.currentYearUsedDays}
+                      onChange={(e) => handleFieldChange("currentYearUsedDays", parseFloat(e.target.value))}
+                    />
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    Solde: {currentYearBalance.toFixed(1)} jours
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="font-medium">Année précédente (N-1)</h4>
+                  
+                  <div>
+                    <Label htmlFor="previousYearVacationDays" className="block mb-2">Congés acquis</Label>
+                    <Input
+                      id="previousYearVacationDays"
+                      type="number"
+                      step="0.5"
+                      value={formData.previousYearVacationDays}
+                      onChange={(e) => handleFieldChange("previousYearVacationDays", parseFloat(e.target.value))}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="previousYearUsedDays" className="block mb-2">Congés pris</Label>
+                    <Input
+                      id="previousYearUsedDays"
+                      type="number"
+                      step="0.5"
+                      value={formData.previousYearUsedDays}
+                      onChange={(e) => handleFieldChange("previousYearUsedDays", parseFloat(e.target.value))}
+                    />
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    Solde: {previousYearBalance.toFixed(1)} jours
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bouton d'action */}
+          <div className="flex justify-end pt-4">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="px-6"
+              size="lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isEditing ? "Modification en cours..." : "Création en cours..."}
+                </>
+              ) : (
+                isEditing ? "Mettre à jour l'employé" : "Créer l'employé"
+              )}
+            </Button>
           </div>
         </form>
       </div>
