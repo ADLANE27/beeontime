@@ -5,7 +5,7 @@ import { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { leaveTypeColors } from "./LeaveTypeLegend";
+import { leaveTypeColors, leaveTypeMapping } from "./LeaveTypeLegend";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
@@ -43,38 +43,10 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     const isHalfDay = leaveRequest.day_type === 'half';
     const period = leaveRequest.period;
     
-    // Determine the leave type and color
-    let leaveColorKey: keyof typeof leaveTypeColors = 'other';
+    // Get the standardized leave type key
+    const leaveColorKey = getStandardizedLeaveType(leaveRequest);
     
-    // Get the original type as a string first
-    const originalType = (leaveRequest.type as string).toLowerCase();
-    
-    // Log the type to debug
-    console.log("Leave type:", originalType);
-    
-    // Check if the original type is directly a key in leaveTypeColors
-    if (originalType in leaveTypeColors) {
-      leaveColorKey = originalType as keyof typeof leaveTypeColors;
-    } 
-    // Check for sick leave variations - looking for exact matches and substring matches
-    else if (
-      originalType === 'sick' || 
-      originalType === 'arrêt maladie' ||
-      originalType === 'arret maladie' ||
-      originalType === 'arrêt' ||
-      originalType === 'arret' ||
-      originalType.includes('maladie') || 
-      originalType.includes('arret') || 
-      originalType.includes('arrêt') ||
-      originalType.includes('sick') || 
-      originalType.includes('medical')
-    ) {
-      leaveColorKey = 'sick';
-    }
-    
-    // Log the final color key selected
-    console.log("Selected leave color key:", leaveColorKey);
-    
+    // Get the color based on the standardized key
     const color = leaveTypeColors[leaveColorKey]?.color || leaveTypeColors.other.color;
     
     const gradientStyle = {
@@ -158,29 +130,30 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     );
   };
 
+  // Helper function to get standardized leave type
+  const getStandardizedLeaveType = (leaveRequest: LeaveRequest): keyof typeof leaveTypeColors => {
+    const originalType = (leaveRequest.type as string).toLowerCase().trim();
+    
+    // Check if the type is directly in our mapping
+    if (originalType in leaveTypeMapping) {
+      return leaveTypeMapping[originalType];
+    }
+    
+    // Check for partial matches
+    for (const [key, value] of Object.entries(leaveTypeMapping)) {
+      if (originalType.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Default to 'other' if no match found
+    return 'other';
+  };
+
   // Helper function to get the leave type label for tooltip
   const getLeaveTypeLabel = (leaveRequest: LeaveRequest): string => {
-    const originalType = (leaveRequest.type as string).toLowerCase();
-    
-    // Check if the original type is a key in leaveTypeColors
-    if (originalType in leaveTypeColors) {
-      return leaveTypeColors[originalType as keyof typeof leaveTypeColors].label;
-    }
-    
-    // Handle special case for sick leave
-    if (originalType === 'sick' || 
-        originalType === 'arrêt maladie' ||
-        originalType === 'arret maladie' ||
-        originalType.includes('maladie') || 
-        originalType.includes('arret') ||
-        originalType.includes('arrêt') ||
-        originalType.includes('sick') || 
-        originalType.includes('medical')) {
-      return "Arrêt maladie";
-    }
-    
-    // Default fallback
-    return originalType;
+    const standardizedType = getStandardizedLeaveType(leaveRequest);
+    return leaveTypeColors[standardizedType].label;
   };
 
   return (

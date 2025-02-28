@@ -4,12 +4,12 @@ import { cn } from "@/lib/utils";
 
 const leaveTypeColors = {
   vacation: {
-    label: "Congés payés",
+    label: "Congés payés (48h à l'avance)",
     color: "#D3E4FD" // Soft blue
   },
-  rtt: {
-    label: "RTT",
-    color: "#F2FCE2" // Soft green
+  annual: {
+    label: "Congé annuel (2 mois à l'avance)",
+    color: "#E5DEFF" // Soft purple
   },
   paternity: {
     label: "Congé paternité",
@@ -23,35 +23,69 @@ const leaveTypeColors = {
     label: "Congé enfant malade",
     color: "#FEC6A1" // Soft orange
   },
-  annual: {
-    label: "Congé annuel",
-    color: "#E5DEFF" // Soft purple
+  sick: {
+    label: "Arrêt maladie",
+    color: "#0EA5E9" // Ocean blue
   },
   unpaidUnexcused: {
-    label: "Absence injustifiée",
+    label: "Absence injustifiée non rémunérée",
     color: "#F97316" // Bright orange
   },
   unpaidExcused: {
-    label: "Absence justifiée",
+    label: "Absence justifiée non rémunérée",
     color: "#FEF7CD" // Soft yellow
   },
   unpaid: {
     label: "Absence non rémunérée",
     color: "#FDE1D3" // Soft peach
   },
-  familyEvent: {
-    label: "Événements familiaux",
-    color: "#8B5CF6" // Vivid purple
+  rtt: {
+    label: "RTT",
+    color: "#F2FCE2" // Soft green
   },
-  sick: {
-    label: "Arrêt maladie",
-    color: "#0EA5E9" // Ocean blue
+  familyEvent: {
+    label: "Absences pour événements familiaux",
+    color: "#8B5CF6" // Vivid purple
   },
   other: {
     label: "Autres congés",
     color: "#E0E0E0" // Light gray
   }
 } as const;
+
+// Mapping between database values and our keys
+export const leaveTypeMapping: Record<string, keyof typeof leaveTypeColors> = {
+  // French terms (as in your image)
+  "congés payés": "vacation",
+  "congé annuel": "annual",
+  "congé paternité": "paternity",
+  "congé maternité": "maternity",
+  "congé enfant malade": "sickChild",
+  "arrêt maladie": "sick",
+  "absence injustifiée non rémunérée": "unpaidUnexcused",
+  "absence justifiée non rémunérée": "unpaidExcused",
+  "absence non rémunérée": "unpaid",
+  "rtt": "rtt",
+  "absences pour événements familiaux": "familyEvent",
+  
+  // English terms (for backward compatibility)
+  "vacation": "vacation",
+  "annual": "annual",
+  "paternity": "paternity",
+  "maternity": "maternity",
+  "sickchild": "sickChild",
+  "sick": "sick",
+  "unpaidunexcused": "unpaidUnexcused",
+  "unpaidexcused": "unpaidExcused",
+  "unpaid": "unpaid",
+  "familyevent": "familyEvent",
+  
+  // Common variations
+  "arret maladie": "sick",
+  "arrêt": "sick",
+  "arret": "sick",
+  "maladie": "sick"
+};
 
 export const LeaveTypeLegend = () => {
   return (
