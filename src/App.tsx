@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -55,7 +56,8 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     // Si le chargement est en cours mais qu'on a déjà un nombre de tentatives élevé, on force la fin
     if (isLoading && retryCount >= 2) {
       console.log("Too many retries while loading, forcing completion");
-      setIsLoading(false);
+      // Fix: use setIsLoading from useState hook instead of a non-existent setIsLoading
+      setShowLoading(false);
       setHasCheckedAuth(true);
       setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
       return;
