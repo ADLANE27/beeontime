@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,37 +164,50 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="fixed inset-0 flex items-center justify-center z-50 p-0 m-0 max-w-none bg-transparent">
-              <div className="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto p-6">
-                <DialogHeader className="mb-4">
-                  <DialogTitle>Modifier l'employé</DialogTitle>
-                </DialogHeader>
-                <NewEmployeeForm
-                  initialData={{
-                    firstName: employee.first_name,
-                    lastName: employee.last_name,
-                    email: employee.email,
-                    phone: employee.phone || '',
-                    birthDate: employee.birth_date || '',
-                    birthPlace: employee.birth_place || '',
-                    birthCountry: employee.birth_country || '',
-                    socialSecurityNumber: employee.social_security_number || '',
-                    contractType: employee.contract_type as ContractType,
-                    startDate: employee.start_date || '',
-                    position: employee.position as Position,
-                    workSchedule: employee.work_schedule as WorkSchedule,
-                    currentYearVacationDays: employee.current_year_vacation_days || 0,
-                    currentYearUsedDays: employee.current_year_used_days || 0,
-                    previousYearVacationDays: employee.previous_year_vacation_days || 0,
-                    previousYearUsedDays: employee.previous_year_used_days || 0,
-                    initialPassword: '',
-                    streetAddress: employee.street_address || '',
-                    city: employee.city || '',
-                    postalCode: employee.postal_code || '',
-                    country: employee.country || ''
-                  }}
-                  onSuccess={() => setIsEditDialogOpen(false)}
-                  isEditing={true}
-                />
+              <div className="bg-white rounded-lg shadow-lg w-[95%] sm:w-[90%] md:w-[85%] max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6 mx-auto my-auto transform scale-100 animate-scale-up">
+                <div className="sticky top-0 z-10 bg-white pt-2 pb-4 border-b mb-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-gray-900">Modifier l'employé</h2>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="rounded-full h-8 w-8 p-0" 
+                      onClick={() => setIsEditDialogOpen(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="pb-4">
+                  <NewEmployeeForm
+                    initialData={{
+                      firstName: employee.first_name,
+                      lastName: employee.last_name,
+                      email: employee.email,
+                      phone: employee.phone || '',
+                      birthDate: employee.birth_date || '',
+                      birthPlace: employee.birth_place || '',
+                      birthCountry: employee.birth_country || '',
+                      socialSecurityNumber: employee.social_security_number || '',
+                      contractType: employee.contract_type as ContractType,
+                      startDate: employee.start_date || '',
+                      position: employee.position as Position,
+                      workSchedule: employee.work_schedule as WorkSchedule,
+                      currentYearVacationDays: employee.current_year_vacation_days || 0,
+                      currentYearUsedDays: employee.current_year_used_days || 0,
+                      previousYearVacationDays: employee.previous_year_vacation_days || 0,
+                      previousYearUsedDays: employee.previous_year_used_days || 0,
+                      initialPassword: '',
+                      streetAddress: employee.street_address || '',
+                      city: employee.city || '',
+                      postalCode: employee.postal_code || '',
+                      country: employee.country || ''
+                    }}
+                    onSuccess={() => setIsEditDialogOpen(false)}
+                    isEditing={true}
+                  />
+                </div>
               </div>
             </DialogContent>
           </Dialog>
