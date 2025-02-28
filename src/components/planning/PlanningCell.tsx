@@ -47,22 +47,33 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     let leaveColorKey: keyof typeof leaveTypeColors = 'other';
     
     // Get the original type as a string first
-    const originalType = leaveRequest.type as string;
+    const originalType = (leaveRequest.type as string).toLowerCase();
+    
+    // Log the type to debug
+    console.log("Leave type:", originalType);
     
     // Check if the original type is directly a key in leaveTypeColors
     if (originalType in leaveTypeColors) {
       leaveColorKey = originalType as keyof typeof leaveTypeColors;
     } 
-    // Check for sick leave variations
+    // Check for sick leave variations - looking for exact matches and substring matches
     else if (
       originalType === 'sick' || 
-      originalType.toLowerCase().includes('maladie') || 
-      originalType.toLowerCase().includes('arret') ||
-      originalType.toLowerCase().includes('sickness') || 
-      originalType.toLowerCase().includes('medical')
+      originalType === 'arrêt maladie' ||
+      originalType === 'arret maladie' ||
+      originalType === 'arrêt' ||
+      originalType === 'arret' ||
+      originalType.includes('maladie') || 
+      originalType.includes('arret') || 
+      originalType.includes('arrêt') ||
+      originalType.includes('sick') || 
+      originalType.includes('medical')
     ) {
       leaveColorKey = 'sick';
     }
+    
+    // Log the final color key selected
+    console.log("Selected leave color key:", leaveColorKey);
     
     const color = leaveTypeColors[leaveColorKey]?.color || leaveTypeColors.other.color;
     
@@ -149,7 +160,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
 
   // Helper function to get the leave type label for tooltip
   const getLeaveTypeLabel = (leaveRequest: LeaveRequest): string => {
-    const originalType = leaveRequest.type as string;
+    const originalType = (leaveRequest.type as string).toLowerCase();
     
     // Check if the original type is a key in leaveTypeColors
     if (originalType in leaveTypeColors) {
@@ -158,10 +169,13 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     
     // Handle special case for sick leave
     if (originalType === 'sick' || 
-        originalType.toLowerCase().includes('maladie') || 
-        originalType.toLowerCase().includes('arret') ||
-        originalType.toLowerCase().includes('sickness') || 
-        originalType.toLowerCase().includes('medical')) {
+        originalType === 'arrêt maladie' ||
+        originalType === 'arret maladie' ||
+        originalType.includes('maladie') || 
+        originalType.includes('arret') ||
+        originalType.includes('arrêt') ||
+        originalType.includes('sick') || 
+        originalType.includes('medical')) {
       return "Arrêt maladie";
     }
     
