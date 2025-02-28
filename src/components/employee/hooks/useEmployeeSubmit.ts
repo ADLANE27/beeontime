@@ -47,51 +47,29 @@ export const useEmployeeSubmit = (
           .from('employees')
           .update(employeeRecord)
           .eq('id', employeeId);
-      } else {
-        // Pour la création d'un nouvel employé, nous devons vérifier si l'utilisateur existe déjà dans auth
-
-        // 1. Vérifiez d'abord si un utilisateur avec cet email existe dans auth
-        const { data: existingUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', employeeData.email)
-          .single();
-
-        let userId;
-        
-        if (existingUser) {
-          // Si l'utilisateur existe déjà, utilisez son ID
-          userId = existingUser.id;
           
-          // Vérifiez si un employé existe déjà avec cet ID
-          const { data: existingEmployee } = await supabase
-            .from('employees')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-            
-          if (existingEmployee) {
-            throw new Error(`Un employé avec l'email ${employeeData.email} existe déjà.`);
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+      } else {
+        // Create a new employee via special edge function that handles both auth and employee creation
+        const response = await supabase.functions.invoke('create-employee', {
+          body: {
+            employeeData: {
+              ...employeeRecord,
+              password: employeeData.initialPassword
+            }
           }
-        } else {
-          // Si l'utilisateur n'existe pas dans profiles, l'authentification est nécessaire
-          throw new Error(
-            "Impossible de créer l'employé. Veuillez d'abord créer un compte utilisateur dans le système d'authentification. " +
-            "Créez un utilisateur avec l'email " + employeeData.email + " via le panneau d'administration Supabase."
-          );
+        });
+        
+        // Check for errors in the response
+        if (response.error) {
+          throw new Error(`Erreur lors de la création de l'employé: ${response.error.message}`);
         }
         
-        // Créer l'employé avec l'ID d'utilisateur existant
-        result = await supabase
-          .from('employees')
-          .insert({
-            id: userId,
-            ...employeeRecord
-          });
-      }
-      
-      if (result.error) {
-        throw new Error(result.error.message);
+        if (!response.data?.success) {
+          throw new Error(response.data?.message || "Une erreur inconnue s'est produite lors de la création de l'employé");
+        }
       }
 
       // Success!
