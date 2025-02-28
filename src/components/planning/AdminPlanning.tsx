@@ -347,7 +347,7 @@ export const AdminPlanning = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-white z-10 w-[200px] shadow-sm border-r border-gray-100">
+                  <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
                     <div className="font-medium">Employé</div>
                   </TableHead>
                   {getDaysToShow().map((date, i) => (
@@ -391,9 +391,7 @@ export const AdminPlanning = () => {
                         index % 2 === 0 ? "bg-gray-50/10" : ""
                       )}
                     >
-                      <TableHead 
-                        className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50 border-r border-gray-100"
-                      >
+                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
                         <div className="truncate font-medium">
                           {`${employee.first_name} ${employee.last_name}`}
                         </div>
