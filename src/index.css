@@ -76,6 +76,7 @@
   }
 }
 
+/* Clear and precise clip paths for half-day displays */
 .clip-path-left {
   clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
 }

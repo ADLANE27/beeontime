@@ -56,8 +56,15 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
         isHalfDay ? (period === 'morning' ? "clip-path-left" : "clip-path-right") : ""
       )}>
         <div className="w-full h-full opacity-80 group-hover:opacity-90 transition-opacity duration-300" style={gradientStyle} />
-        <span className="absolute text-xs font-medium transform group-hover:scale-110 transition-transform duration-300">
-          {isHalfDay ? '½' : '✓'}
+        <span className={cn(
+          "absolute text-xs font-medium transform group-hover:scale-110 transition-transform duration-300",
+          isHalfDay ? "text-gray-800 font-bold" : ""
+        )}>
+          {isHalfDay ? (
+            <span className="text-sm">½</span>
+          ) : (
+            <span>✓</span>
+          )}
         </span>
       </div>
     );
