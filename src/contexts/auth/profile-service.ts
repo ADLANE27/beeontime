@@ -9,9 +9,13 @@ import { Profile } from "./types";
  */
 function createFallbackProfile(userId: string, email?: string, role?: string): Profile {
   console.log("Creating fallback profile for user:", userId);
+  
+  // Ensure role is either "employee" or "hr"
+  const validRole: "employee" | "hr" = role === "hr" ? "hr" : "employee";
+  
   return {
     id: userId,
-    role: role || "employee", // Default conservative role
+    role: validRole, // Now using type-safe role
     email: email || "",
     first_name: "",
     last_name: ""
@@ -65,7 +69,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     const { data: { user } } = await supabase.auth.getUser();
     
     // Check if user has a specific email domain to determine role
-    let role = "employee";
+    let role: "employee" | "hr" = "employee";
     if (user?.email?.includes("@aftraduction.fr")) {
       // Try to detect HR email
       if (user.email.startsWith("rh@") || user.email.startsWith("hr@") || 
@@ -84,13 +88,13 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        return createFallbackProfile(userId, user.email);
+        return createFallbackProfile(userId, user.email, "employee");
       }
     } catch (e) {
       console.warn("Could not get user email for fallback profile");
     }
     
     // Return a basic fallback profile with minimal data
-    return createFallbackProfile(userId);
+    return createFallbackProfile(userId, undefined, "employee");
   }
 }
