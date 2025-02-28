@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, UserCircle, Buildings } from "lucide-react";
+import { LogOut, UserCircle, Building } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +49,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <div className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mr-2 flex items-center">
-                <Buildings className="h-5 w-5 text-purple-600 mr-1.5" />
+                <Building className="h-5 w-5 text-purple-600 mr-1.5" />
                 {isAdmin ? "HR Admin" : "Dashboard"}
               </div>
             </div>
