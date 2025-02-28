@@ -314,7 +314,7 @@ const HRDashboard = () => {
                   )}
                 </div>
               </div>
-              <TabsList className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-lg border shadow-sm w-full">
+              <TabsList className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-lg border shadow-sm">
                 {menuItems.map((item) => {
                   const isActive = selectedTab === item.value;
                   return (
@@ -322,7 +322,7 @@ const HRDashboard = () => {
                       key={item.value} 
                       value={item.value} 
                       className={`
-                        text-xs sm:text-sm relative group transition-all duration-300 rounded-md px-3 py-1.5 flex-1
+                        text-xs sm:text-sm relative group transition-all duration-300 rounded-md px-3 py-1.5
                         data-[state=active]:shadow-md data-[state=active]:font-semibold
                         ${isActive 
                           ? `bg-gradient-to-r ${item.gradient} text-white border-0` 
@@ -330,7 +330,7 @@ const HRDashboard = () => {
                         }
                       `}
                     >
-                      <div className="flex items-center gap-1.5 justify-center">
+                      <div className="flex items-center gap-1.5">
                         <item.icon className={`h-4 w-4 transition-colors ${
                           isActive ? "text-white" : item.iconColor
                         }`} />
