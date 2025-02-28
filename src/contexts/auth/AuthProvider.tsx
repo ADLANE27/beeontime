@@ -14,6 +14,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: stateLoading,
     authInitialized,
     profileFetchAttempted,
+    authError,
     setProfile
   } = useAuthState();
   
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         authReady: authInitialized,
         profileFetchAttempted,
+        authError,
         signIn,
         signOut,
       }}

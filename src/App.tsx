@@ -16,7 +16,8 @@ import { LoadingScreen } from "./components/ui/loading-screen";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2, // Increase retries for network issues
+      retry: 3, // Increased retries for network issues
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
       refetchOnWindowFocus: false,
     },
   },
@@ -28,11 +29,17 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile, authReady } = useAuth();
+  const { session, isLoading, profile, authReady, authError } = useAuth();
   
   // Show loading state if auth is still initializing
   if (isLoading || !authReady) {
     return <LoadingScreen fullScreen message="Chargement de votre session..." />;
+  }
+  
+  // Handle authentication errors
+  if (authError) {
+    toast.error("Problème d'authentification: " + authError.message);
+    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
 
   // Determine where to redirect if not authenticated

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Building2, Lock, Loader2, WifiOff } from "lucide-react";
+import { Building2, Lock, Loader2, WifiOff, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, authReady } = useAuth();
+  const { session, isLoading, profile, authReady, profileFetchAttempted } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
 
   // Check network status
   useEffect(() => {
@@ -41,14 +42,21 @@ const HRPortal = () => {
     if (!authReady) return;
     
     if (session && profile) {
+      console.log("HR Portal: Session and profile found, checking role", profile.role);
       if (profile.role === "hr") {
         navigate('/hr', { replace: true });
       } else {
         toast.error("Vous n'avez pas les droits pour accéder à cette page.");
         navigate('/employee', { replace: true });
       }
+    } else if (session && !profile && profileFetchAttempted) {
+      console.log("HR Portal: Session exists but no profile found after fetch attempt");
+      setLoginError("Profil utilisateur introuvable. Veuillez contacter l'administrateur.");
+    } else if (!session && authReady) {
+      console.log("HR Portal: No session found, user should log in");
+      setAuthCheckComplete(true);
     }
-  }, [session, profile, navigate, authReady]);
+  }, [session, profile, navigate, authReady, profileFetchAttempted]);
 
   // Check for error parameters in URL
   useEffect(() => {
@@ -69,14 +77,81 @@ const HRPortal = () => {
     }
   }, []);
 
-  // Show loading indicator only when authentication is still initializing
-  if (!authReady) {
+  // Manual sign-in handler to provide better error feedback
+  const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    
+    if (!email || !password) {
+      setLoginError("Veuillez remplir tous les champs.");
+      return;
+    }
+    
+    try {
+      setLoginError(null);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        console.error("Sign in error:", error.message);
+        if (error.message.includes("Invalid login credentials")) {
+          setLoginError("Email ou mot de passe incorrect.");
+        } else {
+          setLoginError(`Erreur de connexion: ${error.message}`);
+        }
+      }
+    } catch (err) {
+      console.error("Exception during sign in:", err);
+      setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
+    }
+  };
+
+  // Show clear loading state during authentication check
+  if (!authCheckComplete && isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Chargement en cours...</p>
+          <p className="text-muted-foreground">Vérification de votre session...</p>
         </div>
+      </div>
+    );
+  }
+
+  // If we have a session but profile fetch failed
+  if (session && !profile && profileFetchAttempted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6 space-y-6">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+            <h1 className="text-2xl font-bold">Profil non disponible</h1>
+            <p className="text-gray-600">
+              Votre session est active, mais nous n'avons pas pu récupérer votre profil utilisateur.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <Button 
+              className="w-full" 
+              onClick={() => window.location.reload()}
+            >
+              Rafraîchir la page
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+            >
+              Se déconnecter
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }

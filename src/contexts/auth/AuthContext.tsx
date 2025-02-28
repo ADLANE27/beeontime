@@ -10,6 +10,7 @@ export interface AuthContextType {
   isLoading: boolean;
   authReady: boolean;
   profileFetchAttempted: boolean;
+  authError: Error | null;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     data: {
@@ -27,6 +28,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   authReady: false,
   profileFetchAttempted: false,
+  authError: null,
   signIn: async () => ({
     error: null,
     data: {
