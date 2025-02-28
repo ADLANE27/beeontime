@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Phone, Building, Calendar, Loader2 } from "lucide-react";
+import { Mail, Phone, Building, Calendar, Loader2, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -37,12 +37,27 @@ interface Employee {
   country: string | null;
 }
 
-const EmployeeCard = ({ employee }: { employee: Employee }) => {
+const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (id: string) => void }) => {
   const currentYearBalance = Number(employee.current_year_vacation_days || 0) - Number(employee.current_year_used_days || 0);
   const previousYearBalance = Number(employee.previous_year_vacation_days || 0) - Number(employee.previous_year_used_days || 0);
   const totalBalance = currentYearBalance + previousYearBalance;
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      onDelete(employee.id);
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      toast.error("Erreur lors de la suppression de l'employé");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -101,45 +116,83 @@ const EmployeeCard = ({ employee }: { employee: Employee }) => {
           </div>
         </div>
 
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full">
-              Modifier
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Modifier l'employé</DialogTitle>
-            </DialogHeader>
-            <NewEmployeeForm
-              initialData={{
-                firstName: employee.first_name,
-                lastName: employee.last_name,
-                email: employee.email,
-                phone: employee.phone || '',
-                birthDate: employee.birth_date || '',
-                birthPlace: employee.birth_place || '',
-                birthCountry: employee.birth_country || '',
-                socialSecurityNumber: employee.social_security_number || '',
-                contractType: employee.contract_type as ContractType,
-                startDate: employee.start_date || '',
-                position: employee.position as Position,
-                workSchedule: employee.work_schedule as WorkSchedule,
-                currentYearVacationDays: employee.current_year_vacation_days || 0,
-                currentYearUsedDays: employee.current_year_used_days || 0,
-                previousYearVacationDays: employee.previous_year_vacation_days || 0,
-                previousYearUsedDays: employee.previous_year_used_days || 0,
-                initialPassword: '',
-                streetAddress: employee.street_address || '',
-                city: employee.city || '',
-                postalCode: employee.postal_code || '',
-                country: employee.country || ''
-              }}
-              onSuccess={() => setIsEditDialogOpen(false)}
-              isEditing={true}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex-1">
+                Modifier
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Modifier l'employé</DialogTitle>
+              </DialogHeader>
+              <NewEmployeeForm
+                initialData={{
+                  firstName: employee.first_name,
+                  lastName: employee.last_name,
+                  email: employee.email,
+                  phone: employee.phone || '',
+                  birthDate: employee.birth_date || '',
+                  birthPlace: employee.birth_place || '',
+                  birthCountry: employee.birth_country || '',
+                  socialSecurityNumber: employee.social_security_number || '',
+                  contractType: employee.contract_type as ContractType,
+                  startDate: employee.start_date || '',
+                  position: employee.position as Position,
+                  workSchedule: employee.work_schedule as WorkSchedule,
+                  currentYearVacationDays: employee.current_year_vacation_days || 0,
+                  currentYearUsedDays: employee.current_year_used_days || 0,
+                  previousYearVacationDays: employee.previous_year_vacation_days || 0,
+                  previousYearUsedDays: employee.previous_year_used_days || 0,
+                  initialPassword: '',
+                  streetAddress: employee.street_address || '',
+                  city: employee.city || '',
+                  postalCode: employee.postal_code || '',
+                  country: employee.country || ''
+                }}
+                onSuccess={() => setIsEditDialogOpen(false)}
+                isEditing={true}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-auto" size="icon">
+                <Trash className="h-4 w-4 text-destructive" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmer la suppression</DialogTitle>
+                <DialogDescription>
+                  Êtes-vous sûr de vouloir supprimer l'employé {employee.first_name} {employee.last_name} ? 
+                  Cette action est irréversible et supprimera toutes les données associées.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="mt-4">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Suppression...
+                    </>
+                  ) : (
+                    "Supprimer"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardContent>
     </Card>
   );
@@ -218,6 +271,30 @@ export const EmployeesList = () => {
     refetchInterval: 30000, // Refetch every 30 seconds as a fallback
   });
 
+  const handleDeleteEmployee = async (employeeId: string) => {
+    try {
+      // Delete the employee from auth and all related data
+      const { error } = await supabase.functions.invoke('delete-employee', {
+        body: { employeeId }
+      });
+
+      if (error) {
+        console.error('Error deleting employee:', error);
+        toast.error("Erreur lors de la suppression de l'employé");
+        return;
+      }
+
+      toast.success("Employé supprimé avec succès");
+      
+      // Data will be updated automatically via real-time subscription,
+      // but we'll also invalidate the cache just to be sure
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      toast.error("Erreur lors de la suppression de l'employé");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -245,7 +322,11 @@ export const EmployeesList = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {employees?.map((employee) => (
-          <EmployeeCard key={employee.id} employee={employee} />
+          <EmployeeCard 
+            key={employee.id} 
+            employee={employee} 
+            onDelete={handleDeleteEmployee}
+          />
         ))}
       </div>
     </div>
