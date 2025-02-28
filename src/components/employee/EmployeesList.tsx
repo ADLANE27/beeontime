@@ -164,37 +164,39 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
           </Button>
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="w-full max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Modifier l'employé</DialogTitle>
-              </DialogHeader>
-              <NewEmployeeForm
-                initialData={{
-                  firstName: employee.first_name,
-                  lastName: employee.last_name,
-                  email: employee.email,
-                  phone: employee.phone || '',
-                  birthDate: employee.birth_date || '',
-                  birthPlace: employee.birth_place || '',
-                  birthCountry: employee.birth_country || '',
-                  socialSecurityNumber: employee.social_security_number || '',
-                  contractType: employee.contract_type as ContractType,
-                  startDate: employee.start_date || '',
-                  position: employee.position as Position,
-                  workSchedule: employee.work_schedule as WorkSchedule,
-                  currentYearVacationDays: employee.current_year_vacation_days || 0,
-                  currentYearUsedDays: employee.current_year_used_days || 0,
-                  previousYearVacationDays: employee.previous_year_vacation_days || 0,
-                  previousYearUsedDays: employee.previous_year_used_days || 0,
-                  initialPassword: '',
-                  streetAddress: employee.street_address || '',
-                  city: employee.city || '',
-                  postalCode: employee.postal_code || '',
-                  country: employee.country || ''
-                }}
-                onSuccess={() => setIsEditDialogOpen(false)}
-                isEditing={true}
-              />
+            <DialogContent className="fixed inset-0 flex items-center justify-center z-50 p-0 m-0 max-w-none bg-transparent">
+              <div className="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+                <DialogHeader className="mb-4">
+                  <DialogTitle>Modifier l'employé</DialogTitle>
+                </DialogHeader>
+                <NewEmployeeForm
+                  initialData={{
+                    firstName: employee.first_name,
+                    lastName: employee.last_name,
+                    email: employee.email,
+                    phone: employee.phone || '',
+                    birthDate: employee.birth_date || '',
+                    birthPlace: employee.birth_place || '',
+                    birthCountry: employee.birth_country || '',
+                    socialSecurityNumber: employee.social_security_number || '',
+                    contractType: employee.contract_type as ContractType,
+                    startDate: employee.start_date || '',
+                    position: employee.position as Position,
+                    workSchedule: employee.work_schedule as WorkSchedule,
+                    currentYearVacationDays: employee.current_year_vacation_days || 0,
+                    currentYearUsedDays: employee.current_year_used_days || 0,
+                    previousYearVacationDays: employee.previous_year_vacation_days || 0,
+                    previousYearUsedDays: employee.previous_year_used_days || 0,
+                    initialPassword: '',
+                    streetAddress: employee.street_address || '',
+                    city: employee.city || '',
+                    postalCode: employee.postal_code || '',
+                    country: employee.country || ''
+                  }}
+                  onSuccess={() => setIsEditDialogOpen(false)}
+                  isEditing={true}
+                />
+              </div>
             </DialogContent>
           </Dialog>
 
