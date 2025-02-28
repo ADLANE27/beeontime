@@ -29,7 +29,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       });
       return data as Profile;
     } else {
-      console.log("No profile found for user:", userId);
+      console.log("No profile found in profiles table, checking employees table...");
       // Try fallback to employees table if profile not found
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
@@ -39,7 +39,6 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
         
       if (employeeError) {
         console.error("Error in employee fallback fetch:", employeeError);
-        return null;
       }
       
       if (employeeData) {
@@ -55,25 +54,44 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
         return profileFromEmployee;
       }
       
-      // If all else fails, create a minimal profile from auth data
+      // If all else fails, get user info from auth and create a minimal profile
       try {
-        console.log("Creating minimal profile from auth data");
-        return {
-          id: userId,
-          role: "employee", // Default role
-          email: "",
-          first_name: "",
-          last_name: ""
-        };
+        console.log("Attempting to create minimal profile from auth data");
+        const { data: userData, error: userError } = await supabase.auth.getUser(userId);
+        
+        if (userError) {
+          console.error("Error getting user auth data:", userError);
+        }
+        
+        if (userData?.user) {
+          const email = userData.user.email;
+          console.log("Created minimal profile from auth data with email:", email);
+          return {
+            id: userId,
+            role: "employee", // Default role
+            email: email || "",
+            first_name: "",
+            last_name: ""
+          };
+        }
       } catch (authError) {
-        console.error("Error creating minimal profile:", authError);
+        console.error("Error creating minimal profile from auth:", authError);
       }
       
-      return null;
+      // Last resort fallback - create a minimal profile without attempting to fetch email
+      console.log("Creating absolute minimal fallback profile");
+      return {
+        id: userId,
+        role: "employee", // Default fallback role
+        email: "",
+        first_name: "",
+        last_name: ""
+      };
     }
   } catch (error) {
     console.error("Exception in fetchProfile:", error);
     // Return a minimal profile to prevent login loops
+    console.log("Returning emergency fallback profile due to error");
     return {
       id: userId,
       role: "employee", // Default fallback role
