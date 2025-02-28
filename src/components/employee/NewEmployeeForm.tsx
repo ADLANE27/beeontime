@@ -152,14 +152,8 @@ export const NewEmployeeForm = ({
                 value={formData.initialPassword}
                 onChange={(value) => handleFieldChange("initialPassword", value)}
                 isRequired={!isEditing}
-                label={isEditing ? "Nouveau mot de passe" : "Mot de passe initial"}
-                isEditing={isEditing}
+                label="Mot de passe initial"
               />
-              {isEditing && (
-                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
-                  Note: Laissez ce champ vide si vous ne souhaitez pas modifier le mot de passe actuel.
-                </div>
-              )}
             </div>
             
             <div className="space-y-3 mt-4">

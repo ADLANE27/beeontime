@@ -40,90 +40,6 @@ export const useEmployeeSubmit = (
       };
 
       if (isEditing && employeeId) {
-        // Vérifier si le mot de passe et/ou l'email a été modifié
-        const { data: currentEmployee } = await supabase
-          .from('employees')
-          .select('initial_password, email')
-          .eq('id', employeeId)
-          .single();
-        
-        const passwordChanged = currentEmployee && 
-                               currentEmployee.initial_password !== employeeData.initialPassword && 
-                               employeeData.initialPassword.trim() !== '';
-        
-        const emailChanged = currentEmployee &&
-                            currentEmployee.email !== employeeData.email;
-        
-        // Si le mot de passe a été modifié, le mettre à jour dans auth.users
-        if (passwordChanged) {
-          try {
-            console.log("Mise à jour du mot de passe dans auth.users...");
-            
-            // Validation du mot de passe
-            if (employeeData.initialPassword.length < 8) {
-              throw new Error("Le mot de passe doit contenir au moins 8 caractères");
-            }
-            
-            // Vérifier si c'est l'utilisateur courant qui modifie son propre mot de passe
-            const { data: currentSession } = await supabase.auth.getSession();
-            const isSelfUpdate = currentSession?.session?.user?.id === employeeId;
-            
-            // Utiliser une Edge Function pour mettre à jour le mot de passe
-            const { data: updateResult, error: updateError } = await supabase.functions.invoke('update-user-password', {
-              body: {
-                userId: employeeId,
-                newPassword: employeeData.initialPassword
-              }
-            });
-            
-            if (updateError) {
-              console.error("Erreur lors de la mise à jour du mot de passe:", updateError);
-              throw new Error(`Erreur lors de la mise à jour du mot de passe: ${updateError.message}`);
-            }
-            
-            console.log("Mot de passe mis à jour avec succès dans auth.users");
-            toast.success("Mot de passe mis à jour avec succès");
-            
-            // Si c'est l'utilisateur courant, le déconnecter complètement
-            if (isSelfUpdate) {
-              console.log("L'utilisateur courant est celui dont le mot de passe a été modifié. Déconnexion...");
-              
-              // Utiliser un délai pour s'assurer que la mise à jour est enregistrée
-              setTimeout(async () => {
-                await supabase.auth.signOut();
-                toast.info("Votre mot de passe a été modifié, veuillez vous reconnecter.");
-                
-                // Rediriger vers la page de connexion après une courte pause
-                setTimeout(() => {
-                  window.location.href = '/portal';
-                }, 1000);
-              }, 500);
-            }
-          } catch (passwordError: any) {
-            console.error("Erreur lors de la mise à jour du mot de passe:", passwordError);
-            toast.error(`Erreur lors de la mise à jour du mot de passe: ${passwordError.message}`);
-            // Continuer avec la mise à jour des autres informations même si le mot de passe échoue
-          }
-        } else {
-          console.log("Pas de changement de mot de passe détecté ou mot de passe vide");
-        }
-        
-        // Si l'email a été modifié, mettre à jour dans auth.users aussi
-        if (emailChanged) {
-          try {
-            console.log("Mise à jour de l'email dans auth.users...");
-            
-            // Appeler une Edge Function ou utiliser l'API Admin pour mettre à jour l'email
-            // Cette partie nécessiterait une Edge Function supplémentaire
-            // à implémenter similaire à update-user-password
-            
-            console.log("Email mis à jour dans la table employees");
-          } catch (emailError: any) {
-            console.error("Erreur lors de la mise à jour de l'email:", emailError);
-            toast.error(`Erreur lors de la mise à jour de l'email: ${emailError.message}`);
-          }
-        }
-        
         // Update existing employee
         const { error } = await supabase
           .from('employees')
@@ -134,22 +50,6 @@ export const useEmployeeSubmit = (
           throw new Error(error.message);
         }
         
-        // Mettre à jour également le profil
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: employeeId,
-            email: employeeData.email,
-            first_name: employeeData.firstName,
-            last_name: employeeData.lastName,
-            role: 'employee'
-          });
-        
-        if (profileError) {
-          console.warn("Avertissement: Erreur lors de la mise à jour du profil:", profileError);
-          // Ne pas bloquer la réussite globale si la mise à jour du profil échoue
-        }
-        
         toast.success("Employé mis à jour avec succès");
         onSuccess();
       } else {
@@ -157,12 +57,6 @@ export const useEmployeeSubmit = (
         try {
           // Step 1: Create auth user using the standard signUp method
           console.log("Creating auth user for:", employeeData.email);
-          
-          // Validation du mot de passe
-          if (employeeData.initialPassword.length < 8) {
-            throw new Error("Le mot de passe doit contenir au moins 8 caractères");
-          }
-          
           const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
             email: employeeData.email,
             password: employeeData.initialPassword,

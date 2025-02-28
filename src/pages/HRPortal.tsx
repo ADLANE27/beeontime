@@ -8,15 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, refreshProfile } = useAuth();
+  const { session, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   useEffect(() => {
     // If user is already authenticated, redirect to HR dashboard
@@ -54,18 +52,12 @@ const HRPortal = () => {
 
   // Listen for auth events
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state event:", event);
       
       if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session) {
           setLocalLoading(true);
-          
-          // Si on a une session mais pas de profil, tenter de charger/créer le profil
-          if (session.user) {
-            await refreshProfile();
-          }
-          
           navigate('/hr', { replace: true });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -76,7 +68,7 @@ const HRPortal = () => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [navigate, refreshProfile]);
+  }, [navigate]);
 
   // Force timeout to prevent infinite loading
   useEffect(() => {
@@ -92,24 +84,18 @@ const HRPortal = () => {
     };
   }, [localLoading]);
 
-  const handleManualRefresh = async () => {
-    setLastRefresh(Date.now());
-    window.location.reload();
-  };
-
   if (isLoading || localLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
-          <Button 
-            onClick={handleManualRefresh} 
-            variant="outline"
-            className="mt-4"
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-sm text-primary hover:underline mt-2"
           >
             Cliquez ici si le chargement persiste
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -141,7 +127,6 @@ const HRPortal = () => {
 
           {loginError && (
             <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Erreur</AlertTitle>
               <AlertDescription>{loginError}</AlertDescription>
             </Alert>
           )}
@@ -199,23 +184,6 @@ const HRPortal = () => {
             view="sign_in"
             magicLink={false}
           />
-          
-          {/* Bouton de secours pour réinitialiser l'état si problème */}
-          <div className="mt-4 text-center">
-            <Button 
-              variant="link" 
-              className="text-xs text-gray-500 hover:text-gray-700"
-              onClick={() => {
-                supabase.auth.signOut().then(() => {
-                  localStorage.clear();
-                  sessionStorage.clear();
-                  window.location.href = '/hr-portal';
-                });
-              }}
-            >
-              Problème de connexion ? Réinitialiser
-            </Button>
-          </div>
         </Card>
 
         <p className="text-center text-sm text-gray-600 mt-8">
