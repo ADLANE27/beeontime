@@ -273,13 +273,95 @@ export const EmployeesList = () => {
 
   const handleDeleteEmployee = async (employeeId: string) => {
     try {
-      // Delete the employee from auth and all related data
-      const { error } = await supabase.functions.invoke('delete-employee', {
-        body: { employeeId }
-      });
-
-      if (error) {
-        console.error('Error deleting employee:', error);
+      // Start transaction to delete all related data
+      console.log(`Deleting employee with ID: ${employeeId}`);
+      
+      // 1. Delete related documents
+      console.log("Deleting leave request documents...");
+      const { data: leaveRequests } = await supabase
+        .from('leave_requests')
+        .select('id')
+        .eq('employee_id', employeeId);
+        
+      if (leaveRequests && leaveRequests.length > 0) {
+        const leaveRequestIds = leaveRequests.map(lr => lr.id);
+        await supabase
+          .from('leave_request_documents')
+          .delete()
+          .in('leave_request_id', leaveRequestIds);
+      }
+      
+      console.log("Deleting HR event documents...");
+      const { data: hrEvents } = await supabase
+        .from('hr_events')
+        .select('id')
+        .eq('employee_id', employeeId);
+        
+      if (hrEvents && hrEvents.length > 0) {
+        const hrEventIds = hrEvents.map(event => event.id);
+        await supabase
+          .from('hr_event_documents')
+          .delete()
+          .in('event_id', hrEventIds);
+      }
+      
+      console.log("Deleting employee documents...");
+      await supabase
+        .from('documents')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 2. Delete time records
+      console.log("Deleting time records...");
+      await supabase
+        .from('time_records')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 3. Delete leave requests
+      console.log("Deleting leave requests...");
+      await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 4. Delete delays
+      console.log("Deleting delays...");
+      await supabase
+        .from('delays')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 5. Delete overtime requests
+      console.log("Deleting overtime requests...");
+      await supabase
+        .from('overtime_requests')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 6. Delete HR events
+      console.log("Deleting HR events...");
+      await supabase
+        .from('hr_events')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 7. Delete vacation history
+      console.log("Deleting vacation history...");
+      await supabase
+        .from('vacation_history')
+        .delete()
+        .eq('employee_id', employeeId);
+      
+      // 8. Finally delete the employee record
+      console.log("Deleting employee record...");
+      const { error: employeeDeleteError } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+      
+      if (employeeDeleteError) {
+        console.error("Error deleting employee record:", employeeDeleteError);
         toast.error("Erreur lors de la suppression de l'employé");
         return;
       }
