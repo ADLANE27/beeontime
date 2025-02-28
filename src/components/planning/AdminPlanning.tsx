@@ -6,7 +6,7 @@ import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
 import { PlanningCell } from "./PlanningCell";
@@ -51,6 +51,7 @@ export const AdminPlanning = () => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [isLoading, setIsLoading] = useState(true);
   const [isChangingView, setIsChangingView] = useState(false);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const firstDayOfPeriod = viewMode === 'month' 
     ? startOfMonth(currentDate)
@@ -119,6 +120,31 @@ export const AdminPlanning = () => {
     fetchData();
   }, [currentDate, viewMode]);
 
+  // Effet pour faire défiler jusqu'à la colonne du jour actuel
+  useEffect(() => {
+    // Attendre que les données soient chargées
+    if (!isLoading && tableContainerRef.current) {
+      // Trouver l'index du jour actuel (si présent dans la vue actuelle)
+      const days = getDaysToShow();
+      const todayIndex = days.findIndex(date => isToday(date));
+      
+      if (todayIndex !== -1) {
+        // Calculer la position de défilement approximative
+        const cellWidth = 100; // Largeur approximative d'une cellule en pixels
+        const scrollPosition = todayIndex * cellWidth;
+        
+        // Faire défiler jusqu'à cette position, avec un décalage pour centrer la cellule
+        setTimeout(() => {
+          if (tableContainerRef.current) {
+            const containerWidth = tableContainerRef.current.clientWidth;
+            const nameColumnWidth = 200; // Largeur de la colonne des noms
+            tableContainerRef.current.scrollLeft = scrollPosition - (containerWidth - nameColumnWidth) / 2 + cellWidth / 2;
+          }
+        }, 100);
+      }
+    }
+  }, [isLoading, currentDate, viewMode]);
+
   const nextPeriod = () => {
     setIsChangingView(true);
     setTimeout(() => {
@@ -145,8 +171,17 @@ export const AdminPlanning = () => {
 
   const goToToday = () => {
     setIsChangingView(true);
+    
+    // Définir la date sur aujourd'hui
+    const today = new Date();
+    
+    // Assurer que la période (mois ou semaine) affichée contient le jour actuel
+    setCurrentDate(today);
+    
+    // Notification pour l'utilisateur
+    toast.success(`Affichage du ${format(today, 'dd MMMM yyyy', { locale: fr })}`);
+    
     setTimeout(() => {
-      setCurrentDate(new Date());
       setIsChangingView(false);
     }, 150);
   };
@@ -339,7 +374,10 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <div className="relative h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white overflow-auto">
+        <div 
+          ref={tableContainerRef}
+          className="relative h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white overflow-auto"
+        >
           <div className={cn(
             "min-w-max transition-opacity duration-300",
             isChangingView ? "opacity-50" : "opacity-100"
