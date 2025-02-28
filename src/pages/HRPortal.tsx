@@ -6,29 +6,46 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, profile } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
+  const [redirectInProgress, setRedirectInProgress] = useState(false);
 
   useEffect(() => {
-    // If user is already authenticated, redirect to HR dashboard
-    if (session?.user) {
-      console.log("User is authenticated, redirecting to HR dashboard");
+    // If user is already authenticated and has an HR profile, redirect to HR dashboard
+    if (session?.user && profile?.role === "hr") {
+      console.log("User is HR, redirecting to HR dashboard");
       navigate('/hr', { replace: true });
+      return;
     }
-  }, [session, navigate]);
+    
+    // If user is authenticated but doesn't have HR role, redirect to employee dashboard
+    if (session?.user && profile && profile.role !== "hr") {
+      console.log("User is not HR, redirecting to employee dashboard");
+      toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+      navigate('/employee', { replace: true });
+      return;
+    }
+    
+    // If user is authenticated but profile isn't loaded yet, don't redirect immediately
+    if (session?.user && !profile && !redirectInProgress) {
+      console.log("User authenticated but profile not loaded yet, waiting...");
+      return;
+    }
+  }, [session, profile, navigate, redirectInProgress]);
 
   // Debug loading state
   useEffect(() => {
     console.log("Auth loading state:", isLoading);
     console.log("Session state:", session ? "Authenticated" : "Not authenticated");
-  }, [isLoading, session]);
+    console.log("Profile state:", profile ? `Role: ${profile.role}` : "No profile");
+  }, [isLoading, session, profile]);
 
   // Clean URL from error parameters and set error message
   useEffect(() => {
@@ -58,10 +75,12 @@ const HRPortal = () => {
       if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session) {
           setLocalLoading(true);
-          navigate('/hr', { replace: true });
+          setRedirectInProgress(true);
+          // Navigation will be handled by the first useEffect when profile is loaded
         }
       } else if (event === 'SIGNED_OUT') {
         setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
+        setRedirectInProgress(false);
       }
     });
 
@@ -76,8 +95,9 @@ const HRPortal = () => {
       if (localLoading) {
         console.log("Local loading timeout reached, resetting state");
         setLocalLoading(false);
+        setRedirectInProgress(false);
       }
-    }, 5000);
+    }, 8000); // Longer timeout to allow for profile fetch
     
     return () => {
       clearTimeout(timeoutId);
@@ -91,7 +111,11 @@ const HRPortal = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              setLocalLoading(false);
+              setRedirectInProgress(false);
+              window.location.reload();
+            }} 
             className="text-sm text-primary hover:underline mt-2"
           >
             Cliquez ici si le chargement persiste

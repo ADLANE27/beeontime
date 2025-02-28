@@ -28,10 +28,28 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile, authReady } = useAuth();
+  const { session, isLoading, profile, authReady, profileFetchAttempted } = useAuth();
   const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
+  const [loadingTimeoutReached, setLoadingTimeoutReached] = useState(false);
   const navigate = useNavigate();
+
+  // Set up loading timeout
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    
+    if (isLoading) {
+      timeoutId = window.setTimeout(() => {
+        setLoadingTimeoutReached(true);
+      }, 5000); // 5 second timeout
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     console.log("ProtectedRoute: Auth state updated", { 
@@ -39,11 +57,12 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       hasSession: !!session, 
       profileRole: profile?.role,
       requiredRole,
-      authReady
+      authReady,
+      profileFetchAttempted
     });
     
-    // Only make decisions when auth is ready
-    if (!authReady && isLoading) {
+    // Don't make decisions until auth is ready or timeout is reached
+    if (isLoading && !loadingTimeoutReached) {
       return;
     }
     
@@ -55,7 +74,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       return;
     }
     
-    // Handle role-based access
+    // Handle role-based access when profile exists
     if (profile) {
       if (requiredRole === "hr" && profile.role !== "hr") {
         console.log("User is not HR, redirecting to employee dashboard");
@@ -70,17 +89,25 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       return;
     }
     
-    // Edge case: session exists but no profile yet
-    if (session && !profile && !isLoading) {
-      // This might be a rare race condition, redirect to login
-      console.log("Session exists but no profile, redirecting to portal");
+    // Special case: session exists but no profile, but we've already tried to fetch it
+    if (session && !profile && profileFetchAttempted) {
+      console.log("Session exists but no profile after fetch attempt, redirecting to portal");
       setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
       setShouldRedirect(true);
+      return;
     }
-  }, [isLoading, session, profile, requiredRole, navigate, authReady]);
+    
+    // Edge case: loading timeout reached but auth still not ready
+    if (loadingTimeoutReached && !authReady) {
+      console.log("Loading timeout reached without auth ready, redirecting to portal");
+      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      setShouldRedirect(true);
+      return;
+    }
+  }, [isLoading, session, profile, requiredRole, authReady, profileFetchAttempted, loadingTimeoutReached]);
 
   // Show loading state
-  if (isLoading || (!authReady && !shouldRedirect)) {
+  if ((isLoading && !loadingTimeoutReached) || (!authReady && !shouldRedirect)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">

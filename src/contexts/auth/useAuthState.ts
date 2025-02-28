@@ -12,28 +12,34 @@ export function useAuthState() {
   const [isLoading, setIsLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
   const isMountedRef = useRef(true);
-  
-  // Track if profile fetching is in progress to prevent duplicate requests
   const isProfileFetchingRef = useRef(false);
+  const profileFetchAttemptedRef = useRef(false);
 
   // Function to safely update profile
   const updateProfile = async (userId: string) => {
-    // Prevent duplicate profile fetches
-    if (isProfileFetchingRef.current) return;
+    // Prevent duplicate profile fetches or fetches after unmount
+    if (isProfileFetchingRef.current || !isMountedRef.current) return;
     
     try {
       isProfileFetchingRef.current = true;
+      profileFetchAttemptedRef.current = true;
       console.log("Fetching profile for user:", userId);
       const profileData = await fetchProfile(userId);
       
       if (isMountedRef.current) {
         setProfile(profileData);
-        console.log("Profile fetched successfully:", profileData?.role);
+        console.log("Profile fetched successfully:", profileData?.role || "No role found");
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      if (isMountedRef.current) {
+        // Even on error, we've attempted to fetch profile
+        profileFetchAttemptedRef.current = true;
+      }
     } finally {
-      isProfileFetchingRef.current = false;
+      if (isMountedRef.current) {
+        isProfileFetchingRef.current = false;
+      }
     }
   };
 
@@ -43,6 +49,32 @@ export function useAuthState() {
       setSession(null);
       setUser(null);
       setProfile(null);
+      profileFetchAttemptedRef.current = false;
+    }
+  };
+
+  // Handle session state updates including profile fetching
+  const handleSessionUpdate = async (newSession: Session | null) => {
+    if (!isMountedRef.current) return;
+    
+    console.log("Handling session update:", newSession ? "Session exists" : "No session");
+    
+    if (newSession) {
+      setSession(newSession);
+      setUser(newSession.user);
+      
+      // Only fetch profile if we have a user and haven't already started fetching
+      if (newSession.user?.id && !isProfileFetchingRef.current) {
+        await updateProfile(newSession.user.id);
+      }
+    } else {
+      clearAuthState();
+    }
+    
+    // Mark auth as initialized and not loading anymore
+    if (isMountedRef.current) {
+      setIsLoading(false);
+      setAuthInitialized(true);
     }
   };
 
@@ -52,46 +84,28 @@ export function useAuthState() {
     // Create a variable to track if the component is still mounted
     isMountedRef.current = true;
     
-    // Track initial auth check completion
-    let initialCheckComplete = false;
-    
     // Set up a timeout to prevent indefinite loading
     const loadingTimeout = setTimeout(() => {
-      if (isMountedRef.current && !initialCheckComplete) {
+      if (isMountedRef.current && !authInitialized) {
         console.log("Auth loading timeout reached, forcing completion");
         setIsLoading(false);
         setAuthInitialized(true);
       }
-    }, 3000); // Slightly longer timeout to ensure we give auth a chance to initialize
+    }, 5000); // 5 second timeout
     
     // Check for an existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMountedRef.current) return;
-      initialCheckComplete = true;
       
       console.log("Initial session check result:", session ? "Session found" : "No session");
+      await handleSessionUpdate(session);
       
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        
-        if (session.user?.id) {
-          await updateProfile(session.user.id);
-        }
-      }
-      
-      if (isMountedRef.current) {
-        setIsLoading(false);
-        setAuthInitialized(true);
-        clearTimeout(loadingTimeout); // Clear timeout once loaded
-      }
     }).catch(error => {
-      initialCheckComplete = true;
       if (isMountedRef.current) {
         console.error("Error checking initial session:", error);
         setIsLoading(false);
         setAuthInitialized(true);
-        clearTimeout(loadingTimeout); // Clear timeout on error
+        clearTimeout(loadingTimeout);
       }
     });
     
@@ -105,36 +119,25 @@ export function useAuthState() {
         // Handle different auth events
         switch (event) {
           case 'SIGNED_IN':
-            if (session) {
-              setSession(session);
-              setUser(session.user);
-              
-              if (session.user?.id) {
-                await updateProfile(session.user.id);
-              }
-            }
+            await handleSessionUpdate(session);
             break;
             
           case 'SIGNED_OUT':
             clearAuthState();
             setIsLoading(false);
+            setAuthInitialized(true);
             break;
             
           case 'USER_UPDATED':
-            if (session) {
-              setSession(session);
-              setUser(session.user);
-              
-              if (session.user?.id) {
-                await updateProfile(session.user.id);
-              }
-            }
-            break;
-            
           case 'TOKEN_REFRESHED':
             if (session) {
               setSession(session);
               setUser(session.user);
+              
+              // Re-fetch profile on user update if user exists
+              if (session.user?.id && !isProfileFetchingRef.current) {
+                await updateProfile(session.user.id);
+              }
             }
             break;
         }
@@ -156,6 +159,7 @@ export function useAuthState() {
     profile,
     isLoading,
     authInitialized,
+    profileFetchAttempted: profileFetchAttemptedRef.current,
     setProfile
   };
 }
