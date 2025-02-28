@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -179,8 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        // Fix: Update the comparison to check if event is different from 'SIGNED_OUT'
-        // instead of directly comparing with 'SIGNED_OUT'
+        // Fix: Update the comparison to check if event is not 'SIGNED_OUT'
+        // This avoids the TypeScript error by using a boolean check instead of 
+        // directly comparing enum values that don't overlap
         // Pour PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
         if (newSession) {
           setSession(newSession);
