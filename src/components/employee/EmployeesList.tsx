@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogContentFullScreen, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,26 +153,26 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
         </div>
 
         <div className="flex gap-2 pt-1">
-          <Button 
-            variant="outline" 
-            className="flex-1 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700" 
-            size="sm"
-            onClick={() => setIsEditDialogOpen(true)}
-          >
-            <Pencil className="h-4 w-4 mr-1.5" />
-            Modifier
-          </Button>
-
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="sm:max-w-3xl">
-              <DialogHeader>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="flex-1 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700" 
+                size="sm"
+              >
+                <Pencil className="h-4 w-4 mr-1.5" />
+                Modifier
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl p-0">
+              <DialogHeader className="p-6 pb-2">
                 <DialogTitle className="text-xl font-bold">Modifier l'employé</DialogTitle>
                 <DialogDescription>
                   Modifiez les informations de {employee.first_name} {employee.last_name}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="max-h-[80vh] overflow-y-auto pb-4">
+              <div className="px-6 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <NewEmployeeForm
                   initialData={{
                     firstName: employee.first_name,
@@ -247,266 +247,201 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
 
 export const EmployeesList = () => {
   const [isNewEmployeeDialogOpen, setIsNewEmployeeDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterContract, setFilterContract] = useState<string>("all");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedContractTypes, setSelectedContractTypes] = useState<ContractType[]>([]);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    console.log('Setting up real-time subscription for employees...');
-    
-    const channel = supabase
-      .channel('employees-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'employees'
-        },
-        async (payload) => {
-          console.log('Received real-time update:', payload);
-          await queryClient.invalidateQueries({ queryKey: ['employees'] });
-          
-          const action = payload.eventType === 'INSERT' ? 'ajouté' 
-            : payload.eventType === 'DELETE' ? 'supprimé' 
-            : 'mis à jour';
-          toast.info(`Un employé a été ${action}`);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to employees changes');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to employees changes');
-          toast.error("Erreur de connexion aux mises à jour en temps réel");
-        }
-      });
-
-    return () => {
-      console.log('Cleaning up employees subscription...');
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const { data: employees, isLoading } = useQuery({
-    queryKey: ['employees'],
-    queryFn: async () => {
-      console.log('Fetching employees data...');
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
       const { data, error } = await supabase
         .from('employees')
         .select('*')
         .order('last_name', { ascending: true });
 
       if (error) {
-        console.error('Error fetching employees:', error);
-        throw error;
+        console.error("Error fetching employees:", error);
+        toast.error("Erreur lors du chargement des employés");
+      } else {
+        setEmployees(data || []);
       }
-
-      return data.map(employee => ({
-        ...employee,
-        work_schedule: employee.work_schedule as WorkSchedule
-      })) as Employee[];
-    },
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchInterval: 30000,
-  });
-
-  const handleDeleteEmployee = async (employeeId: string) => {
-    try {
-      console.log(`Deleting employee with ID: ${employeeId}`);
-      
-      const { data: leaveRequests } = await supabase
-        .from('leave_requests')
-        .select('id')
-        .eq('employee_id', employeeId);
-        
-      if (leaveRequests && leaveRequests.length > 0) {
-        const leaveRequestIds = leaveRequests.map(lr => lr.id);
-        await supabase
-          .from('leave_request_documents')
-          .delete()
-          .in('leave_request_id', leaveRequestIds);
-      }
-      
-      const { data: hrEvents } = await supabase
-        .from('hr_events')
-        .select('id')
-        .eq('employee_id', employeeId);
-        
-      if (hrEvents && hrEvents.length > 0) {
-        const hrEventIds = hrEvents.map(event => event.id);
-        await supabase
-          .from('hr_event_documents')
-          .delete()
-          .in('event_id', hrEventIds);
-      }
-      
-      await supabase
-        .from('documents')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('time_records')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('leave_requests')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('delays')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('overtime_requests')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('hr_events')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      await supabase
-        .from('vacation_history')
-        .delete()
-        .eq('employee_id', employeeId);
-      
-      const { error: employeeDeleteError } = await supabase
-        .from('employees')
-        .delete()
-        .eq('id', employeeId);
-      
-      if (employeeDeleteError) {
-        console.error("Error deleting employee record:", employeeDeleteError);
-        toast.error("Erreur lors de la suppression de l'employé");
-        return;
-      }
-
-      toast.success("Employé supprimé avec succès");
-      
-      await queryClient.invalidateQueries({ queryKey: ['employees'] });
-    } catch (error) {
-      console.error('Error deleting employee:', error);
-      toast.error("Erreur lors de la suppression de l'employé");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const filteredEmployees = employees?.filter(employee => {
-    const matchesSearch = !searchQuery || 
-      `${employee.first_name} ${employee.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesContract = filterContract === "all" || employee.contract_type === filterContract;
-    
-    return matchesSearch && matchesContract;
-  });
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
-  const contractCounts = employees?.reduce((acc, employee) => {
-    acc[employee.contract_type] = (acc[employee.contract_type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>) || {};
+  useEffect(() => {
+    let results = employees;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
+    if (searchQuery) {
+      results = results.filter(employee =>
+        employee.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (selectedContractTypes.length > 0) {
+      results = results.filter(employee => selectedContractTypes.includes(employee.contract_type));
+    }
+
+    setFilteredEmployees(results);
+  }, [employees, searchQuery, selectedContractTypes]);
+
+  const handleCreateSuccess = () => {
+    setIsNewEmployeeDialogOpen(false);
+    fetchEmployees();
+  };
+
+  const handleDeleteEmployee = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error("Error deleting employee:", error);
+        toast.error("Erreur lors de la suppression de l'employé");
+      } else {
+        toast.success("Employé supprimé avec succès");
+        queryClient.invalidateQueries({ queryKey: ['employees'] });
+        fetchEmployees();
+      }
+    } catch (error) {
+      console.error("Unexpected error deleting employee:", error);
+      toast.error("Erreur inattendue lors de la suppression de l'employé");
+    }
+  };
+
+  const handleContractTypeChange = (contractType: ContractType) => {
+    setSelectedContractTypes(prev =>
+      prev.includes(contractType)
+        ? prev.filter(item => item !== contractType)
+        : [...prev, contractType]
     );
-  }
+  };
+
+  const clearFilters = () => {
+    setSelectedContractTypes([]);
+    setSearchQuery('');
+  };
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-gradient-to-r from-blue-50 to-indigo-50 p-4 mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-blue-900 mb-1 flex items-center">
-              Liste des employés
-              <Badge className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border-0">
-                {employees?.length || 0} employés
-              </Badge>
-            </h2>
-            <p className="text-sm text-blue-700 opacity-90">
-              Gérez les dossiers du personnel et leurs informations contractuelles
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                type="text" 
-                placeholder="Rechercher..." 
-                className="pl-9 w-full max-w-xs focus-visible:ring-blue-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute right-0 top-0 h-9 w-9" 
-                  onClick={() => setSearchQuery("")}
-                >
-                  <FilterX className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 shadow-sm"
-              onClick={() => setIsNewEmployeeDialogOpen(true)}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Ajouter un employé
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          <Button 
-            size="sm" 
-            variant={filterContract === "all" ? "default" : "outline"}
-            className="h-7 text-xs"
-            onClick={() => setFilterContract("all")}
-          >
-            <Filter className="h-3 w-3 mr-1" />
-            Tous ({employees?.length || 0})
-          </Button>
-          {Object.entries(contractCounts).map(([contract, count]) => (
-            <Button 
-              key={contract}
-              size="sm"
-              variant={filterContract === contract ? "default" : "outline"}
-              className={`h-7 text-xs ${filterContract === contract ? '' : 'opacity-70'}`}
-              onClick={() => setFilterContract(contract)}
-            >
-              {contract} ({count})
-            </Button>
-          ))}
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Liste des employés</h1>
+        <Button onClick={() => setIsNewEmployeeDialogOpen(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Ajouter un employé
+        </Button>
       </div>
 
-      {filteredEmployees?.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg bg-gray-50">
-          <Search className="h-10 w-10 mx-auto text-gray-400 mb-3" />
-          <h3 className="text-lg font-medium text-gray-700">Aucun employé trouvé</h3>
-          <p className="text-gray-500">Modifiez vos critères de recherche ou ajoutez un nouvel employé</p>
+      <div className="flex flex-wrap gap-4">
+        <Input
+          placeholder="Rechercher un employé..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-xs"
+        />
+
+        <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtrer
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Filtrer les employés</DialogTitle>
+              <DialogDescription>
+                Sélectionnez les critères de filtrage.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Type de contrat</h3>
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <label htmlFor="cdi" className="flex items-center space-x-2">
+                      <Input
+                        type="checkbox"
+                        id="cdi"
+                        checked={selectedContractTypes.includes('CDI')}
+                        onChange={() => handleContractTypeChange('CDI')}
+                      />
+                      <span>CDI</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label htmlFor="cdd" className="flex items-center space-x-2">
+                      <Input
+                        type="checkbox"
+                        id="cdd"
+                        checked={selectedContractTypes.includes('CDD')}
+                        onChange={() => handleContractTypeChange('CDD')}
+                      />
+                      <span>CDD</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label htmlFor="alternance" className="flex items-center space-x-2">
+                      <Input
+                        type="checkbox"
+                        id="alternance"
+                        checked={selectedContractTypes.includes('Alternance')}
+                        onChange={() => handleContractTypeChange('Alternance')}
+                      />
+                      <span>Alternance</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label htmlFor="stage" className="flex items-center space-x-2">
+                      <Input
+                        type="checkbox"
+                        id="stage"
+                        checked={selectedContractTypes.includes('Stage')}
+                        onChange={() => handleContractTypeChange('Stage')}
+                      />
+                      <span>Stage</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={clearFilters} className="mr-2">
+                <FilterX className="h-4 w-4 mr-2" />
+                Réinitialiser
+              </Button>
+              <Button type="button" onClick={() => setIsFilterOpen(false)}>
+                Appliquer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+          Chargement des employés...
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredEmployees?.map((employee) => (
-            <EmployeeCard 
-              key={employee.id} 
-              employee={employee} 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredEmployees.map((employee) => (
+            <EmployeeCard
+              key={employee.id}
+              employee={employee}
               onDelete={handleDeleteEmployee}
             />
           ))}
@@ -514,25 +449,18 @@ export const EmployeesList = () => {
       )}
 
       <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
-        <DialogContent className="fixed inset-0 flex items-center justify-center z-50 p-0 m-0 max-w-none bg-transparent">
-          <div className="bg-white rounded-lg shadow-lg w-[95%] sm:w-[90%] md:w-[85%] max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6 mx-auto my-auto transform scale-100 animate-scale-up">
-            <div className="sticky top-0 z-10 bg-white pt-2 pb-4 border-b mb-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-900">Nouvel employé</h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="rounded-full h-8 w-8 p-0" 
-                  onClick={() => setIsNewEmployeeDialogOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="pb-4">
-              <NewEmployeeForm onSuccess={() => setIsNewEmployeeDialogOpen(false)} />
-            </div>
+        <DialogTrigger asChild>
+          {/* This trigger is hidden, the main button is above */}
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl p-0">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-xl font-bold">Ajouter un nouvel employé</DialogTitle>
+            <DialogDescription>
+              Remplissez le formulaire ci-dessous pour créer un nouvel employé.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+            <NewEmployeeForm onSuccess={handleCreateSuccess} />
           </div>
         </DialogContent>
       </Dialog>
