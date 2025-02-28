@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -29,100 +28,66 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
   const { session, isLoading, profile, authReady, profileFetchAttempted } = useAuth();
-  const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
-  const [loadingTimeoutReached, setLoadingTimeoutReached] = useState(false);
   const navigate = useNavigate();
 
-  // Set up loading timeout
   useEffect(() => {
-    let timeoutId: number | null = null;
-    
-    if (isLoading) {
-      timeoutId = window.setTimeout(() => {
-        setLoadingTimeoutReached(true);
-        console.log("ProtectedRoute: Loading timeout reached");
-      }, 5000); // 5 second timeout
-    } else if (!isLoading) {
-      // Reset loading timeout when loading is done
-      setLoadingTimeoutReached(false);
-    }
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isLoading]);
-
-  useEffect(() => {
-    console.log("ProtectedRoute: Auth state updated", { 
-      isLoading, 
-      hasSession: !!session, 
-      profileRole: profile?.role,
-      requiredRole,
-      authReady,
-      profileFetchAttempted
-    });
-    
-    // Don't make decisions until auth is ready or timeout is reached
-    if (isLoading && !loadingTimeoutReached) {
-      return;
-    }
-    
-    // Handle authentication-based redirections
-    if (!session) {
-      console.log("No session, redirecting to portal");
-      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-      setShouldRedirect(true);
-      return;
-    }
-    
-    // Handle role-based access when profile exists
-    if (profile) {
-      if (requiredRole === "hr" && profile.role !== "hr") {
-        console.log("User is not HR, redirecting to employee dashboard");
-        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-        setRedirectPath("/employee");
-        setShouldRedirect(true);
+    const checkAuth = () => {
+      // Don't make decisions if we're still properly loading (but implement a safety fallback below)
+      if (isLoading && !profileFetchAttempted) {
+        console.log("Still loading auth state, waiting...");
         return;
       }
       
-      // User has correct role, allow access
+      // No session means we need to redirect to login
+      if (!session) {
+        console.log("No session, redirecting to portal");
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+        return;
+      }
+      
+      // Session exists but no profile, but we already tried to fetch it - redirect to login
+      if (session && !profile && profileFetchAttempted) {
+        console.log("Session exists but no profile after fetch attempt, redirecting to portal");
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+        return;
+      }
+      
+      // User has a profile but wrong role for HR section
+      if (profile && requiredRole === "hr" && profile.role !== "hr") {
+        console.log("User is not HR, redirecting to employee dashboard");
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+        setRedirectPath("/employee");
+        return;
+      }
+      
+      // User authenticated with correct role - keep redirectPath null
       console.log("Auth check passed, showing protected content");
-      setShouldRedirect(false);
-      return;
-    }
+      setRedirectPath(null);
+    };
     
-    // Special case: session exists but no profile, but we've already tried to fetch it
-    if (session && !profile && profileFetchAttempted) {
-      console.log("Session exists but no profile after fetch attempt, redirecting to portal");
-      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-      setShouldRedirect(true);
-      return;
-    }
+    checkAuth();
     
-    // Edge case: loading timeout reached but auth still not ready
-    if (loadingTimeoutReached && !authReady) {
-      console.log("Loading timeout reached without auth ready, redirecting to portal");
-      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-      setShouldRedirect(true);
-      return;
-    }
-  }, [isLoading, session, profile, requiredRole, authReady, profileFetchAttempted, loadingTimeoutReached]);
+    // Loading timeout as a safety mechanism
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.log("Loading timeout reached, redirecting to login");
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, session, profile, requiredRole, profileFetchAttempted]);
 
-  // Show loading state
-  if ((isLoading && !loadingTimeoutReached) || (!authReady && !shouldRedirect)) {
+  // Show loading state for a reasonable time
+  if (isLoading && !redirectPath && !profileFetchAttempted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
           <button 
-            onClick={() => {
-              setShouldRedirect(true);
-              setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-            }} 
+            onClick={() => setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal")} 
             className="text-sm text-primary hover:underline mt-4"
           >
             Cliquez ici si le chargement persiste
@@ -133,7 +98,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
   }
 
   // Redirect if needed
-  if (shouldRedirect && redirectPath) {
+  if (redirectPath) {
     console.log(`Redirecting to ${redirectPath}`);
     return <Navigate to={redirectPath} replace />;
   }

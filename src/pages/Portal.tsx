@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Loader2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,37 +13,30 @@ const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session, isLoading: authLoading } = useAuth();
+  const { signIn, session, isLoading: authLoading, profile } = useAuth();
   const navigate = useNavigate();
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
-    console.log("Auth state event in Portal:", authLoading ? "LOADING" : "INITIAL_SESSION");
-  }, [session, authLoading]);
+    console.log("Portal: profile state:", profile ? `Role: ${profile.role}` : "No profile");
+    
+    // Set a safety timeout for loading state
+    const timeoutId = setTimeout(() => {
+      if (authLoading) {
+        console.log("Auth loading timeout reached in portal");
+        setLoadingTimeout(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [session, authLoading, profile]);
 
-  // Si la page est encore en chargement, afficher un loader
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
-        <Card className="shadow-lg max-w-md w-full">
-          <CardHeader className="space-y-1 text-center border-b pb-4">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Portail Employé
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 flex justify-center items-center py-10">
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-              <p className="text-gray-500">Chargement en cours...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Si déjà authentifié, rediriger vers le dashboard
-  if (session && !authLoading) {
+  // Handle loading state with timeout safety
+  const isActuallyLoading = authLoading && !loadingTimeout;
+  
+  // If already authenticated, redirect to dashboard
+  if (session && profile && !isActuallyLoading) {
     console.log("User already authenticated, redirecting to dashboard");
     return <Navigate to="/employee" replace />;
   }
@@ -69,11 +62,7 @@ const Portal = () => {
       }
       
       console.log("Sign in successful, redirecting to employee dashboard");
-      
-      // Utiliser un timeout pour s'assurer que l'état d'authentification a eu le temps de se mettre à jour
-      setTimeout(() => {
-        navigate("/employee", { replace: true });
-      }, 100);
+      navigate("/employee", { replace: true });
       
     } catch (error) {
       console.error("Exception during sign in:", error);
@@ -93,57 +82,64 @@ const Portal = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre.email@exemple.com"
-                  className="h-12"
+            {isActuallyLoading ? (
+              <div className="flex flex-col items-center space-y-4 py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                <p className="text-gray-500">Chargement en cours...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="votre.email@exemple.com"
+                    className="h-12"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="********"
+                    className="h-12"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                   disabled={isSubmitting}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="********"
-                  className="h-12"
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Se connecter
-                  </>
-                )}
-              </Button>
-              
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-500">
-                  Si vous ne parvenez pas à vous connecter, contactez votre service RH.
-                </p>
-              </div>
-            </form>
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connexion en cours...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Se connecter
+                    </>
+                  )}
+                </Button>
+                
+                <div className="text-center mt-4">
+                  <p className="text-sm text-gray-500">
+                    Si vous ne parvenez pas à vous connecter, contactez votre service RH.
+                  </p>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
