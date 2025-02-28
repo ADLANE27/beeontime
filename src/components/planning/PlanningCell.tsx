@@ -50,20 +50,33 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
       boxShadow: `inset 0 0 0 1px ${color}50`
     };
     
+    // For half-day displays, we need to position text differently to prevent clipping
+    const labelStyle = isHalfDay ? {
+      width: period === 'morning' ? 'calc(100% - 5px)' : 'calc(100% - 5px)',
+      left: period === 'morning' ? '5px' : '50%',
+      transform: period === 'morning' ? 'none' : 'translateX(-5px)'
+    } : {};
+    
     return (
       <div className={cn(
         "absolute inset-0 flex items-center justify-center rounded-sm overflow-hidden transition-opacity duration-300",
         isHalfDay ? (period === 'morning' ? "clip-path-left" : "clip-path-right") : ""
       )}>
         <div className="w-full h-full opacity-80 group-hover:opacity-90 transition-opacity duration-300" style={gradientStyle} />
-        <div className="absolute flex items-center justify-center px-2 py-1 bg-white/60 backdrop-blur-[1px] rounded-sm transform group-hover:scale-105 transition-transform duration-300 text-center">
-          <span className="text-xs font-medium text-gray-800">
-            {isHalfDay ? (
-              period === 'morning' ? 'Matin' : 'Après-midi'
-            ) : (
-              'Journée entière'
-            )}
-          </span>
+        <div 
+          className="absolute flex items-center justify-center px-1 py-0.5 bg-white/70 backdrop-blur-[1px] rounded-sm 
+                    transform group-hover:scale-105 transition-transform duration-300 text-center"
+          style={labelStyle}
+        >
+          {isHalfDay ? (
+            <span className="text-[10px] font-medium text-gray-800 whitespace-nowrap">
+              {period === 'morning' ? 'Matin' : 'Après-midi'}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-gray-800">
+              Journée
+            </span>
+          )}
         </div>
       </div>
     );
