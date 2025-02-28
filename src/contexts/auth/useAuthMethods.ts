@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProfile } from "./profile-service";
 
@@ -17,7 +18,13 @@ export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading:
       if (error) {
         console.error("Sign in error:", error.message);
         setIsLoading(false);
-        return { error };
+        return { 
+          error,
+          data: {
+            user: null,
+            session: null
+          }
+        };
       }
 
       if (data?.user) {
@@ -27,11 +34,23 @@ export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading:
       }
 
       setIsLoading(false);
-      return { error: null };
+      return { 
+        error: null,
+        data: {
+          user: data.user,
+          session: data.session
+        }
+      };
     } catch (error) {
       console.error("Exception during sign in:", error);
       setIsLoading(false);
-      return { error: error as Error };
+      return { 
+        error: error as Error,
+        data: {
+          user: null,
+          session: null
+        }
+      };
     }
   };
 
