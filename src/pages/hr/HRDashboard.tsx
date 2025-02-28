@@ -122,7 +122,8 @@ const HRDashboard = () => {
       value: "employees", 
       label: "Employés", 
       icon: UserCircle,
-      gradient: "from-purple-500 to-indigo-600",
+      gradient: "from-purple-600 to-indigo-700",
+      lightGradient: "from-purple-100 to-indigo-200",
       bg: "bg-purple-50",
       border: "border-purple-200",
       iconColor: "text-purple-600"
@@ -131,7 +132,8 @@ const HRDashboard = () => {
       value: "planning", 
       label: "Planning", 
       icon: CalendarDays,
-      gradient: "from-blue-500 to-cyan-500",
+      gradient: "from-blue-600 to-cyan-700",
+      lightGradient: "from-blue-100 to-cyan-200",
       bg: "bg-blue-50",
       border: "border-blue-200",
       iconColor: "text-blue-600"
@@ -140,7 +142,8 @@ const HRDashboard = () => {
       value: "events", 
       label: "Événements RH", 
       icon: CalendarCheck,
-      gradient: "from-teal-500 to-emerald-500",
+      gradient: "from-teal-600 to-emerald-700",
+      lightGradient: "from-teal-100 to-emerald-200",
       bg: "bg-emerald-50",
       border: "border-emerald-200",
       iconColor: "text-emerald-600"
@@ -149,7 +152,8 @@ const HRDashboard = () => {
       value: "leave", 
       label: "Demandes de congés", 
       icon: Clock,
-      gradient: "from-amber-500 to-orange-500",
+      gradient: "from-amber-600 to-orange-700",
+      lightGradient: "from-amber-100 to-orange-200",
       bg: "bg-amber-50",
       border: "border-amber-200",
       iconColor: "text-amber-600",
@@ -159,7 +163,8 @@ const HRDashboard = () => {
       value: "overtime", 
       label: "Heures supplémentaires", 
       icon: Clock3,
-      gradient: "from-orange-500 to-pink-500",
+      gradient: "from-orange-600 to-pink-700",
+      lightGradient: "from-orange-100 to-pink-200",
       bg: "bg-orange-50",
       border: "border-orange-200",
       iconColor: "text-orange-600",
@@ -169,7 +174,8 @@ const HRDashboard = () => {
       value: "lateness", 
       label: "Retards", 
       icon: AlertTriangle,
-      gradient: "from-red-500 to-rose-500",
+      gradient: "from-red-600 to-rose-700",
+      lightGradient: "from-red-100 to-rose-200",
       bg: "bg-red-50",
       border: "border-red-200",
       iconColor: "text-red-600",
@@ -179,7 +185,8 @@ const HRDashboard = () => {
       value: "payslips", 
       label: "Documents", 
       icon: FileText,
-      gradient: "from-sky-500 to-blue-500",
+      gradient: "from-sky-600 to-blue-700",
+      lightGradient: "from-sky-100 to-blue-200",
       bg: "bg-sky-50",
       border: "border-sky-200",
       iconColor: "text-sky-600"
@@ -188,7 +195,8 @@ const HRDashboard = () => {
       value: "statistics", 
       label: "Statistiques", 
       icon: FileBarChart,
-      gradient: "from-indigo-500 to-violet-500",
+      gradient: "from-indigo-600 to-violet-700",
+      lightGradient: "from-indigo-100 to-violet-200",
       bg: "bg-indigo-50",
       border: "border-indigo-200",
       iconColor: "text-indigo-600"
@@ -197,7 +205,8 @@ const HRDashboard = () => {
       value: "export", 
       label: "Export", 
       icon: Download,
-      gradient: "from-gray-600 to-gray-700",
+      gradient: "from-gray-700 to-gray-800",
+      lightGradient: "from-gray-100 to-gray-300",
       bg: "bg-gray-50",
       border: "border-gray-200",
       iconColor: "text-gray-600"
@@ -306,38 +315,42 @@ const HRDashboard = () => {
                 </div>
               </div>
               <TabsList className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-lg border shadow-sm">
-                {menuItems.map((item) => (
-                  <TabsTrigger 
-                    key={item.value} 
-                    value={item.value} 
-                    className={`
-                      text-xs sm:text-sm relative group transition-all duration-300 rounded-md
-                      data-[state=active]:shadow-md data-[state=active]:font-medium
-                      data-[state=active]:bg-gradient-to-r data-[state=active]:${item.gradient} 
-                      data-[state=active]:text-white
-                      data-[state=inactive]:hover:${item.bg} data-[state=inactive]:hover:${item.border}
-                    `}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <item.icon className={`h-4 w-4 transition-colors ${
-                        selectedTab === item.value ? "text-white" : item.iconColor
-                      }`} />
-                      <span>{item.label}</span>
-                      {item.badge && (
-                        <Badge 
-                          variant="secondary"
-                          className={
-                            selectedTab === item.value 
-                              ? "ml-1 bg-white/20 text-white hover:bg-white/30 transition-colors"
-                              : "ml-1 bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                          }
-                        >
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </div>
-                  </TabsTrigger>
-                ))}
+                {menuItems.map((item) => {
+                  const isActive = selectedTab === item.value;
+                  return (
+                    <TabsTrigger 
+                      key={item.value} 
+                      value={item.value} 
+                      className={`
+                        text-xs sm:text-sm relative group transition-all duration-300 rounded-md px-3 py-1.5
+                        data-[state=active]:shadow-md data-[state=active]:font-semibold
+                        ${isActive 
+                          ? `bg-gradient-to-r ${item.gradient} text-white border-0` 
+                          : `bg-white hover:bg-gradient-to-r hover:${item.lightGradient} hover:${item.border}`
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <item.icon className={`h-4 w-4 transition-colors ${
+                          isActive ? "text-white" : item.iconColor
+                        }`} />
+                        <span className={isActive ? "text-white drop-shadow-sm" : ""}>{item.label}</span>
+                        {item.badge && (
+                          <Badge 
+                            variant="secondary"
+                            className={
+                              isActive
+                                ? "ml-1 bg-white text-black font-medium shadow-sm hover:bg-white/90 transition-colors"
+                                : "ml-1 bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                            }
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </div>
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
             </div>
           )}
