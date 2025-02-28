@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -73,78 +72,8 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
     }
   });
 
-  const editDelayMutation = useMutation({
-    mutationFn: async (delay: {
-      id: string;
-      employee_id: string;
-      date: string;
-      scheduled_time: string;
-      actual_time: string;
-      reason: string;
-    }) => {
-      console.log('Editing delay:', delay);
-      
-      // Calculer la durée du retard
-      const scheduledTime = new Date(`2000-01-01T${delay.scheduled_time}`);
-      const actualTime = new Date(`2000-01-01T${delay.actual_time}`);
-      const duration = actualTime.getTime() - scheduledTime.getTime();
-      const hours = Math.floor(duration / (1000 * 60 * 60));
-      const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-      const formattedDuration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
-
-      const { id, ...rest } = delay;
-      const { error } = await supabase
-        .from('delays')
-        .update({ 
-          ...rest,
-          duration: formattedDuration,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error editing delay:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard modifié avec succès");
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la modification du retard");
-      console.error('Error editing delay:', error);
-    }
-  });
-
-  const deleteDelayMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Deleting delay:', id);
-      const { error } = await supabase
-        .from('delays')
-        .delete()
-        .eq('id', id);
-      if (error) {
-        console.error('Error deleting delay:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard supprimé avec succès");
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression du retard");
-      console.error('Error deleting delay:', error);
-    }
-  });
-
   return {
     addDelayMutation,
-    updateDelayMutation,
-    editDelayMutation,
-    deleteDelayMutation
+    updateDelayMutation
   };
 };

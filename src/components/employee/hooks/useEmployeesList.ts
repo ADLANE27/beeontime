@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,7 +7,7 @@ export const useEmployeesList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("*")
+        .select("id, first_name, last_name")
         .order("last_name", { ascending: true });
 
       if (error) throw error;

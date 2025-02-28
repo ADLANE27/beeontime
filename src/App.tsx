@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -24,10 +23,54 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading: isAuthLoading, signOut } = useAuth();
 
-  // Show loading state only during initial auth check
-  if (isLoading) {
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!session?.user) {
+        await signOut();
+        return;
+      }
+
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Profile fetch error:", error);
+          toast.error("Erreur de vérification du profil");
+          await signOut();
+          return;
+        }
+
+        if (!profile) {
+          console.error("Profile not found");
+          toast.error("Profil non trouvé");
+          await signOut();
+          return;
+        }
+
+        if (profile.role !== requiredRole) {
+          console.log("Unauthorized access attempt");
+          toast.error("Accès non autorisé");
+          await signOut();
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        toast.error("Erreur de vérification du profil");
+        await signOut();
+      }
+    };
+
+    if (!isAuthLoading && session) {
+      checkAuth();
+    }
+  }, [session, requiredRole, isAuthLoading, signOut]);
+
+  if (isAuthLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
@@ -38,7 +81,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     );
   }
 
-  // If no session, redirect to appropriate portal
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }

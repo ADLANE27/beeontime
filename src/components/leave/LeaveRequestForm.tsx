@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { useState } from "react";
-import { Calendar, Clock, Upload, User, CalendarDays, AlertCircle, FileText } from "lucide-react";
+import { Calendar, Clock, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -194,192 +193,133 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <User className="h-5 w-5 text-indigo-500" />
-          <Label htmlFor="employee" className="text-lg font-medium text-gray-700">Employé</Label>
-        </div>
-        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-          <SelectTrigger className="h-12 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
-            <SelectValue placeholder="Sélectionnez un employé" />
-          </SelectTrigger>
-          <SelectContent>
-            {employees?.map((employee) => (
-              <SelectItem key={employee.id} value={employee.id}>
-                {employee.first_name} {employee.last_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Calendar className="h-5 w-5 text-indigo-500" />
-          <Label htmlFor="type" className="text-lg font-medium text-gray-700">Type de congé</Label>
-        </div>
-        <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
-          <SelectTrigger className="h-12 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
-            <SelectValue placeholder="Sélectionnez un type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
-            <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
-            <SelectItem value="paternity">Congé paternité</SelectItem>
-            <SelectItem value="maternity">Congé maternité</SelectItem>
-            <SelectItem value="sickChild">Congé enfant malade</SelectItem>
-            <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
-            <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
-            <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
-            <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
-            <SelectItem value="rtt">RTT</SelectItem>
-            <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CalendarDays className="h-5 w-5 text-indigo-500" />
-            <Label htmlFor="startDate" className="text-lg font-medium text-gray-700">Date de début</Label>
+    <Card className="p-6">
+      <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="employee">Employé</Label>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un employé" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees?.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.first_name} {employee.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Input 
-            type="date" 
-            id="startDate" 
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-            className="h-12 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CalendarDays className="h-5 w-5 text-indigo-500" />
-            <Label htmlFor="endDate" className="text-lg font-medium text-gray-700">Date de fin</Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Type de congé</Label>
+            <Select value={leaveType} onValueChange={(value: LeaveType) => setLeaveType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
+                <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
+                <SelectItem value="paternity">Congé paternité</SelectItem>
+                <SelectItem value="maternity">Congé maternité</SelectItem>
+                <SelectItem value="sickChild">Congé enfant malade</SelectItem>
+                <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
+                <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
+                <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
+                <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
+                <SelectItem value="rtt">RTT</SelectItem>
+                <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Input 
-            type="date" 
-            id="endDate"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-            className="h-12 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
-      </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Clock className="h-5 w-5 text-indigo-500" />
-          <Label htmlFor="dayType" className="text-lg font-medium text-gray-700">Type de journée</Label>
-        </div>
-        <ToggleGroup 
-          type="single" 
-          value={dayType} 
-          onValueChange={(value) => value && setDayType(value)}
-          className="justify-start bg-gray-50 p-2 rounded-lg border border-gray-200"
-        >
-          <ToggleGroupItem 
-            value="full" 
-            className={`rounded-md px-4 py-2 ${dayType === 'full' ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-gray-100'}`}
-          >
-            Journée complète
-          </ToggleGroupItem>
-          <ToggleGroupItem 
-            value="half" 
-            className={`rounded-md px-4 py-2 ${dayType === 'half' ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-gray-100'}`}
-          >
-            Demi-journée
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      {dayType === "half" && (
-        <div className="space-y-4 pl-4 border-l-2 border-indigo-100">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-5 w-5 text-indigo-500" />
-            <Label htmlFor="period" className="text-lg font-medium text-gray-700">Période</Label>
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Date de début</Label>
+            <Input 
+              type="date" 
+              id="startDate" 
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
           </div>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="h-12 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
-              <SelectValue placeholder="Sélectionnez la période" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="morning">Matin</SelectItem>
-              <SelectItem value="afternoon">Après-midi</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+          <div className="space-y-2">
+            <Label htmlFor="endDate">Date de fin</Label>
+            <Input 
+              type="date" 
+              id="endDate"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+            />
+          </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <FileText className="h-5 w-5 text-indigo-500" />
-          <Label htmlFor="reason" className="text-lg font-medium text-gray-700">Motif</Label>
-        </div>
-        <Textarea 
-          id="reason" 
-          placeholder="Décrivez la raison de votre demande"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="min-h-24 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="dayType">Type de journée</Label>
+            <ToggleGroup type="single" value={dayType} onValueChange={(value) => value && setDayType(value)}>
+              <ToggleGroupItem value="full">Journée complète</ToggleGroupItem>
+              <ToggleGroupItem value="half">Demi-journée</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Upload className="h-5 w-5 text-indigo-500" />
-          <Label htmlFor="file" className="text-lg font-medium text-gray-700">Pièce jointe</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input
-            id="file"
-            type="file"
-            onChange={handleFileChange}
-            className="flex-1 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-          {selectedFile && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedFile(null)}
-              className="h-12 w-12"
-            >
-              ×
-            </Button>
+          {dayType === "half" && (
+            <div className="space-y-2">
+              <Label htmlFor="period">Période</Label>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionnez la période" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Matin</SelectItem>
+                  <SelectItem value="afternoon">Après-midi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
-        </div>
-        {selectedFile && (
-          <p className="text-sm text-muted-foreground ml-2">
-            Fichier sélectionné : {selectedFile.name}
-          </p>
-        )}
-      </div>
 
-      <div className="flex justify-end pt-6 border-t">
-        <Button 
-          type="submit" 
-          className="h-12 px-6 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-md"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <span className="mr-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </span>
-              Traitement...
-            </>
-          ) : (
-            "Soumettre la demande"
-          )}
-        </Button>
-      </div>
-    </form>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Motif</Label>
+            <Textarea 
+              id="reason" 
+              placeholder="Décrivez la raison de votre demande"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="file">Pièce jointe</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="file"
+                type="file"
+                onChange={handleFileChange}
+                className="flex-1"
+              />
+              {selectedFile && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSelectedFile(null)}
+                >
+                  ×
+                </Button>
+              )}
+            </div>
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground">
+                Fichier sélectionné : {selectedFile.name}
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            Soumettre la demande
+          </Button>
+        </form>
+      </ScrollArea>
+    </Card>
   );
 };

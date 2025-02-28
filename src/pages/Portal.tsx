@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,68 +6,98 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const Portal = () => {
   const navigate = useNavigate();
-  const { session, isLoading } = useAuth();
-  const [loginError, setLoginError] = useState("");
+  const { session, isLoading: isAuthLoading } = useAuth();
+  const [isCheckingRole, setIsCheckingRole] = useState(false);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const MAX_VERIFICATION_ATTEMPTS = 3;
 
   useEffect(() => {
-    if (session?.user) {
-      navigate('/employee', { replace: true });
+    let isMounted = true;
+    let retryTimeout: NodeJS.Timeout;
+
+    const checkUserRole = async () => {
+      if (!session?.user) return;
+
+      try {
+        setIsCheckingRole(true);
+        console.log("Checking role for user:", session.user.email);
+        
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Profile fetch error:", error);
+          if (isMounted) {
+            toast.error("Erreur lors de la vérification du profil");
+            if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
+              setVerificationAttempts(prev => prev + 1);
+              retryTimeout = setTimeout(checkUserRole, 2000);
+            } else {
+              toast.error("Impossible de vérifier votre profil. Veuillez réessayer plus tard.");
+              await supabase.auth.signOut();
+            }
+          }
+          return;
+        }
+
+        if (!isMounted) return;
+
+        console.log("User profile data:", profile);
+        
+        if (profile?.role === 'employee') {
+          console.log("User has employee role, redirecting to /employee");
+          navigate('/employee', { replace: true });
+        } else if (profile?.role === 'hr') {
+          console.log("User has HR role, redirecting to /hr");
+          navigate('/hr', { replace: true });
+        } else {
+          toast.error("Rôle utilisateur non reconnu");
+          await supabase.auth.signOut();
+        }
+      } catch (error) {
+        console.error("Role check error:", error);
+        if (isMounted) {
+          toast.error("Erreur lors de la vérification du rôle");
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingRole(false);
+        }
+      }
+    };
+
+    if (session?.user && !isCheckingRole) {
+      checkUserRole();
     }
 
-    // Listen for auth errors
-    const handleAuthStateChange = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate('/employee', { replace: true });
-      }
-    });
-
-    // Clean up listener
     return () => {
-      handleAuthStateChange.data.subscription.unsubscribe();
-    };
-  }, [session, navigate]);
-
-  useEffect(() => {
-    // Set up a listener for auth errors
-    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
-      console.log("Auth state event:", event);
-      
-      if (event === 'SIGNED_OUT') {
-        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
-      } else if (event === 'USER_UPDATED') {
-        setLoginError("");
+      isMounted = false;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
       }
-    });
-
-    return () => {
-      data.subscription.unsubscribe();
     };
-  }, []);
+  }, [session, navigate, verificationAttempts]);
 
-  // Handler for login attempts
-  const handleAuthError = async (e: any) => {
-    console.log("Auth error:", e);
-    const errorMessage = e?.error?.message || "";
-    
-    if (errorMessage.includes("Invalid login credentials")) {
-      setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
-    } else if (errorMessage.includes("Email not confirmed")) {
-      setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-    } else {
-      setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
-    }
-  };
-
-  if (isLoading) {
+  if (isAuthLoading || isCheckingRole) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
+          <p className="text-muted-foreground">
+            {isAuthLoading ? "Vérification de l'authentification..." : "Vérification du profil..."}
+          </p>
+          {verificationAttempts > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Tentative {verificationAttempts}/{MAX_VERIFICATION_ATTEMPTS}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -97,12 +126,6 @@ const Portal = () => {
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>
           </div>
-          
-          {loginError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
 
           <Auth
             supabaseClient={supabase}
@@ -145,9 +168,7 @@ const Portal = () => {
                   button_label: 'Se connecter',
                   loading_button_label: 'Vérification...',
                   email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe',
-                  email_input_error: 'Email invalide',
-                  password_input_error: 'Mot de passe invalide'
+                  password_input_placeholder: 'Votre mot de passe'
                 }
               }
             }}
@@ -157,7 +178,6 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
-            onError={handleAuthError}
           />
         </Card>
 
@@ -167,6 +187,7 @@ const Portal = () => {
       </div>
     </div>
   );
+
 };
 
 export default Portal;

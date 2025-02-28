@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,77 +17,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
-
   useEffect(() => {
-    // Initial session check
-    const checkSession = async () => {
+    console.log("AuthProvider: Initializing");
+    
+    const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
+        console.log("AuthProvider: Getting initial session");
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
+        if (sessionError) {
+          console.error("Session initialization error:", sessionError);
+          toast.error("Erreur d'initialisation de la session");
+          return;
+        }
+
         if (initialSession?.user) {
-          // Fetch additional profile data if needed
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', initialSession.user.id)
-            .single();
-          
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-          } else {
-            console.log("User profile loaded:", profile);
-          }
+          console.log("Initial session found for user:", initialSession.user.email);
+          setSession(initialSession);
+          setUser(initialSession.user);
+        } else {
+          console.log("No initial session found");
         }
       } catch (error) {
-        console.error("Session check error:", error);
+        console.error("Auth initialization error:", error);
+        toast.error("Erreur d'initialisation de l'authentification");
       } finally {
         setIsLoading(false);
       }
     };
-    
-    checkSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state changed:", event);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+    initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("Auth state changed:", event, currentSession?.user?.email);
       
-      if (event === 'SIGNED_IN' && currentSession?.user) {
+      if (event === 'SIGNED_IN') {
+        console.log("User signed in:", currentSession?.user?.email);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         toast.success("Connexion réussie");
-        
-        // Fetch additional profile data if needed
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentSession.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-        } else {
-          console.log("User profile loaded:", profile);
-        }
+      } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out");
+        setSession(null);
+        setUser(null);
+        toast.success("Déconnexion réussie");
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log("Token refreshed for user:", currentSession?.user?.email);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      } else if (event === 'USER_UPDATED') {
+        console.log("User updated:", currentSession?.user?.email);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
       }
       
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("AuthProvider: Cleaning up");
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const signOut = async () => {
+    try {
+      console.log("Signing out user");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast.error("Erreur lors de la déconnexion");
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ session, user, isLoading, signOut }}>

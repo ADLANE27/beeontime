@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +43,11 @@ export const DelayForm = ({ employees, onSubmit, isSubmitting }: DelayFormProps)
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
         <Label htmlFor="employee">Employé</Label>
-        <Select value={selectedEmployee} onValueChange={setSelectedEmployee} required>
-          <SelectTrigger id="employee" className="h-12">
+        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+          <SelectTrigger>
             <SelectValue placeholder="Sélectionner un employé" />
           </SelectTrigger>
           <SelectContent>
@@ -60,69 +59,55 @@ export const DelayForm = ({ employees, onSubmit, isSubmitting }: DelayFormProps)
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label htmlFor="date">Date</Label>
         <Input
           id="date"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="h-12"
           required
         />
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label htmlFor="scheduledTime">Heure prévue</Label>
         <Input
           id="scheduledTime"
           type="time"
           value={scheduledTime}
           onChange={(e) => setScheduledTime(e.target.value)}
-          className="h-12"
           required
         />
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label htmlFor="actualTime">Heure d'arrivée réelle</Label>
         <Input
           id="actualTime"
           type="time"
           value={actualTime}
           onChange={(e) => setActualTime(e.target.value)}
-          className="h-12"
           required
         />
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label htmlFor="reason">Motif</Label>
         <Textarea
           id="reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="resize-none min-h-[100px]"
           required
         />
       </div>
-      <div className="flex gap-4 justify-end pt-4">
-        <Button 
-          type="button" 
-          variant="outline"
-          onClick={() => window.history.back()}
-          className="px-6 h-12"
-        >
-          Annuler
-        </Button>
-        <Button 
-          type="submit" 
-          className="px-8 h-12 bg-indigo-600 hover:bg-indigo-700"
-          disabled={isSubmitting}
-        >
-          {isSubmitting && (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          )}
-          Enregistrer
-        </Button>
-      </div>
+      <Button 
+        type="submit" 
+        className="w-full"
+        disabled={isSubmitting}
+      >
+        {isSubmitting && (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        )}
+        Enregistrer
+      </Button>
     </form>
   );
 };
