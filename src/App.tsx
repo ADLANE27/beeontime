@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -26,25 +27,46 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const { session, isLoading, profile } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
+  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
+    let timeoutId: number;
+    
     // Set hasCheckedAuth to true when auth check is complete
     if (!isLoading) {
       setHasCheckedAuth(true);
 
       // Determine redirect path based on auth status and role
       if (!session) {
+        console.log("No session, redirecting to portal");
         setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
       } else if (profile && requiredRole === "hr" && profile.role !== "hr") {
+        console.log("User is not HR, redirecting to employee dashboard");
         setRedirectPath("/employee");
       } else {
+        console.log("Auth check passed, showing protected content");
         setRedirectPath(null); // No redirect needed
       }
+    } else {
+      // Set a timeout to stop showing loading after 5 seconds regardless
+      timeoutId = window.setTimeout(() => {
+        setShowLoading(false);
+        console.log("Forcing auth check completion after timeout");
+        // If we still don't have auth info after timeout, redirect to login
+        if (isLoading) {
+          setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+          setHasCheckedAuth(true);
+        }
+      }, 5000);
     }
+    
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
   }, [isLoading, session, profile, requiredRole]);
 
-  // Show loading state only during initial auth check
-  if (isLoading) {
+  // Show loading state only during initial auth check and before timeout
+  if (isLoading && showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">

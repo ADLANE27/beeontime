@@ -7,16 +7,25 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const PayslipList = () => {
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadTimeout, setLoadTimeout] = useState(false);
+
+  // Set a timeout to show a manual refresh option if loading takes too long
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setLoadTimeout(true);
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   // Modified query with better error handling and retry logic
-  const { data: payslips = [], isLoading: isLoadingPayslips, error: payslipError } = useQuery({
+  const { data: payslips = [], isLoading: isLoadingPayslips, error: payslipError, refetch: refetchPayslips } = useQuery({
     queryKey: ['payslips'],
     queryFn: async () => {
       console.log('Fetching payslips...');
@@ -24,7 +33,7 @@ export const PayslipList = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           console.error('No active session found when fetching payslips');
-          throw new Error("Not authenticated");
+          throw new Error("Non authentifié");
         }
 
         console.log('Payslips fetch - User ID:', session.user.id);
@@ -44,17 +53,18 @@ export const PayslipList = () => {
         return data || [];
       } catch (err) {
         console.error('Exception in payslip fetch:', err);
-        setLoadError(err instanceof Error ? err.message : 'Failed to load payslips');
+        setLoadError(err instanceof Error ? err.message : 'Impossible de charger les bulletins de paie');
         // Re-throw to let React Query handle retry
         throw err;
       }
     },
     retry: 2,
     retryDelay: 1000,
+    staleTime: 300000, // 5 minutes
   });
 
   // Modified query with better error handling and retry logic
-  const { data: importantDocuments = [], isLoading: isLoadingDocs, error: docsError } = useQuery({
+  const { data: importantDocuments = [], isLoading: isLoadingDocs, error: docsError, refetch: refetchDocs } = useQuery({
     queryKey: ['important_documents'],
     queryFn: async () => {
       console.log('Fetching important documents...');
@@ -74,24 +84,26 @@ export const PayslipList = () => {
         return data || [];
       } catch (err) {
         console.error('Exception in documents fetch:', err);
-        setLoadError(err instanceof Error ? err.message : 'Failed to load documents');
+        setLoadError(err instanceof Error ? err.message : 'Impossible de charger les documents');
         // Re-throw to let React Query handle retry
         throw err;
       }
     },
     retry: 2,
     retryDelay: 1000,
+    staleTime: 300000, // 5 minutes
   });
 
   // Handle errors with useEffect to provide a better UX
   useEffect(() => {
     if (payslipError || docsError) {
       const errorMessage = payslipError 
-        ? 'Error loading payslips: ' + (payslipError instanceof Error ? payslipError.message : 'Unknown error') 
-        : 'Error loading documents: ' + (docsError instanceof Error ? docsError.message : 'Unknown error');
+        ? 'Erreur de chargement des bulletins de paie: ' + (payslipError instanceof Error ? payslipError.message : 'Erreur inconnue') 
+        : 'Erreur de chargement des documents: ' + (docsError instanceof Error ? docsError.message : 'Erreur inconnue');
       
       toast.error(errorMessage);
       console.error('Document loading error:', payslipError || docsError);
+      setLoadError(errorMessage);
     }
   }, [payslipError, docsError]);
 
@@ -127,9 +139,17 @@ export const PayslipList = () => {
     }
   };
 
-  // Add a manual refresh button if there's an error
+  // Add a manual refresh button function
   const handleRefresh = () => {
-    window.location.reload();
+    setLoadError(null);
+    setLoadTimeout(false);
+    refetchPayslips();
+    refetchDocs();
+    
+    // Set a new timeout
+    setTimeout(() => {
+      setLoadTimeout(true);
+    }, 5000);
   };
 
   // Show error state with refresh button
@@ -158,9 +178,11 @@ export const PayslipList = () => {
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           <p className="text-gray-600">Chargement des documents...</p>
-          <Button onClick={handleRefresh} variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700">
-            Le chargement est long? Cliquez ici pour rafraîchir
-          </Button>
+          {loadTimeout && (
+            <Button onClick={handleRefresh} variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700">
+              Le chargement est long? Cliquez ici pour rafraîchir
+            </Button>
+          )}
         </div>
       </Card>
     );

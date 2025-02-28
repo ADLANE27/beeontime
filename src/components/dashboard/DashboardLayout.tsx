@@ -49,24 +49,28 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setIsLoggingOut(true);
     try {
       console.log("Logout initiated");
-      // Use the signOut method from AuthContext
+      
+      // First, call the signOut method from AuthContext
       await signOut();
       
       // Force navigation to portal regardless of any errors
       navigate("/portal", { replace: true });
+      
+      toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Error during logout:', error);
-      toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
       
-      // As a last resort, try direct logout and reload
+      // As a fallback, try direct logout with Supabase
       try {
         await supabase.auth.signOut();
+        navigate("/portal", { replace: true });
+        toast.success("Déconnexion effectuée");
       } catch (e) {
         console.error("Direct logout failed:", e);
+        toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
+        // Force navigation to portal as last resort
+        window.location.href = "/portal";
       }
-      
-      // Force reload to portal page
-      window.location.href = "/portal";
     } finally {
       setIsLoggingOut(false);
     }

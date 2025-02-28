@@ -25,27 +25,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("SignOut triggered from AuthContext");
       
-      // First call Supabase's signOut method
+      // First clear local state
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setAuthChecked(true);
+      
+      // Then call Supabase's signOut method
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Error during Supabase signOut:", error);
         throw error;
       }
-      
-      // Then clear all local state
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      
-      toast.success("Déconnexion réussie");
-      
-      // Return successfully to inform caller
+            
       return;
     } catch (error) {
       console.error("Sign out error:", error);
-      toast.error("Erreur lors de la déconnexion");
-      
       // Re-throw to allow caller to handle
       throw error;
     }
@@ -53,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: number | undefined;
     
     // Initial session check
     const checkSession = async () => {
@@ -106,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (event === 'SIGNED_IN' && currentSession?.user) {
-          toast.success("Connexion réussie");
+          console.log("User signed in:", currentSession.user.id);
           
           // Fetch additional profile data if needed
           const { data: profile, error: profileError } = await supabase
@@ -135,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Force timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       if (isLoading && mounted) {
         console.log("Auth loading timeout reached, forcing completion");
         setIsLoading(false);
@@ -146,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
   }, []);
 
