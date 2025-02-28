@@ -19,7 +19,7 @@ export const PayslipList = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setLoadTimeout(true);
-    }, 5000);
+    }, 4000); // Reduced from 5000ms to 4000ms 
 
     return () => clearTimeout(timeoutId);
   }, []);
@@ -58,8 +58,8 @@ export const PayslipList = () => {
         throw err;
       }
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1, // Reduced from 2 to 1 for faster feedback
+    retryDelay: 800, // Reduced from 1000ms to 800ms
     staleTime: 300000, // 5 minutes
   });
 
@@ -89,8 +89,8 @@ export const PayslipList = () => {
         throw err;
       }
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1, // Reduced from 2 to 1 for faster feedback
+    retryDelay: 800, // Reduced from 1000ms to 800ms
     staleTime: 300000, // 5 minutes
   });
 
@@ -149,7 +149,7 @@ export const PayslipList = () => {
     // Set a new timeout
     setTimeout(() => {
       setLoadTimeout(true);
-    }, 5000);
+    }, 4000);
   };
 
   // Show error state with refresh button

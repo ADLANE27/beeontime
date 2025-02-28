@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Profile } from "./types";
 import { fetchProfile } from "./profile-service";
@@ -25,7 +25,7 @@ export function useAuthState() {
         setIsLoading(false);
         setAuthInitialized(true);
       }
-    }, 5000);
+    }, 3000); // Reduced from 5000ms to 3000ms for faster timeout
     
     // Check for an existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -33,31 +33,39 @@ export function useAuthState() {
       
       console.log("Initial session check result:", session ? "Session found" : "No session");
       
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user?.id) {
-        const profile = await fetchProfile(session.user.id);
-        if (isMounted) {
-          setProfile(profile);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        
+        try {
+          if (session.user?.id) {
+            const profile = await fetchProfile(session.user.id);
+            if (isMounted) {
+              setProfile(profile);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching profile:", error);
         }
       }
       
       if (isMounted) {
         setIsLoading(false);
         setAuthInitialized(true);
+        clearTimeout(loadingTimeout); // Clear timeout once loaded
       }
     }).catch(error => {
       if (isMounted) {
         console.error("Error checking initial session:", error);
         setIsLoading(false);
         setAuthInitialized(true);
+        clearTimeout(loadingTimeout); // Clear timeout on error
       }
     });
     
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session) => {
+      async (event, session) => {
         console.log("Auth state event:", event);
         
         if (!isMounted) return;
@@ -65,15 +73,17 @@ export function useAuthState() {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user?.id) {
-          const profile = await fetchProfile(session.user.id);
-          if (isMounted) {
-            setProfile(profile);
-          }
-        } else {
-          if (isMounted) {
+        try {
+          if (session?.user?.id) {
+            const profile = await fetchProfile(session.user.id);
+            if (isMounted) {
+              setProfile(profile);
+            }
+          } else {
             setProfile(null);
           }
+        } catch (error) {
+          console.error("Error fetching profile on auth change:", error);
         }
       }
     );

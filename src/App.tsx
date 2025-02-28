@@ -61,7 +61,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
         setRedirectPath(null); // No redirect needed
       }
     } else {
-      // Set a timeout to stop showing loading after 3 seconds regardless
+      // Set a timeout to stop showing loading after 2 seconds
       timeoutId = window.setTimeout(() => {
         setShowLoading(false);
         console.log("Forcing auth check completion after timeout");
@@ -69,7 +69,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
           setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
           setHasCheckedAuth(true);
         }
-      }, 3000);
+      }, 2000); // Reduced from 3000ms to 2000ms for faster loading experience
     }
     
     return () => {
@@ -85,7 +85,11 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              setShowLoading(false);
+              setHasCheckedAuth(true);
+              setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+            }} 
             className="text-sm text-primary hover:underline mt-4"
           >
             Cliquez ici si le chargement persiste
