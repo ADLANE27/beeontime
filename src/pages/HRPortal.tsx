@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
@@ -29,6 +30,26 @@ const HRPortal = () => {
     console.log("Session state:", session ? "Authenticated" : "Not authenticated");
   }, [isLoading, session]);
 
+  // Clean URL from error parameters and set error message
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
+      const errorParam = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
+      
+      if (errorDescription?.includes("Invalid login credentials")) {
+        setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+      } else if (errorDescription?.includes("Email not confirmed")) {
+        setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
+      } else if (errorParam) {
+        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
+      }
+      
+      // Remove error params from URL to avoid showing error again on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   // Listen for auth events
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -40,7 +61,7 @@ const HRPortal = () => {
           navigate('/hr', { replace: true });
         }
       } else if (event === 'SIGNED_OUT') {
-        navigate('/hr-portal', { replace: true });
+        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
       }
     });
 
@@ -49,32 +70,21 @@ const HRPortal = () => {
     };
   }, [navigate]);
 
-  // Handle URL params for error messages
+  // Force timeout to prevent infinite loading
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const error = params.get('error');
-    if (error) {
-      setLoginError(error);
-      
-      // Remove the error from the URL
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
-      
-      // Show a toast notification for the error
-      toast.error(error);
-    }
-  }, []);
+    const timeoutId = setTimeout(() => {
+      if (localLoading) {
+        console.log("Local loading timeout reached, resetting state");
+        setLocalLoading(false);
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [localLoading]);
 
   if (isLoading || localLoading) {
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log("Loading timeout reached, forcing refresh");
-      setLocalLoading(false);
-      if (isLoading) {
-        window.location.reload();
-      }
-    }, 5000); // 5 seconds timeout
-    
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -82,7 +92,7 @@ const HRPortal = () => {
           <p className="text-muted-foreground">Chargement...</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-primary hover:underline mt-2"
           >
             Cliquez ici si le chargement persiste
           </button>
@@ -116,9 +126,9 @@ const HRPortal = () => {
           </div>
 
           {loginError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
-              Erreur: {loginError}
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
           )}
 
           <Auth

@@ -18,6 +18,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { signOut } = useAuth(); // Use signOut from auth context
   const isAdmin = location.pathname.startsWith("/hr");
   const [userName, setUserName] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -43,30 +44,31 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, []);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+    
+    setIsLoggingOut(true);
     try {
       console.log("Logout initiated");
       // Use the signOut method from AuthContext
       await signOut();
       
-      // As a safety measure, also try to sign out directly with Supabase
-      // in case something goes wrong with the context method
-      try {
-        await supabase.auth.signOut();
-      } catch (directError) {
-        console.error("Direct signout attempt failed:", directError);
-      }
-      
       // Force navigation to portal regardless of any errors
       navigate("/portal", { replace: true });
-      toast.success("Vous avez été déconnecté avec succès");
     } catch (error) {
       console.error('Error during logout:', error);
       toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
       
-      // As a last resort, reload the page
-      setTimeout(() => {
-        window.location.href = "/portal";
-      }, 1000);
+      // As a last resort, try direct logout and reload
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Direct logout failed:", e);
+      }
+      
+      // Force reload to portal page
+      window.location.href = "/portal";
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -91,11 +93,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               )}
               <Button 
                 variant="outline" 
-                onClick={handleLogout} 
+                onClick={handleLogout}
+                disabled={isLoggingOut}
                 className="gap-2 border-gray-200 hover:bg-gray-50 hover:text-red-600 hover:border-red-200 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Se déconnecter</span>
+                <span className="hidden sm:inline">{isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
               </Button>
             </div>
           </div>

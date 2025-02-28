@@ -24,18 +24,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log("SignOut triggered from AuthContext");
-      // First clear all local state
-      setSession(null);
-      setUser(null);
-      setProfile(null);
       
-      // Then call Supabase's signOut method
+      // First call Supabase's signOut method
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Error during Supabase signOut:", error);
         throw error;
       }
+      
+      // Then clear all local state
+      setSession(null);
+      setUser(null);
+      setProfile(null);
       
       toast.success("Déconnexion réussie");
       
@@ -51,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     // Initial session check
     const checkSession = async () => {
       try {
@@ -58,36 +61,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         console.log("Initial session check result:", initialSession ? "Has session" : "No session");
         
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-        
-        if (initialSession?.user) {
-          // Fetch additional profile data if needed
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', initialSession.user.id)
-            .single();
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
           
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-          } else {
-            console.log("User profile loaded:", profile);
-            setProfile(profile);
+          if (initialSession?.user) {
+            // Fetch additional profile data if needed
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', initialSession.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error("Error fetching profile:", profileError);
+            } else {
+              console.log("User profile loaded:", profile);
+              setProfile(profile);
+            }
           }
+          
+          // Mark auth as checked regardless of result
+          setAuthChecked(true);
+          setIsLoading(false);
         }
-
-        // Mark auth as checked regardless of result
-        setAuthChecked(true);
       } catch (error) {
         console.error("Session check error:", error);
         // Still mark auth as checked even on error
-        setAuthChecked(true);
-      } finally {
-        // Always complete loading after a reasonable timeout
-        setTimeout(() => {
+        if (mounted) {
+          setAuthChecked(true);
           setIsLoading(false);
-        }, 500);
+        }
       }
     };
     
@@ -97,37 +101,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log("Auth state changed:", event);
       
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (event === 'SIGNED_IN' && currentSession?.user) {
-        toast.success("Connexion réussie");
+      if (mounted) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
-        // Fetch additional profile data if needed
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentSession.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-        } else {
-          console.log("User profile loaded:", profile);
-          setProfile(profile);
+        if (event === 'SIGNED_IN' && currentSession?.user) {
+          toast.success("Connexion réussie");
+          
+          // Fetch additional profile data if needed
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', currentSession.user.id)
+            .single();
+          
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+          } else {
+            console.log("User profile loaded:", profile);
+            setProfile(profile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out event received");
+          setSession(null);
+          setUser(null);
+          setProfile(null);
         }
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out event received");
+        
+        // Always update loading state after auth change
+        setIsLoading(false);
+        setAuthChecked(true);
       }
-      
-      // Always update loading state after auth change
-      setIsLoading(false);
-      setAuthChecked(true);
     });
 
     // Force timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      if (isLoading) {
+      if (isLoading && mounted) {
         console.log("Auth loading timeout reached, forcing completion");
         setIsLoading(false);
         setAuthChecked(true);
@@ -135,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 3000);
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       clearTimeout(timeoutId);
     };

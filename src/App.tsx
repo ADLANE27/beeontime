@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -26,13 +25,23 @@ const queryClient = new QueryClient({
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
   const { session, isLoading, profile } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   useEffect(() => {
     // Set hasCheckedAuth to true when auth check is complete
     if (!isLoading) {
       setHasCheckedAuth(true);
+
+      // Determine redirect path based on auth status and role
+      if (!session) {
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      } else if (profile && requiredRole === "hr" && profile.role !== "hr") {
+        setRedirectPath("/employee");
+      } else {
+        setRedirectPath(null); // No redirect needed
+      }
     }
-  }, [isLoading]);
+  }, [isLoading, session, profile, requiredRole]);
 
   // Show loading state only during initial auth check
   if (isLoading) {
@@ -41,21 +50,23 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-sm text-primary hover:underline mt-4"
+          >
+            Cliquez ici si le chargement persiste
+          </button>
         </div>
       </div>
     );
   }
 
-  // If no session, redirect to appropriate portal
-  if (hasCheckedAuth && !session) {
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+  // If we need to redirect, do so
+  if (hasCheckedAuth && redirectPath) {
+    return <Navigate to={redirectPath} replace />;
   }
 
-  // If wrong role, redirect to appropriate dashboard
-  if (profile && requiredRole === "hr" && profile.role !== "hr") {
-    return <Navigate to="/employee" replace />;
-  }
-
+  // Otherwise, render children
   return <>{children}</>;
 };
 
