@@ -49,7 +49,8 @@ const HRPortal = () => {
     }
   }, []);
 
-  if (isLoading || !authReady) {
+  // Show loading indicator only when authentication is still initializing
+  if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
