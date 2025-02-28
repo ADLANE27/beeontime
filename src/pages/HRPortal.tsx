@@ -9,35 +9,70 @@ import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, profileFetchAttempted } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted, authReady, signOut } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
   const [redirectInProgress, setRedirectInProgress] = useState(false);
+  const [timeoutExceeded, setTimeoutExceeded] = useState(false);
 
   // Debug logging
   useEffect(() => {
     console.log("HRPortal: Auth state:", {
       isLoading,
+      authReady,
       hasSession: !!session,
       profileRole: profile?.role,
-      profileFetchAttempted
+      profileFetchAttempted,
+      redirectInProgress,
+      timeoutExceeded
     });
-  }, [isLoading, session, profile, profileFetchAttempted]);
+  }, [isLoading, session, profile, profileFetchAttempted, authReady, redirectInProgress, timeoutExceeded]);
 
+  // Manual timeout for handling potential deadlocks
   useEffect(() => {
-    // If user is already authenticated and has an HR profile, redirect to HR dashboard
-    if (session?.user && profile?.role === "hr" && !redirectInProgress) {
+    let timeoutId: number | null = null;
+    
+    if ((isLoading || localLoading) && !timeoutExceeded) {
+      timeoutId = window.setTimeout(() => {
+        console.log("Loading timeout reached, forcing state reset");
+        setTimeoutExceeded(true);
+        setLocalLoading(false);
+      }, 7000);
+    }
+    
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [isLoading, localLoading, timeoutExceeded]);
+
+  // Main auth redirect logic
+  useEffect(() => {
+    // Only proceed if we're not already processing a redirect
+    if (redirectInProgress) {
+      return;
+    }
+
+    // Clear timeout flag if auth state changes
+    if (!isLoading && timeoutExceeded) {
+      setTimeoutExceeded(false);
+    }
+
+    // Case 1: User is authenticated and has HR profile
+    if (!isLoading && session?.user && profile?.role === "hr") {
       console.log("User is HR, redirecting to HR dashboard");
       setRedirectInProgress(true);
       navigate('/hr', { replace: true });
       return;
     }
     
-    // If user is authenticated but doesn't have HR role, redirect to employee dashboard
-    if (session?.user && profile && profile.role !== "hr" && !redirectInProgress) {
+    // Case 2: User is authenticated but doesn't have HR role
+    if (!isLoading && session?.user && profile && profile.role !== "hr") {
       console.log("User is not HR, redirecting to employee dashboard");
       setRedirectInProgress(true);
       toast.error("Vous n'avez pas les droits pour accéder à cette page.");
@@ -45,11 +80,33 @@ const HRPortal = () => {
       return;
     }
     
-    // Profile fetch was attempted but no profile found, show error
-    if (session?.user && !profile && profileFetchAttempted && !loginError) {
+    // Case 3: Profile fetch was attempted but no profile found
+    if (!isLoading && session?.user && !profile && profileFetchAttempted && !loginError) {
       setLoginError("Impossible de récupérer votre profil. Veuillez contacter un administrateur.");
     }
-  }, [session, profile, navigate, redirectInProgress, profileFetchAttempted, loginError]);
+
+    // Case 4: Auth is ready but still getting loading issues (potential deadlock)
+    if (timeoutExceeded && session) {
+      console.log("Timeout exceeded with session, attempting force reset");
+      // Force sign out to reset state completely
+      setLoginError("Problème de chargement du profil. Merci de vous reconnecter.");
+      signOut().catch(console.error);
+      setRedirectInProgress(false);
+      setLocalLoading(false);
+      setTimeoutExceeded(false);
+    }
+  }, [
+    session, 
+    profile, 
+    navigate, 
+    redirectInProgress, 
+    profileFetchAttempted, 
+    loginError, 
+    isLoading, 
+    authReady, 
+    timeoutExceeded,
+    signOut
+  ]);
 
   // Clean URL from error parameters and set error message
   useEffect(() => {
@@ -74,8 +131,8 @@ const HRPortal = () => {
   // Listen for auth events
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event in Portal:", event);
-      console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
+      console.log("Auth state event in HRPortal:", event);
+      console.log("HRPortal: session state:", session ? "Logged in" : "Not logged in");
       
       if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session) {
@@ -86,46 +143,55 @@ const HRPortal = () => {
         setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
         setRedirectInProgress(false);
         setLocalLoading(false);
+        setTimeoutExceeded(false);
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
-  // Force timeout to prevent infinite loading
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (localLoading) {
-        console.log("Local loading timeout reached, resetting state");
-        setLocalLoading(false);
-        setRedirectInProgress(false);
-      }
-    }, 8000); // Longer timeout to allow for profile fetch
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [localLoading]);
+  const handleManualReset = () => {
+    console.log("Manual reset triggered");
+    setLocalLoading(false);
+    setRedirectInProgress(false);
+    setTimeoutExceeded(false);
+    // Force reload the page to reset all state
+    window.location.reload();
+  };
 
   if (isLoading || localLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
-          <button 
-            onClick={() => {
-              setLocalLoading(false);
-              setRedirectInProgress(false);
-              // Force reload the page to reset all state
-              window.location.reload();
-            }} 
+          <p className="text-muted-foreground">Chargement de votre profil...</p>
+          <Button 
+            onClick={handleManualReset} 
+            variant="link"
             className="text-sm text-primary hover:underline mt-2"
           >
             Cliquez ici si le chargement persiste
-          </button>
+          </Button>
+          
+          {timeoutExceeded && (
+            <div className="mt-4">
+              <Alert variant="destructive" className="max-w-md mx-auto">
+                <AlertDescription>
+                  Le chargement prend plus de temps que prévu. Vous pouvez essayer de vous reconnecter.
+                </AlertDescription>
+              </Alert>
+              <Button 
+                onClick={() => signOut().catch(console.error)} 
+                variant="destructive"
+                size="sm"
+                className="mt-4"
+              >
+                Se déconnecter et réessayer
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );

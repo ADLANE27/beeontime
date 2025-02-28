@@ -15,8 +15,9 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const isProfileFetchingRef = useRef(false);
+  const profileFetchTimeoutRef = useRef<number | null>(null);
 
-  // Function to safely update profile
+  // Function to safely update profile with timeout protection
   const updateProfile = async (userId: string) => {
     // Prevent duplicate profile fetches or fetches after unmount
     if (isProfileFetchingRef.current || !isMountedRef.current) return;
@@ -24,7 +25,23 @@ export function useAuthState() {
     try {
       isProfileFetchingRef.current = true;
       console.log("Fetching profile for user:", userId);
+      
+      // Set a timeout to prevent infinite loading
+      profileFetchTimeoutRef.current = window.setTimeout(() => {
+        if (isMountedRef.current && isProfileFetchingRef.current) {
+          console.log("Profile fetch timeout reached, marking as attempted anyway");
+          isProfileFetchingRef.current = false;
+          setProfileFetchAttempted(true);
+        }
+      }, 5000);
+      
       const profileData = await fetchProfile(userId);
+      
+      // Clear the timeout since we got a response
+      if (profileFetchTimeoutRef.current) {
+        clearTimeout(profileFetchTimeoutRef.current);
+        profileFetchTimeoutRef.current = null;
+      }
       
       if (isMountedRef.current) {
         setProfile(profileData);
@@ -40,6 +57,11 @@ export function useAuthState() {
     } finally {
       if (isMountedRef.current) {
         isProfileFetchingRef.current = false;
+        // Clear timeout if it's still active
+        if (profileFetchTimeoutRef.current) {
+          clearTimeout(profileFetchTimeoutRef.current);
+          profileFetchTimeoutRef.current = null;
+        }
       }
     }
   };
@@ -47,6 +69,7 @@ export function useAuthState() {
   // Clear auth state
   const clearAuthState = () => {
     if (isMountedRef.current) {
+      console.log("Clearing auth state");
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -124,6 +147,11 @@ export function useAuthState() {
         // Handle different auth events
         switch (event) {
           case 'SIGNED_IN':
+            // Clear previous state to avoid conflicts
+            if (profile) {
+              setProfile(null);
+              setProfileFetchAttempted(false);
+            }
             await handleSessionUpdate(session);
             break;
             
@@ -139,7 +167,7 @@ export function useAuthState() {
               setSession(session);
               setUser(session.user);
               
-              // Re-fetch profile on user update if user exists
+              // Re-fetch profile on user update if user exists and profile fetch not already in progress
               if (session.user?.id && !isProfileFetchingRef.current) {
                 await updateProfile(session.user.id);
               }
@@ -154,6 +182,13 @@ export function useAuthState() {
       console.log("Auth state hook cleaning up...");
       isMountedRef.current = false;
       clearTimeout(loadingTimeout);
+      
+      // Clear profile fetch timeout if it exists
+      if (profileFetchTimeoutRef.current) {
+        clearTimeout(profileFetchTimeoutRef.current);
+        profileFetchTimeoutRef.current = null;
+      }
+      
       subscription.unsubscribe();
     };
   }, []);

@@ -5,6 +5,10 @@ import { Profile } from "./types";
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
     console.log("Fetching profile for user:", userId);
+    
+    // Add a small delay to ensure supabase is properly initialized
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -53,25 +57,29 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       
       // If all else fails, create a minimal profile from auth data
       try {
-        const { data: userData } = await supabase.auth.getUser(userId);
-        if (userData?.user) {
-          console.log("Creating minimal profile from auth data");
-          return {
-            id: userData.user.id,
-            role: "employee", // Default role
-            email: userData.user.email || "",
-            first_name: "",
-            last_name: ""
-          };
-        }
+        console.log("Creating minimal profile from auth data");
+        return {
+          id: userId,
+          role: "employee", // Default role
+          email: "",
+          first_name: "",
+          last_name: ""
+        };
       } catch (authError) {
-        console.error("Error getting user from auth:", authError);
+        console.error("Error creating minimal profile:", authError);
       }
       
       return null;
     }
   } catch (error) {
     console.error("Exception in fetchProfile:", error);
-    return null;
+    // Return a minimal profile to prevent login loops
+    return {
+      id: userId,
+      role: "employee", // Default fallback role
+      email: "",
+      first_name: "",
+      last_name: ""
+    };
   }
 }
