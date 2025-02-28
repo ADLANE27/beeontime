@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
+  DialogContentFullScreen,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -119,126 +121,135 @@ export const NewHREventDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Nouvel événement RH</DialogTitle>
+      <DialogContentFullScreen className="p-8">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-2xl">Nouvel événement RH</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createEvent();
-          }}
-          className="space-y-4"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="employee">Employé</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un employé" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees?.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.first_name} {employee.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="title">Titre</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Catégorie</Label>
-            <Select 
-              value={category} 
-              onValueChange={(value: EventCategory) => {
-                setCategory(value);
-                setSubcategory("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="disciplinary">Disciplinaire</SelectItem>
-                <SelectItem value="evaluation">Évaluation</SelectItem>
-                <SelectItem value="administrative">Administratif</SelectItem>
-                <SelectItem value="other">Autre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {category && (
-            <div className="space-y-2">
-              <Label htmlFor="subcategory">Sous-catégorie</Label>
-              <Select 
-                value={subcategory} 
-                onValueChange={(value: EventSubcategory) => setSubcategory(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une sous-catégorie" />
+        <div className="max-w-3xl mx-auto">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createEvent();
+            }}
+            className="space-y-6"
+          >
+            <div className="space-y-4">
+              <Label htmlFor="employee" className="text-lg">Employé</Label>
+              <Select value={employeeId} onValueChange={setEmployeeId}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Sélectionner un employé" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getSubcategories().map(([value, label]) => (
-                    <SelectItem key={value} value={value as EventSubcategory}>
-                      {label}
+                  {employees?.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.first_name} {employee.last_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="severity">Gravité</Label>
-            <Select 
-              value={severity} 
-              onValueChange={(value: EventSeverity) => setSeverity(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner la gravité" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="minor">Mineure</SelectItem>
-                <SelectItem value="standard">Standard</SelectItem>
-                <SelectItem value="critical">Critique</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-4">
+              <Label htmlFor="title" className="text-lg">Titre</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="h-12"
+              />
+            </div>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Création..." : "Créer"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
+            <div className="space-y-4">
+              <Label htmlFor="description" className="text-lg">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                className="min-h-32"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label htmlFor="category" className="text-lg">Catégorie</Label>
+              <Select 
+                value={category} 
+                onValueChange={(value: EventCategory) => {
+                  setCategory(value);
+                  setSubcategory("");
+                }}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="disciplinary">Disciplinaire</SelectItem>
+                  <SelectItem value="evaluation">Évaluation</SelectItem>
+                  <SelectItem value="administrative">Administratif</SelectItem>
+                  <SelectItem value="other">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {category && (
+              <div className="space-y-4">
+                <Label htmlFor="subcategory" className="text-lg">Sous-catégorie</Label>
+                <Select 
+                  value={subcategory} 
+                  onValueChange={(value: EventSubcategory) => setSubcategory(value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Sélectionner une sous-catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getSubcategories().map(([value, label]) => (
+                      <SelectItem key={value} value={value as EventSubcategory}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <Label htmlFor="severity" className="text-lg">Gravité</Label>
+              <Select 
+                value={severity} 
+                onValueChange={(value: EventSeverity) => setSeverity(value)}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Sélectionner la gravité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minor">Mineure</SelectItem>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="critical">Critique</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-4 justify-end pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="h-12 px-6 text-lg"
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isPending}
+                className="h-12 px-6 text-lg"
+              >
+                {isPending ? "Création..." : "Créer"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </DialogContentFullScreen>
     </Dialog>
   );
 };

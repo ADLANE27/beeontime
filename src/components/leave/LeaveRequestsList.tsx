@@ -22,6 +22,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
+  DialogContentFullScreen,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -607,35 +608,37 @@ export const LeaveRequestsList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de nouvelle demande - correction du positionnement */}
+      {/* Dialog de nouvelle demande - en plein écran */}
       <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Nouvelle demande de congés</DialogTitle>
+        <DialogContentFullScreen className="p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl">Nouvelle demande de congés</DialogTitle>
           </DialogHeader>
-          <LeaveRequestForm 
-            onSubmit={async (data) => {
-              try {
-                const { error } = await supabase
-                  .from('leave_requests')
-                  .insert({
-                    ...data,
-                    status: 'approved'
-                  });
+          <div className="max-w-3xl mx-auto">
+            <LeaveRequestForm 
+              onSubmit={async (data) => {
+                try {
+                  const { error } = await supabase
+                    .from('leave_requests')
+                    .insert({
+                      ...data,
+                      status: 'approved'
+                    });
 
-                if (error) throw error;
-                
-                toast.success("Demande de congés créée avec succès");
-                setIsNewLeaveOpen(false);
-                queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-              } catch (error) {
-                console.error('Error creating leave request:', error);
-                toast.error("Erreur lors de la création de la demande");
-              }
-            }}
-            isSubmitting={false}
-          />
-        </DialogContent>
+                  if (error) throw error;
+                  
+                  toast.success("Demande de congés créée avec succès");
+                  setIsNewLeaveOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+                } catch (error) {
+                  console.error('Error creating leave request:', error);
+                  toast.error("Erreur lors de la création de la demande");
+                }
+              }}
+              isSubmitting={false}
+            />
+          </div>
+        </DialogContentFullScreen>
       </Dialog>
     </Card>
   );
