@@ -62,7 +62,7 @@ export const useEmployeeSubmit = (
         
         // First create a profile entry
         console.log("Creating profile with ID:", newUserId);
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileResult, error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: newUserId,
@@ -78,7 +78,7 @@ export const useEmployeeSubmit = (
           throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
         }
         
-        console.log("Profile created successfully:", profileData);
+        console.log("Profile created successfully:", profileResult);
         
         // Verify profile was created
         const { data: verifyProfile, error: verifyError } = await supabase
@@ -95,7 +95,7 @@ export const useEmployeeSubmit = (
         console.log("Profile verified, creating employee with ID:", newUserId);
         
         // Then create the employee record with the same ID
-        const { data: employeeData, error: employeeError } = await supabase
+        const { data: employeeResult, error: employeeError } = await supabase
           .from('employees')
           .insert({
             ...employeeRecord,
@@ -118,7 +118,7 @@ export const useEmployeeSubmit = (
           throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
         }
         
-        console.log("Employee created successfully:", employeeData);
+        console.log("Employee created successfully:", employeeResult);
         
         toast.success("Nouvel employé créé avec succès");
         onSuccess();
