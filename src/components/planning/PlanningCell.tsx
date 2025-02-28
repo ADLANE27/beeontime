@@ -27,14 +27,14 @@ const getTimeRecordDisplay = (timeRecord: TimeRecord) => {
 };
 
 export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToday }: PlanningCellProps) => {
-  const baseClasses = "text-center p-2 h-16 relative transition-all duration-200 group";
+  const baseClasses = "text-center p-2 h-16 relative transition-all duration-300 group cursor-pointer";
   const todayClasses = isToday 
     ? "bg-gradient-to-br from-blue-50/90 to-blue-100/30 ring-2 ring-blue-200/50 ring-inset" 
     : "";
   const weekendClasses = isWeekend 
     ? "bg-gradient-to-br from-gray-50/80 to-gray-100/50 border-gray-100" 
     : "";
-  const hoverClasses = "hover:shadow-md hover:z-10 hover:scale-[1.01]";
+  const hoverClasses = "hover:shadow-md hover:z-10 hover:scale-[1.02] hover:shadow-blue-100";
   
   const getLeaveContent = () => {
     if (!leaveRequest) return null;
@@ -43,21 +43,19 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     const period = leaveRequest.period;
     const leaveType = leaveRequest.type as keyof typeof leaveTypeColors || 'other';
     
-    // Use color from LeaveTypeLegend or fallback to a default
-    const bgColorClass = leaveTypeColors[leaveType] 
-      ? `bg-gradient-to-r from-${leaveTypeColors[leaveType].color.replace('#', '')}/50 to-${leaveTypeColors[leaveType].color.replace('#', '')}/30` 
-      : "bg-green-200/50";
+    const color = leaveTypeColors[leaveType]?.color || '#E0E0E0';
+    const gradientStyle = {
+      background: `linear-gradient(to right, ${color}70 0%, ${color}50 100%)`,
+      boxShadow: `inset 0 0 0 1px ${color}50`
+    };
     
     return (
       <div className={cn(
-        "absolute inset-0 flex items-center justify-center rounded-sm overflow-hidden",
+        "absolute inset-0 flex items-center justify-center rounded-sm overflow-hidden transition-opacity duration-300",
         isHalfDay ? (period === 'morning' ? "clip-path-left" : "clip-path-right") : ""
       )}>
-        <div className={cn(
-          "w-full h-full opacity-70",
-          bgColorClass
-        )} />
-        <span className="absolute text-xs font-medium">
+        <div className="w-full h-full opacity-80 group-hover:opacity-90 transition-opacity duration-300" style={gradientStyle} />
+        <span className="absolute text-xs font-medium transform group-hover:scale-110 transition-transform duration-300">
           {isHalfDay ? '½' : '✓'}
         </span>
       </div>
@@ -68,10 +66,12 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     if (!timeRecord) return null;
 
     return (
-      <div className="absolute bottom-0 left-0 right-0 text-xs text-gray-600 font-medium overflow-hidden px-1 py-0.5 bg-white/40 backdrop-blur-sm opacity-90 group-hover:opacity-100">
+      <div className="absolute bottom-0 left-0 right-0 text-xs text-gray-600 font-medium overflow-hidden px-1 py-0.5 
+                      bg-white/40 backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-all duration-300
+                      border-t border-gray-100/50 transform group-hover:translate-y-0 translate-y-6">
         {timeRecord.morning_in && (
           <span className="flex justify-center space-x-1">
-            <span>⏱️</span>
+            <span className="group-hover:rotate-12 transition-transform duration-300">⏱️</span>
             <span>{format(new Date(`2000-01-01T${timeRecord.morning_in}`), 'HH:mm')}</span>
           </span>
         )}
@@ -79,52 +79,69 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     );
   };
 
-  const getHoverEffect = () => {
-    if (!leaveRequest && !timeRecord) return null;
-    
+  const getHoverIndicator = () => {
     return (
-      <div className="absolute top-0 right-0 m-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-0 group-hover:scale-100">
+        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-sm animate-pulse"></div>
       </div>
     );
   };
 
   return (
     <TableCell className={cn(baseClasses, todayClasses, weekendClasses, hoverClasses)}>
-      {(timeRecord || leaveRequest) ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="w-full h-full cursor-pointer">
-              {getLeaveContent()}
-              {getTimeRecordContent()}
-              {getHoverEffect()}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="p-3 max-w-xs bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border border-gray-100">
-            <div className="space-y-2">
-              <div className="font-medium text-sm">{format(date, 'EEEE dd MMMM yyyy')}</div>
-              {leaveRequest && (
-                <div className="text-sm text-gray-600 border-t pt-1">
-                  <span className="font-medium">Congé: </span>
-                  {leaveRequest.type}
-                  {leaveRequest.day_type === 'half' && (
-                    <span> ({leaveRequest.period === 'morning' ? 'Matin' : 'Après-midi'})</span>
-                  )}
-                </div>
-              )}
-              {timeRecord && (
-                <div className="text-xs text-gray-500 border-t pt-1 whitespace-pre-line">
-                  {getTimeRecordDisplay(timeRecord)}
-                </div>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        <div className="w-full h-full">
-          {getLeaveContent()}
-        </div>
-      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-full h-full">
+            {getLeaveContent()}
+            {getTimeRecordContent()}
+            {getHoverIndicator()}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="center" className="p-3 max-w-xs bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border border-gray-100 animate-in fade-in-50 duration-300">
+          <div className="space-y-2">
+            <div className="font-medium text-sm text-blue-900">{format(date, 'EEEE dd MMMM yyyy')}</div>
+            {leaveRequest && (
+              <div className="text-sm text-gray-600 border-t pt-1">
+                <span className="font-medium">Congé: </span>
+                {leaveTypeColors[leaveRequest.type as keyof typeof leaveTypeColors]?.label || leaveRequest.type}
+                {leaveRequest.day_type === 'half' && (
+                  <span className="ml-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100">
+                    {leaveRequest.period === 'morning' ? 'Matin' : 'Après-midi'}
+                  </span>
+                )}
+              </div>
+            )}
+            {timeRecord && (
+              <div className="text-xs text-gray-500 border-t pt-1 space-y-1">
+                {timeRecord.morning_in && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-500">Arrivée:</span> 
+                    <span>{timeRecord.morning_in}</span>
+                  </div>
+                )}
+                {timeRecord.lunch_out && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-orange-500">Départ déjeuner:</span> 
+                    <span>{timeRecord.lunch_out}</span>
+                  </div>
+                )}
+                {timeRecord.lunch_in && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-500">Retour déjeuner:</span> 
+                    <span>{timeRecord.lunch_in}</span>
+                  </div>
+                )}
+                {timeRecord.evening_out && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-500">Départ:</span> 
+                    <span>{timeRecord.evening_out}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
     </TableCell>
   );
 };

@@ -50,6 +50,7 @@ export const AdminPlanning = () => {
   const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [isLoading, setIsLoading] = useState(true);
+  const [isChangingView, setIsChangingView] = useState(false);
 
   const firstDayOfPeriod = viewMode === 'month' 
     ? startOfMonth(currentDate)
@@ -119,27 +120,43 @@ export const AdminPlanning = () => {
   }, [currentDate, viewMode]);
 
   const nextPeriod = () => {
-    if (viewMode === 'month') {
-      setCurrentDate(addMonths(currentDate, 1));
-    } else {
-      setCurrentDate(addWeeks(currentDate, 1));
-    }
+    setIsChangingView(true);
+    setTimeout(() => {
+      if (viewMode === 'month') {
+        setCurrentDate(addMonths(currentDate, 1));
+      } else {
+        setCurrentDate(addWeeks(currentDate, 1));
+      }
+      setIsChangingView(false);
+    }, 150);
   };
 
   const previousPeriod = () => {
-    if (viewMode === 'month') {
-      setCurrentDate(subMonths(currentDate, 1));
-    } else {
-      setCurrentDate(subWeeks(currentDate, 1));
-    }
+    setIsChangingView(true);
+    setTimeout(() => {
+      if (viewMode === 'month') {
+        setCurrentDate(subMonths(currentDate, 1));
+      } else {
+        setCurrentDate(subWeeks(currentDate, 1));
+      }
+      setIsChangingView(false);
+    }, 150);
   };
 
   const goToToday = () => {
-    setCurrentDate(new Date());
+    setIsChangingView(true);
+    setTimeout(() => {
+      setCurrentDate(new Date());
+      setIsChangingView(false);
+    }, 150);
   };
 
   const toggleViewMode = () => {
-    setViewMode(viewMode === 'month' ? 'week' : 'month');
+    setIsChangingView(true);
+    setTimeout(() => {
+      setViewMode(viewMode === 'month' ? 'week' : 'month');
+      setIsChangingView(false);
+    }, 150);
   };
 
   const getDaysToShow = () => {
@@ -174,10 +191,12 @@ export const AdminPlanning = () => {
   };
 
   const handleExportPDF = () => {
+    toast.loading("Génération du PDF...");
     generatePlanningPDF(employees, currentDate, leaveRequests, viewMode);
   };
 
   const handleExportICS = () => {
+    toast.loading("Génération du calendrier iCal...");
     const events = leaveRequests
       .filter(request => request.status === 'approved')
       .map(request => {
@@ -244,7 +263,7 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden">
+    <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden backdrop-blur-sm">
       <div className="space-y-4 p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -257,10 +276,15 @@ export const AdminPlanning = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-xl font-semibold px-4">
-                {capitalizeFirstLetter(
-                  format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
-                )}
+              <h2 className="text-xl font-semibold px-4 min-w-[180px] text-center">
+                <span className={cn(
+                  "block transition-all duration-300",
+                  isChangingView ? "opacity-0 transform -translate-y-4" : "opacity-100 transform translate-y-0"
+                )}>
+                  {capitalizeFirstLetter(
+                    format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
+                  )}
+                </span>
               </h2>
               <Button 
                 variant="ghost" 
@@ -282,32 +306,32 @@ export const AdminPlanning = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="gradient"
               onClick={toggleViewMode}
-              className="shadow-sm group transition-all duration-200 hover:shadow hover:scale-105"
+              className="group transition-all duration-200 hover:shadow hover:scale-105"
             >
               <CalendarIcon className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="relative overflow-hidden">
+              <span className="relative overflow-hidden h-5">
                 <span className={cn(
-                  "inline-block transition-transform duration-300",
-                  viewMode === 'month' ? "transform-none" : "transform translate-y-full"
+                  "inline-block absolute inset-0 transition-transform duration-300",
+                  viewMode === 'month' ? "transform-none" : "transform translate-y-full opacity-0"
                 )}>
                   Vue hebdomadaire
                 </span>
                 <span className={cn(
-                  "inline-block absolute top-0 left-0 transition-transform duration-300",
-                  viewMode === 'month' ? "transform -translate-y-full" : "transform-none"
+                  "inline-block absolute inset-0 transition-transform duration-300",
+                  viewMode === 'month' ? "transform -translate-y-full opacity-0" : "transform-none"
                 )}>
                   Vue mensuelle
                 </span>
               </span>
             </Button>
             <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2 shadow-sm hover:shadow transition-all duration-200 hover:scale-105">
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 group-hover:animate-bounce" />
               PDF
             </Button>
             <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2 shadow-sm hover:shadow transition-all duration-200 hover:scale-105">
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 group-hover:animate-bounce" />
               iCal
             </Button>
           </div>
@@ -316,7 +340,10 @@ export const AdminPlanning = () => {
         <LeaveTypeLegend />
         
         <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" orientation="both">
-          <div className="min-w-max">
+          <div className={cn(
+            "min-w-max transition-opacity duration-300",
+            isChangingView ? "opacity-50" : "opacity-100"
+          )}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -335,8 +362,8 @@ export const AdminPlanning = () => {
                       <div className="text-xs">
                         <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
                         <div className={cn(
-                          "text-sm mt-1",
-                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto" : ""
+                          "text-sm mt-1 transition-all duration-200",
+                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
                         )}>
                           {format(date, 'dd')}
                         </div>
@@ -356,10 +383,16 @@ export const AdminPlanning = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  employees.map((employee) => (
-                    <TableRow key={employee.id} className="hover:bg-gray-50/30">
-                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10">
-                        <div className="truncate">
+                  employees.map((employee, index) => (
+                    <TableRow 
+                      key={employee.id} 
+                      className={cn(
+                        "hover:bg-gray-50/30 transition-all duration-150",
+                        index % 2 === 0 ? "bg-gray-50/10" : ""
+                      )}
+                    >
+                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
+                        <div className="truncate font-medium">
                           {`${employee.first_name} ${employee.last_name}`}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{employee.position}</div>
