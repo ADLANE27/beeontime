@@ -50,11 +50,12 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
       boxShadow: `inset 0 0 0 1px ${color}50`
     };
     
-    // Different styling for morning and afternoon half-days
+    // Enhanced positioning and styling for half-day labels
     const getMorningLabel = () => (
       <div 
-        className="absolute top-[30%] left-[12%] transform -rotate-45 bg-white/80 px-1 py-0.5 rounded shadow-sm
-                text-[8px] font-medium text-gray-800 whitespace-nowrap z-10"
+        className="absolute top-[33%] left-[8%] transform -rotate-40 bg-white/90 px-0.5 py-0.5 rounded-sm shadow-sm
+                text-[7px] font-semibold text-gray-800 whitespace-nowrap z-10 leading-tight"
+        style={{ letterSpacing: '-0.01em' }}
       >
         Matin
       </div>
@@ -62,8 +63,9 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     
     const getAfternoonLabel = () => (
       <div 
-        className="absolute top-[30%] right-[12%] transform rotate-45 bg-white/80 px-1 py-0.5 rounded shadow-sm
-                text-[8px] font-medium text-gray-800 whitespace-nowrap z-10"
+        className="absolute top-[33%] right-[7%] transform rotate-40 bg-white/90 px-0.5 py-0.5 rounded-sm shadow-sm
+                text-[7px] font-semibold text-gray-800 whitespace-nowrap z-10 leading-tight"
+        style={{ letterSpacing: '-0.01em' }}
       >
         Après-midi
       </div>
@@ -71,7 +73,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     
     const getFullDayLabel = () => (
       <div 
-        className="absolute top-1/3 inset-x-0 bg-white/70 backdrop-blur-[1px] mx-auto w-fit px-1.5 py-0.5 rounded shadow-sm
+        className="absolute top-1/3 inset-x-0 bg-white/80 backdrop-blur-[1px] mx-auto w-fit px-1.5 py-0.5 rounded-sm shadow-sm
                 text-[9px] font-medium text-gray-800 z-10 text-center"
       >
         Journée

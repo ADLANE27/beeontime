@@ -85,6 +85,15 @@
   clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
 }
 
+/* Custom rotation angles */
+.rotate-40 {
+  transform: rotate(40deg);
+}
+
+.-rotate-40 {
+  transform: rotate(-40deg);
+}
+
 @layer utilities {
   .bg-gradient-blue {
     @apply bg-gradient-to-r from-blue-500 to-indigo-600;
