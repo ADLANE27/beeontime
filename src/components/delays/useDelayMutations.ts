@@ -4,6 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface DelayData {
+  id?: string;
+  employee_id: string;
+  date: string;
+  scheduled_time: string;
+  actual_time: string;
+  reason: string;
+}
+
+type UpdateStatusParams = {
+  id: string;
+  status: 'approved' | 'rejected';
+};
+
 interface UseDelayMutationsProps {
   onSuccess?: () => void;
 }
@@ -41,23 +55,41 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
   };
 
-  const addDelayMutation = useMutation({
-    mutationFn: async (newDelay: {
-      employee_id: string;
-      date: string;
-      scheduled_time: string;
-      actual_time: string;
-      reason: string;
-    }) => {
-      if (!session) {
-        console.error("No active session when trying to add delay");
-        throw new Error("Vous devez être connecté pour effectuer cette action");
+  // Verifier la session
+  const checkSession = () => {
+    if (!session) {
+      console.error("No active session when trying to perform delay operation");
+      throw new Error("Vous devez être connecté pour effectuer cette action");
+    }
+  };
+
+  // Fonction générique pour gérer les erreurs et succès des mutations
+  const createMutation = <T, R>(
+    mutationFn: (data: T) => Promise<R>,
+    successMessage: string,
+    errorMessage: string
+  ) => {
+    return useMutation({
+      mutationFn,
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['delays'] });
+        toast.success(successMessage);
+        onSuccess?.();
+      },
+      onError: (error) => {
+        toast.error(errorMessage);
+        console.error(`Error: ${errorMessage}`, error);
       }
-      
+    });
+  };
+
+  // Mutation pour ajouter un retard
+  const addDelayMutation = createMutation(
+    async (newDelay: DelayData) => {
+      checkSession();
       console.log('Adding new delay:', newDelay);
       
       try {
-        // Calculer la durée du retard
         const formattedDuration = calculateDelayDuration(
           newDelay.scheduled_time,
           newDelay.actual_time
@@ -70,33 +102,20 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
             duration: formattedDuration
           });
 
-        if (error) {
-          console.error('Error adding delay:', error);
-          throw error;
-        }
+        if (error) throw error;
       } catch (error) {
         console.error('Error in addDelayMutation:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard enregistré avec succès");
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de l'enregistrement du retard");
-      console.error('Error adding delay:', error);
-    }
-  });
+    "Retard enregistré avec succès",
+    "Erreur lors de l'enregistrement du retard"
+  );
 
-  const updateDelayMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => {
-      if (!session) {
-        console.error("No active session when trying to update delay status");
-        throw new Error("Vous devez être connecté pour effectuer cette action");
-      }
-      
+  // Mutation pour mettre à jour le statut d'un retard
+  const updateDelayMutation = createMutation(
+    async ({ id, status }: UpdateStatusParams) => {
+      checkSession();
       console.log('Updating delay status:', { id, status });
       
       try {
@@ -105,43 +124,23 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
           .update({ status })
           .eq('id', id);
           
-        if (error) {
-          console.error('Error updating delay status:', error);
-          throw error;
-        }
+        if (error) throw error;
       } catch (error) {
         console.error('Error in updateDelayMutation:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Statut mis à jour avec succès");
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la mise à jour du statut");
-      console.error('Error updating delay status:', error);
-    }
-  });
+    "Statut mis à jour avec succès",
+    "Erreur lors de la mise à jour du statut"
+  );
 
-  const editDelayMutation = useMutation({
-    mutationFn: async (delay: {
-      id: string;
-      employee_id: string;
-      date: string;
-      scheduled_time: string;
-      actual_time: string;
-      reason: string;
-    }) => {
-      if (!session) {
-        console.error("No active session when trying to edit delay");
-        throw new Error("Vous devez être connecté pour effectuer cette action");
-      }
-      
+  // Mutation pour modifier un retard
+  const editDelayMutation = createMutation(
+    async (delay: DelayData & { id: string }) => {
+      checkSession();
       console.log('Editing delay:', delay);
       
       try {
-        // Calculer la durée du retard
         const formattedDuration = calculateDelayDuration(
           delay.scheduled_time,
           delay.actual_time
@@ -157,33 +156,20 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
           })
           .eq('id', id);
 
-        if (error) {
-          console.error('Error editing delay:', error);
-          throw error;
-        }
+        if (error) throw error;
       } catch (error) {
         console.error('Error in editDelayMutation:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard modifié avec succès");
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la modification du retard");
-      console.error('Error editing delay:', error);
-    }
-  });
+    "Retard modifié avec succès",
+    "Erreur lors de la modification du retard"
+  );
 
-  const deleteDelayMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!session) {
-        console.error("No active session when trying to delete delay");
-        throw new Error("Vous devez être connecté pour effectuer cette action");
-      }
-      
+  // Mutation pour supprimer un retard
+  const deleteDelayMutation = createMutation(
+    async (id: string) => {
+      checkSession();
       console.log('Deleting delay:', id);
       
       try {
@@ -192,25 +178,15 @@ export const useDelayMutations = ({ onSuccess }: UseDelayMutationsProps = {}) =>
           .delete()
           .eq('id', id);
           
-        if (error) {
-          console.error('Error deleting delay:', error);
-          throw error;
-        }
+        if (error) throw error;
       } catch (error) {
         console.error('Error in deleteDelayMutation:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delays'] });
-      toast.success("Retard supprimé avec succès");
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression du retard");
-      console.error('Error deleting delay:', error);
-    }
-  });
+    "Retard supprimé avec succès",
+    "Erreur lors de la suppression du retard"
+  );
 
   return {
     addDelayMutation,
