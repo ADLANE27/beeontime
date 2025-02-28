@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ export const DelayList = () => {
               Ajouter un retard
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] mx-auto my-auto fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <DialogHeader>
               <DialogTitle>Enregistrer un retard</DialogTitle>
             </DialogHeader>
