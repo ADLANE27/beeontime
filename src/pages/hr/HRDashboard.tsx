@@ -314,7 +314,7 @@ const HRDashboard = () => {
                   )}
                 </div>
               </div>
-              <TabsList className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-lg border shadow-sm">
+              <TabsList className="grid grid-cols-9 gap-1 p-1 bg-white rounded-lg border shadow-sm">
                 {menuItems.map((item) => {
                   const isActive = selectedTab === item.value;
                   return (
@@ -322,7 +322,7 @@ const HRDashboard = () => {
                       key={item.value} 
                       value={item.value} 
                       className={`
-                        text-xs sm:text-sm relative group transition-all duration-300 rounded-md px-3 py-1.5
+                        text-xs sm:text-sm relative group transition-all duration-300 rounded-md px-2 py-1.5
                         data-[state=active]:shadow-md data-[state=active]:font-semibold
                         ${isActive 
                           ? `bg-gradient-to-r ${item.gradient} text-white border-0` 
@@ -330,11 +330,11 @@ const HRDashboard = () => {
                         }
                       `}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <item.icon className={`h-4 w-4 transition-colors ${
+                      <div className="flex items-center gap-1 justify-center flex-nowrap">
+                        <item.icon className={`h-4 w-4 shrink-0 transition-colors ${
                           isActive ? "text-white" : item.iconColor
                         }`} />
-                        <span className={isActive ? "text-white drop-shadow-sm" : ""}>{item.label}</span>
+                        <span className={`${isActive ? "text-white drop-shadow-sm" : ""} truncate`}>{item.label}</span>
                         {item.badge && (
                           <Badge 
                             variant="secondary"
