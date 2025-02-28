@@ -12,11 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { format, isWithinInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { useState } from "react";
-import { Download, Loader2, Plus, Pencil, Trash2, Calendar, Clock, UserCircle, FileText } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Download, Loader2, Plus, Pencil, Trash2, Calendar, Clock, UserCircle, FileText, Search, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,6 +31,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
 import { LeaveRequestForm } from "./LeaveRequestForm";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
@@ -88,10 +89,16 @@ export const LeaveRequestsList = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const [editingLeave, setEditingLeave] = useState<any | null>(null);
+  
+  // Filtres
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState<string>("all");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
+  
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -124,6 +131,83 @@ export const LeaveRequestsList = () => {
       return data as LeaveRequest[];
     }
   });
+
+  // Récupérer la liste des employés pour le filtre
+  const { data: employees } = useQuery({
+    queryKey: ['employees-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name')
+        .order('last_name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching employees:', error);
+        throw error;
+      }
+
+      return data;
+    }
+  });
+
+  // Appliquer les filtres aux demandes de congés
+  const filteredLeaveRequests = useMemo(() => {
+    if (!leaveRequests) return [];
+
+    return leaveRequests.filter(request => {
+      // Filtre par employé
+      if (employeeFilter !== "all" && request.employee_id !== employeeFilter) {
+        return false;
+      }
+
+      // Filtre par type de congé
+      if (leaveTypeFilter !== "all" && request.type !== leaveTypeFilter) {
+        return false;
+      }
+
+      // Filtre par plage de dates
+      if (startDateFilter && endDateFilter) {
+        const requestStartDate = parseISO(request.start_date);
+        const requestEndDate = parseISO(request.end_date);
+        const filterStartDate = parseISO(startDateFilter);
+        const filterEndDate = parseISO(endDateFilter);
+
+        // Vérifier si les périodes se chevauchent
+        const overlap = (
+          (requestStartDate <= filterEndDate && requestStartDate >= filterStartDate) ||
+          (requestEndDate <= filterEndDate && requestEndDate >= filterStartDate) ||
+          (requestStartDate <= filterStartDate && requestEndDate >= filterEndDate)
+        );
+
+        if (!overlap) {
+          return false;
+        }
+      } else if (startDateFilter) {
+        // Seulement date de début spécifiée
+        const requestStartDate = parseISO(request.start_date);
+        const filterStartDate = parseISO(startDateFilter);
+        if (requestStartDate < filterStartDate) {
+          return false;
+        }
+      } else if (endDateFilter) {
+        // Seulement date de fin spécifiée
+        const requestEndDate = parseISO(request.end_date);
+        const filterEndDate = parseISO(endDateFilter);
+        if (requestEndDate > filterEndDate) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [leaveRequests, employeeFilter, leaveTypeFilter, startDateFilter, endDateFilter]);
+
+  const resetFilters = () => {
+    setEmployeeFilter("all");
+    setLeaveTypeFilter("all");
+    setStartDateFilter("");
+    setEndDateFilter("");
+  };
 
   const handleDownloadDocument = async (documentId: string, filePath: string, fileName: string) => {
     try {
@@ -288,143 +372,223 @@ export const LeaveRequestsList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-center mb-6">
-        <Button onClick={() => setIsNewLeaveOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 shadow-md">
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle demande
-        </Button>
+      <div className="flex flex-col gap-6 mb-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Demandes de congés</h2>
+          <Button onClick={() => setIsNewLeaveOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 shadow-md">
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle demande
+          </Button>
+        </div>
+        
+        {/* Section des filtres */}
+        <div className="bg-gray-50 p-4 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="employeeFilter" className="mb-2 block">Employé</Label>
+              <Select
+                value={employeeFilter}
+                onValueChange={setEmployeeFilter}
+              >
+                <SelectTrigger id="employeeFilter">
+                  <SelectValue placeholder="Tous les employés" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les employés</SelectItem>
+                  {employees?.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="leaveTypeFilter" className="mb-2 block">Type de congé</Label>
+              <Select
+                value={leaveTypeFilter}
+                onValueChange={setLeaveTypeFilter}
+              >
+                <SelectTrigger id="leaveTypeFilter">
+                  <SelectValue placeholder="Tous les types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les types</SelectItem>
+                  {leaveTypes.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="startDateFilter" className="mb-2 block">Date de début</Label>
+              <Input
+                id="startDateFilter"
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="endDateFilter" className="mb-2 block">Date de fin</Label>
+              <Input
+                id="endDateFilter"
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={resetFilters} className="mr-2">
+              Réinitialiser les filtres
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {leaveRequests?.map((request) => (
-          <Card key={request.id} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <h3 className="font-semibold">
-                  {request.employees.first_name} {request.employees.last_name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {leaveTypes.find(t => t.value === request.type)?.label}
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">
-                    Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
-                  </p>
-                  <p className="font-medium">
-                    au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
-                  </p>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
-                  {request.day_type === "half" && request.period && (
-                    <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
-                  )}
-                </p>
-                {request.reason && (
+        {filteredLeaveRequests.length > 0 ? (
+          filteredLeaveRequests.map((request) => (
+            <Card key={request.id} className="p-4 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <h3 className="font-semibold">
+                    {request.employees.first_name} {request.employees.last_name}
+                  </h3>
                   <p className="text-sm text-gray-600">
-                    Motif : {request.reason}
+                    {leaveTypes.find(t => t.value === request.type)?.label}
                   </p>
-                )}
-                {request.rejection_reason && (
-                  <p className="text-sm text-red-600">
-                    Motif du refus : {request.rejection_reason}
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">
+                      Du {format(new Date(request.start_date), "dd MMMM yyyy", { locale: fr })}
+                    </p>
+                    <p className="font-medium">
+                      au {format(new Date(request.end_date), "dd MMMM yyyy", { locale: fr })}
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Type de journée: {request.day_type === "full" ? "Journée complète" : "Demi-journée"}
+                    {request.day_type === "half" && request.period && (
+                      <span className="font-medium"> ({request.period === "morning" ? "Matin" : "Après-midi"})</span>
+                    )}
                   </p>
-                )}
-                <p className="text-sm text-gray-500">
-                  Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
-                </p>
+                  {request.reason && (
+                    <p className="text-sm text-gray-600">
+                      Motif : {request.reason}
+                    </p>
+                  )}
+                  {request.rejection_reason && (
+                    <p className="text-sm text-red-600">
+                      Motif du refus : {request.rejection_reason}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    Soumis le {format(new Date(request.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                  </p>
 
-                {/* Documents section */}
-                {request.documents && request.documents.length > 0 && (
-                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-sm font-medium text-gray-700">Documents :</p>
-                    <div className="flex flex-wrap gap-2">
-                      {request.documents.map((doc) => (
+                  {/* Documents section */}
+                  {request.documents && request.documents.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-sm font-medium text-gray-700">Documents :</p>
+                      <div className="flex flex-wrap gap-2">
+                        {request.documents.map((doc) => (
+                          <Button
+                            key={doc.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
+                            disabled={downloadingDocumentId === doc.id}
+                            className="flex items-center gap-2"
+                          >
+                            {downloadingDocumentId === doc.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            {doc.file_name}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                  <Badge className={getStatusColor(request.status)}>
+                    {getStatusLabel(request.status)}
+                  </Badge>
+                  <div className="flex gap-2 mt-2">
+                    {request.status === "pending" && (
+                      <>
                         <Button
-                          key={doc.id}
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDownloadDocument(doc.id, doc.file_path, doc.file_name)}
-                          disabled={downloadingDocumentId === doc.id}
-                          className="flex items-center gap-2"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleApprove(request)}
+                          disabled={loadingRequestId === request.id}
                         >
-                          {downloadingDocumentId === doc.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                          {doc.file_name}
+                          {loadingRequestId === request.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Accepter
                         </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col items-end gap-2">
-                <Badge className={getStatusColor(request.status)}>
-                  {getStatusLabel(request.status)}
-                </Badge>
-                <div className="flex gap-2 mt-2">
-                  {request.status === "pending" && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        onClick={() => handleApprove(request)}
-                        disabled={loadingRequestId === request.id}
-                      >
-                        {loadingRequestId === request.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Accepter
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => {
-                          setSelectedRequest(request);
-                          setRejectionDialogOpen(true);
-                        }}
-                        disabled={loadingRequestId === request.id}
-                      >
-                        {loadingRequestId === request.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Refuser
-                      </Button>
-                    </>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => openEditDialog(request)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    disabled={loadingRequestId === request.id}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Modifier
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => openDeleteDialog(request)}
-                    disabled={loadingRequestId === request.id}
-                  >
-                    {loadingRequestId === request.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-1" />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setRejectionDialogOpen(true);
+                          }}
+                          disabled={loadingRequestId === request.id}
+                        >
+                          {loadingRequestId === request.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Refuser
+                        </Button>
+                      </>
                     )}
-                    Supprimer
-                  </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openEditDialog(request)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      disabled={loadingRequestId === request.id}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => openDeleteDialog(request)}
+                      disabled={loadingRequestId === request.id}
+                    >
+                      {loadingRequestId === request.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
+                      Supprimer
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Aucune demande de congé ne correspond aux critères de recherche</p>
+          </div>
+        )}
       </div>
 
       {/* Dialog de confirmation de rejet */}

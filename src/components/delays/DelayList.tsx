@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Filter } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DelayForm } from "./DelayForm";
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { parseISO, isAfter, isBefore, isEqual } from "date-fns";
 
 export const DelayList = () => {
   const [open, setOpen] = useState(false);
@@ -34,6 +35,11 @@ export const DelayList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDelayId, setSelectedDelayId] = useState<string | null>(null);
   const [editingDelay, setEditingDelay] = useState<any | null>(null);
+
+  // Filtres
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [dateFromFilter, setDateFromFilter] = useState<string>("");
+  const [dateToFilter, setDateToFilter] = useState<string>("");
 
   const { 
     addDelayMutation, 
@@ -54,7 +60,8 @@ export const DelayList = () => {
       console.log('Fetching employees...');
       const { data, error } = await supabase
         .from('employees')
-        .select('id, first_name, last_name');
+        .select('id, first_name, last_name')
+        .order('last_name', { ascending: true });
       if (error) {
         console.error('Error fetching employees:', error);
         throw error;
@@ -76,7 +83,8 @@ export const DelayList = () => {
             first_name,
             last_name
           )
-        `);
+        `)
+        .order('date', { ascending: false });
       if (error) {
         console.error('Error fetching delays:', error);
         throw error;
@@ -85,6 +93,44 @@ export const DelayList = () => {
       return data;
     }
   });
+
+  // Appliquer les filtres aux retards
+  const filteredDelays = useMemo(() => {
+    if (!delays) return [];
+
+    return delays.filter(delay => {
+      // Filtre par employé
+      if (employeeFilter !== "all" && delay.employee_id !== employeeFilter) {
+        return false;
+      }
+
+      // Filtre par date de début
+      if (dateFromFilter) {
+        const delayDate = parseISO(delay.date);
+        const fromDate = parseISO(dateFromFilter);
+        if (isBefore(delayDate, fromDate) && !isEqual(delayDate, fromDate)) {
+          return false;
+        }
+      }
+
+      // Filtre par date de fin
+      if (dateToFilter) {
+        const delayDate = parseISO(delay.date);
+        const toDate = parseISO(dateToFilter);
+        if (isAfter(delayDate, toDate) && !isEqual(delayDate, toDate)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [delays, employeeFilter, dateFromFilter, dateToFilter]);
+
+  const resetFilters = () => {
+    setEmployeeFilter("all");
+    setDateFromFilter("");
+    setDateToFilter("");
+  };
 
   const formatDuration = (duration: unknown): string => {
     console.log('Formatting duration:', duration);
@@ -135,39 +181,100 @@ export const DelayList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-center mb-6">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un retard
+      <div className="flex flex-col gap-6 mb-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Retards</h2>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un retard
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] mx-auto my-auto fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <DialogHeader>
+                <DialogTitle>Enregistrer un retard</DialogTitle>
+              </DialogHeader>
+              <DelayForm 
+                employees={employees}
+                onSubmit={addDelayMutation.mutate}
+                isSubmitting={addDelayMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+        
+        {/* Section des filtres */}
+        <div className="bg-gray-50 p-4 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="employeeFilter" className="mb-2 block">Employé</Label>
+              <Select
+                value={employeeFilter}
+                onValueChange={setEmployeeFilter}
+              >
+                <SelectTrigger id="employeeFilter">
+                  <SelectValue placeholder="Tous les employés" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les employés</SelectItem>
+                  {employees?.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="dateFromFilter" className="mb-2 block">Date de début</Label>
+              <Input
+                id="dateFromFilter"
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="dateToFilter" className="mb-2 block">Date de fin</Label>
+              <Input
+                id="dateToFilter"
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={resetFilters} className="mr-2">
+              Réinitialiser les filtres
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] mx-auto my-auto fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <DialogHeader>
-              <DialogTitle>Enregistrer un retard</DialogTitle>
-            </DialogHeader>
-            <DelayForm 
-              employees={employees}
-              onSubmit={addDelayMutation.mutate}
-              isSubmitting={addDelayMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       </div>
+
       <div className="space-y-4">
-        {delays?.map((delay) => (
-          <DelayItem
-            key={delay.id}
-            delay={delay}
-            onApprove={(id) => updateDelayMutation.mutate({ id, status: 'approved' })}
-            onReject={(id) => updateDelayMutation.mutate({ id, status: 'rejected' })}
-            onEdit={handleEditDelay}
-            onDelete={handleDeleteDelay}
-            isUpdating={updateDelayMutation.isPending}
-            formatDuration={formatDuration}
-          />
-        ))}
+        {filteredDelays.length > 0 ? (
+          filteredDelays.map((delay) => (
+            <DelayItem
+              key={delay.id}
+              delay={delay}
+              onApprove={(id) => updateDelayMutation.mutate({ id, status: 'approved' })}
+              onReject={(id) => updateDelayMutation.mutate({ id, status: 'rejected' })}
+              onEdit={handleEditDelay}
+              onDelete={handleDeleteDelay}
+              isUpdating={updateDelayMutation.isPending}
+              formatDuration={formatDuration}
+            />
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Aucun retard ne correspond aux critères de recherche</p>
+          </div>
+        )}
       </div>
 
       {/* Dialog pour la modification */}
