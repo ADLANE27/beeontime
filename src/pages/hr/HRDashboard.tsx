@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -10,7 +11,14 @@ import {
   Users, 
   BarChart,
   ClipboardList,
-  Menu 
+  Menu,
+  UserCircle,
+  CalendarCheck,
+  CalendarDays,
+  Clock3,
+  BriefcaseIcon,
+  FileBarChart,
+  ChevronDown
 } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
@@ -110,30 +118,90 @@ const HRDashboard = () => {
   }, []);
 
   const menuItems = [
-    { value: "employees", label: "Employés", icon: Users },
-    { value: "planning", label: "Planning", icon: Calendar },
-    { value: "events", label: "Événements RH", icon: ClipboardList },
+    { 
+      value: "employees", 
+      label: "Employés", 
+      icon: UserCircle,
+      gradient: "from-purple-500 to-indigo-600",
+      bg: "bg-purple-50",
+      border: "border-purple-200",
+      iconColor: "text-purple-600"
+    },
+    { 
+      value: "planning", 
+      label: "Planning", 
+      icon: CalendarDays,
+      gradient: "from-blue-500 to-cyan-500",
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      iconColor: "text-blue-600"
+    },
+    { 
+      value: "events", 
+      label: "Événements RH", 
+      icon: CalendarCheck,
+      gradient: "from-teal-500 to-emerald-500",
+      bg: "bg-emerald-50",
+      border: "border-emerald-200",
+      iconColor: "text-emerald-600"
+    },
     { 
       value: "leave", 
       label: "Demandes de congés", 
       icon: Clock,
+      gradient: "from-amber-500 to-orange-500",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      iconColor: "text-amber-600",
       badge: pendingLeaves > 0 ? pendingLeaves : null 
     },
     { 
       value: "overtime", 
       label: "Heures supplémentaires", 
-      icon: Clock4,
+      icon: Clock3,
+      gradient: "from-orange-500 to-pink-500",
+      bg: "bg-orange-50",
+      border: "border-orange-200",
+      iconColor: "text-orange-600",
       badge: pendingOvertimes > 0 ? pendingOvertimes : null
     },
     { 
       value: "lateness", 
       label: "Retards", 
       icon: AlertTriangle,
+      gradient: "from-red-500 to-rose-500",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      iconColor: "text-red-600",
       badge: pendingDelays > 0 ? pendingDelays : null
     },
-    { value: "payslips", label: "Documents", icon: FileText },
-    { value: "statistics", label: "Statistiques", icon: BarChart },
-    { value: "export", label: "Export", icon: Download },
+    { 
+      value: "payslips", 
+      label: "Documents", 
+      icon: FileText,
+      gradient: "from-sky-500 to-blue-500",
+      bg: "bg-sky-50",
+      border: "border-sky-200",
+      iconColor: "text-sky-600"
+    },
+    { 
+      value: "statistics", 
+      label: "Statistiques", 
+      icon: FileBarChart,
+      gradient: "from-indigo-500 to-violet-500",
+      bg: "bg-indigo-50",
+      border: "border-indigo-200",
+      iconColor: "text-indigo-600"
+    },
+    { 
+      value: "export", 
+      label: "Export", 
+      icon: Download,
+      gradient: "from-gray-600 to-gray-700",
+      bg: "bg-gray-50",
+      border: "border-gray-200",
+      iconColor: "text-gray-600"
+    },
   ];
 
   const handleTabChange = (value: string) => {
@@ -184,28 +252,35 @@ const HRDashboard = () => {
               </h1>
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                 <DrawerTrigger asChild>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" className="rounded-full w-10 h-10 border-gray-300 shadow-sm hover:bg-gray-100">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent className="w-[300px] p-4">
                   <DrawerHeader className="p-0">
-                    <DrawerTitle>Menu</DrawerTitle>
+                    <DrawerTitle className="text-xl font-bold bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text text-transparent">Menu</DrawerTitle>
                   </DrawerHeader>
                   <div className="mt-4 flex flex-col gap-2">
                     {menuItems.map((item) => (
                       <Button
                         key={item.value}
                         variant={selectedTab === item.value ? "default" : "ghost"}
-                        className="w-full justify-start gap-2"
+                        className={`w-full justify-start gap-2 rounded-md pl-3 ${
+                          selectedTab === item.value 
+                            ? `bg-gradient-to-r ${item.gradient} text-white font-medium shadow-sm hover:shadow-md transition-all` 
+                            : `hover:bg-${item.bg} hover:${item.iconColor}`
+                        }`}
                         onClick={() => handleTabChange(item.value)}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className={`h-4 w-4 ${selectedTab === item.value ? "text-white" : item.iconColor}`} />
                         <span className="flex-1">{item.label}</span>
                         {item.badge && (
                           <Badge 
-                            variant="secondary" 
-                            className="bg-muted/50 text-muted-foreground text-xs px-1.5"
+                            className={
+                              selectedTab === item.value 
+                                ? "bg-white/20 text-white hover:bg-white/30 ml-auto"
+                                : "bg-amber-100 text-amber-700 hover:bg-amber-200 ml-auto"
+                            }
                           >
                             {item.badge}
                           </Badge>
@@ -217,22 +292,54 @@ const HRDashboard = () => {
               </Drawer>
             </div>
           ) : (
-            <TabsList className="flex flex-wrap items-center gap-1">
-              {menuItems.map((item) => (
-                <TabsTrigger key={item.value} value={item.value} className="text-xs sm:text-sm">
-                  <item.icon className="mr-1.5 h-4 w-4" />
-                  <span>{item.label}</span>
-                  {item.badge && (
-                    <Badge 
-                      variant="secondary"
-                      className="ml-2 bg-muted/50 text-muted-foreground text-xs px-1.5 min-w-[1.25rem] h-5"
-                    >
-                      {item.badge}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-xl border shadow-sm">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent px-2">
+                  Tableau de bord administrateur
+                </h2>
+                <div className="flex items-center gap-2">
+                  {(pendingLeaves > 0 || pendingOvertimes > 0 || pendingDelays > 0) && (
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors">
+                      {pendingLeaves + pendingOvertimes + pendingDelays} demandes en attente
                     </Badge>
                   )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+                </div>
+              </div>
+              <TabsList className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-lg border shadow-sm">
+                {menuItems.map((item) => (
+                  <TabsTrigger 
+                    key={item.value} 
+                    value={item.value} 
+                    className={`
+                      text-xs sm:text-sm relative group transition-all duration-300 rounded-md
+                      data-[state=active]:shadow-md data-[state=active]:font-medium
+                      data-[state=active]:bg-gradient-to-r data-[state=active]:${item.gradient} 
+                      data-[state=active]:text-white
+                      data-[state=inactive]:hover:${item.bg} data-[state=inactive]:hover:${item.border}
+                    `}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <item.icon className={`h-4 w-4 transition-colors ${
+                        selectedTab === item.value ? "text-white" : item.iconColor
+                      }`} />
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <Badge 
+                          variant="secondary"
+                          className={
+                            selectedTab === item.value 
+                              ? "ml-1 bg-white/20 text-white hover:bg-white/30 transition-colors"
+                              : "ml-1 bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                          }
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </div>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           )}
           {renderTabContent()}
         </Tabs>
