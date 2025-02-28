@@ -1,4 +1,52 @@
+
 project_id = "tedjuorbafahlnplndye"
 
-[functions.update-user-password]
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[auth.email]
+enabled = true
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+gcp_project_id = ""
+gcp_project_number = ""
+gcp_jwt_path = "supabase/gcloud.json"
+
+[[functions]]
+name = "update-user-password"
 verify_jwt = true
+max_retries = 0
+
+[[functions]]
+name = "delete-employee"
+verify_jwt = true
+max_retries = 0
