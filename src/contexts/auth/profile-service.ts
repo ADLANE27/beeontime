@@ -51,6 +51,23 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
         return profileFromEmployee;
       }
       
+      // If all else fails, create a minimal profile from auth data
+      try {
+        const { data: userData } = await supabase.auth.getUser(userId);
+        if (userData?.user) {
+          console.log("Creating minimal profile from auth data");
+          return {
+            id: userData.user.id,
+            role: "employee", // Default role
+            email: userData.user.email || "",
+            first_name: "",
+            last_name: ""
+          };
+        }
+      } catch (authError) {
+        console.error("Error getting user from auth:", authError);
+      }
+      
       return null;
     }
   } catch (error) {

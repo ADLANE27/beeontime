@@ -9,7 +9,7 @@ export interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   authReady: boolean;
-  profileFetchAttempted?: boolean;
+  profileFetchAttempted: boolean;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     data: {

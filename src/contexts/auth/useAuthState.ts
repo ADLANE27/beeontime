@@ -11,9 +11,10 @@ export function useAuthState() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  
   const isMountedRef = useRef(true);
   const isProfileFetchingRef = useRef(false);
-  const profileFetchAttemptedRef = useRef(false);
 
   // Function to safely update profile
   const updateProfile = async (userId: string) => {
@@ -22,19 +23,19 @@ export function useAuthState() {
     
     try {
       isProfileFetchingRef.current = true;
-      profileFetchAttemptedRef.current = true;
       console.log("Fetching profile for user:", userId);
       const profileData = await fetchProfile(userId);
       
       if (isMountedRef.current) {
         setProfile(profileData);
+        setProfileFetchAttempted(true);
         console.log("Profile fetched successfully:", profileData?.role || "No role found");
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
       if (isMountedRef.current) {
         // Even on error, we've attempted to fetch profile
-        profileFetchAttemptedRef.current = true;
+        setProfileFetchAttempted(true);
       }
     } finally {
       if (isMountedRef.current) {
@@ -49,7 +50,7 @@ export function useAuthState() {
       setSession(null);
       setUser(null);
       setProfile(null);
-      profileFetchAttemptedRef.current = false;
+      setProfileFetchAttempted(false);
     }
   };
 
@@ -94,20 +95,24 @@ export function useAuthState() {
     }, 5000); // 5 second timeout
     
     // Check for an existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMountedRef.current) return;
-      
-      console.log("Initial session check result:", session ? "Session found" : "No session");
-      await handleSessionUpdate(session);
-      
-    }).catch(error => {
-      if (isMountedRef.current) {
-        console.error("Error checking initial session:", error);
-        setIsLoading(false);
-        setAuthInitialized(true);
-        clearTimeout(loadingTimeout);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMountedRef.current) return;
+        
+        console.log("Initial session check result:", session ? "Session found" : "No session");
+        await handleSessionUpdate(session);
+      } catch (error) {
+        if (isMountedRef.current) {
+          console.error("Error checking initial session:", error);
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
       }
-    });
+    };
+    
+    initializeAuth();
     
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -159,7 +164,7 @@ export function useAuthState() {
     profile,
     isLoading,
     authInitialized,
-    profileFetchAttempted: profileFetchAttemptedRef.current,
+    profileFetchAttempted,
     setProfile
   };
 }

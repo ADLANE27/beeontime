@@ -41,7 +41,11 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     if (isLoading) {
       timeoutId = window.setTimeout(() => {
         setLoadingTimeoutReached(true);
+        console.log("ProtectedRoute: Loading timeout reached");
       }, 5000); // 5 second timeout
+    } else if (!isLoading) {
+      // Reset loading timeout when loading is done
+      setLoadingTimeoutReached(false);
     }
     
     return () => {
@@ -78,6 +82,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     if (profile) {
       if (requiredRole === "hr" && profile.role !== "hr") {
         console.log("User is not HR, redirecting to employee dashboard");
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
         setRedirectPath("/employee");
         setShouldRedirect(true);
         return;

@@ -1,10 +1,13 @@
 
-import { useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProfile } from "./profile-service";
+import { Profile } from "./types";
 
-export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading: (isLoading: boolean) => void) {
+export function useAuthMethods(
+  setProfile: (profile: Profile | null) => void, 
+  setIsLoading: (isLoading: boolean) => void
+) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting sign in for:", email);
@@ -69,6 +72,7 @@ export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading:
       
       // Always clear local state regardless of Supabase response
       console.log("Clearing local auth state");
+      setProfile(null);
       
       console.log("Sign out complete");
       setIsLoading(false);
@@ -76,6 +80,7 @@ export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading:
       console.error("Exception during sign out:", error);
       
       // Still clear local state on error
+      setProfile(null);
       setIsLoading(false);
     }
   };

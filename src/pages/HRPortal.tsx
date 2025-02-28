@@ -12,40 +12,44 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
   const [redirectInProgress, setRedirectInProgress] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("HRPortal: Auth state:", {
+      isLoading,
+      hasSession: !!session,
+      profileRole: profile?.role,
+      profileFetchAttempted
+    });
+  }, [isLoading, session, profile, profileFetchAttempted]);
+
   useEffect(() => {
     // If user is already authenticated and has an HR profile, redirect to HR dashboard
-    if (session?.user && profile?.role === "hr") {
+    if (session?.user && profile?.role === "hr" && !redirectInProgress) {
       console.log("User is HR, redirecting to HR dashboard");
+      setRedirectInProgress(true);
       navigate('/hr', { replace: true });
       return;
     }
     
     // If user is authenticated but doesn't have HR role, redirect to employee dashboard
-    if (session?.user && profile && profile.role !== "hr") {
+    if (session?.user && profile && profile.role !== "hr" && !redirectInProgress) {
       console.log("User is not HR, redirecting to employee dashboard");
+      setRedirectInProgress(true);
       toast.error("Vous n'avez pas les droits pour accéder à cette page.");
       navigate('/employee', { replace: true });
       return;
     }
     
-    // If user is authenticated but profile isn't loaded yet, don't redirect immediately
-    if (session?.user && !profile && !redirectInProgress) {
-      console.log("User authenticated but profile not loaded yet, waiting...");
-      return;
+    // Profile fetch was attempted but no profile found, show error
+    if (session?.user && !profile && profileFetchAttempted && !loginError) {
+      setLoginError("Impossible de récupérer votre profil. Veuillez contacter un administrateur.");
     }
-  }, [session, profile, navigate, redirectInProgress]);
-
-  // Debug loading state
-  useEffect(() => {
-    console.log("Auth loading state:", isLoading);
-    console.log("Session state:", session ? "Authenticated" : "Not authenticated");
-    console.log("Profile state:", profile ? `Role: ${profile.role}` : "No profile");
-  }, [isLoading, session, profile]);
+  }, [session, profile, navigate, redirectInProgress, profileFetchAttempted, loginError]);
 
   // Clean URL from error parameters and set error message
   useEffect(() => {
@@ -70,17 +74,18 @@ const HRPortal = () => {
   // Listen for auth events
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event:", event);
+      console.log("Auth state event in Portal:", event);
+      console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
       
       if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session) {
           setLocalLoading(true);
-          setRedirectInProgress(true);
           // Navigation will be handled by the first useEffect when profile is loaded
         }
       } else if (event === 'SIGNED_OUT') {
         setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
         setRedirectInProgress(false);
+        setLocalLoading(false);
       }
     });
 
@@ -114,6 +119,7 @@ const HRPortal = () => {
             onClick={() => {
               setLocalLoading(false);
               setRedirectInProgress(false);
+              // Force reload the page to reset all state
               window.location.reload();
             }} 
             className="text-sm text-primary hover:underline mt-2"
