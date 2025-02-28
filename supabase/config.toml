@@ -30,7 +30,7 @@ enabled = true
 enabled = true
 site_url = "http://localhost:3000"
 
-[auth.email]
+[[auth.email]]
 enabled = true
 
 [analytics]
@@ -41,12 +41,10 @@ gcp_project_id = ""
 gcp_project_number = ""
 gcp_jwt_path = "supabase/gcloud.json"
 
-[[functions]]
-name = "update-user-password"
+[functions.update-user-password]
 verify_jwt = true
 max_retries = 0
 
-[[functions]]
-name = "delete-employee"
+[functions.delete-employee]
 verify_jwt = true
 max_retries = 0
