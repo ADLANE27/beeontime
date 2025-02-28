@@ -1,5 +1,4 @@
 
-import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProfile } from "./profile-service";
 import { Profile } from "./types";
@@ -62,26 +61,23 @@ export function useAuthMethods(
       console.log("Signing out...");
       setIsLoading(true);
       
-      // First perform the Supabase signout
+      // Clear local state first for immediate UI feedback
+      setProfile(null);
+      
+      // Then perform the Supabase signout
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error("Error during Supabase signOut:", error);
-        // Continue anyway to clean up local state
+        console.error("Error during signOut:", error);
       }
       
-      // Always clear local state regardless of Supabase response
-      console.log("Clearing local auth state");
-      setProfile(null);
-      
-      console.log("Sign out complete");
       setIsLoading(false);
+      return { error };
     } catch (error) {
       console.error("Exception during sign out:", error);
-      
-      // Still clear local state on error
       setProfile(null);
       setIsLoading(false);
+      return { error: error as Error };
     }
   };
 
