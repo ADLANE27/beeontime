@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
 
 export const useEmployeeSubmit = (
   onSuccess: () => void, 
@@ -58,12 +59,15 @@ export const useEmployeeSubmit = (
         // Create a new employee via direct table insert first
         // This allows us to bypass the edge function for now
         try {
-          // First try direct insertion into employees table
+          // Generate a UUID for the new employee
+          const newId = uuidv4();
+          
+          // First try direct insertion into employees table with explicit ID
           const { data, error } = await supabase
             .from('employees')
             .insert({
               ...employeeRecord,
-              // Add any additional fields needed
+              id: newId, // Add the required ID field
             })
             .select();
           
