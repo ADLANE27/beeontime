@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { LogOut, UserCircle, Building } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth";
+import { useState } from "react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,7 +14,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, profile } = useAuth();
+  const { signOut, profile } = useAuth();
   const isAdmin = location.pathname.startsWith("/hr");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -34,22 +33,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       await signOut();
       toast.dismiss(toastId);
       toast.success("Déconnexion réussie");
-      
-      // Navigate to portal
       navigate("/portal", { replace: true });
     } catch (error) {
       console.error('Error during logout:', error);
       toast.dismiss(toastId);
       toast.error("Erreur lors de la déconnexion");
-      
-      // Emergency fallback
-      try {
-        await supabase.auth.signOut();
-        window.location.href = "/portal";
-      } catch (e) {
-        console.error("Direct logout failed:", e);
-        window.location.href = "/portal";
-      }
     } finally {
       setIsLoggingOut(false);
     }
