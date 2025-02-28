@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Download, Loader2, Plus } from "lucide-react";
+import { Download, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
@@ -81,11 +83,14 @@ const leaveTypes = [
 export const LeaveRequestsList = () => {
   const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const [editingLeave, setEditingLeave] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -204,6 +209,72 @@ export const LeaveRequestsList = () => {
     }
   };
 
+  const handleUpdate = async () => {
+    if (!editingLeave) return;
+    
+    setLoadingRequestId(editingLeave.id);
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({
+          start_date: editingLeave.start_date,
+          end_date: editingLeave.end_date,
+          type: editingLeave.type,
+          reason: editingLeave.reason,
+          day_type: editingLeave.day_type,
+          period: editingLeave.period,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingLeave.id);
+
+      if (error) throw error;
+      
+      toast.success("Demande de congé mise à jour avec succès");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      setEditDialogOpen(false);
+      setEditingLeave(null);
+    } catch (error) {
+      console.error('Error updating request:', error);
+      toast.error("Une erreur est survenue lors de la mise à jour");
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRequest) return;
+    
+    setLoadingRequestId(selectedRequest.id);
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+      
+      toast.success("Demande supprimée avec succès");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      setDeleteDialogOpen(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error("Une erreur est survenue lors de la suppression");
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
+  const openEditDialog = (request: LeaveRequest) => {
+    setEditingLeave({...request});
+    setEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (request: LeaveRequest) => {
+    setSelectedRequest(request);
+    setDeleteDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -293,43 +364,69 @@ export const LeaveRequestsList = () => {
                 <Badge className={getStatusColor(request.status)}>
                   {getStatusLabel(request.status)}
                 </Badge>
-                {request.status === "pending" && (
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                      onClick={() => handleApprove(request)}
-                      disabled={loadingRequestId === request.id}
-                    >
-                      {loadingRequestId === request.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Accepter
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        setRejectionDialogOpen(true);
-                      }}
-                      disabled={loadingRequestId === request.id}
-                    >
-                      {loadingRequestId === request.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Refuser
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2 mt-2">
+                  {request.status === "pending" && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => handleApprove(request)}
+                        disabled={loadingRequestId === request.id}
+                      >
+                        {loadingRequestId === request.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Accepter
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setRejectionDialogOpen(true);
+                        }}
+                        disabled={loadingRequestId === request.id}
+                      >
+                        {loadingRequestId === request.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Refuser
+                      </Button>
+                    </>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openEditDialog(request)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    disabled={loadingRequestId === request.id}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => openDeleteDialog(request)}
+                    disabled={loadingRequestId === request.id}
+                  >
+                    {loadingRequestId === request.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-1" />
+                    )}
+                    Supprimer
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
         ))}
       </div>
 
+      {/* Dialog de confirmation de rejet */}
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -362,6 +459,149 @@ export const LeaveRequestsList = () => {
               disabled={!rejectionReason.trim()}
             >
               Confirmer le refus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmation de suppression */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette demande de congé ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setSelectedRequest(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loadingRequestId === (selectedRequest?.id || '')}
+            >
+              {loadingRequestId === (selectedRequest?.id || '') ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de modification */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier la demande de congé</DialogTitle>
+          </DialogHeader>
+          {editingLeave && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Date de début</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={editingLeave.start_date}
+                    onChange={(e) => setEditingLeave({ ...editingLeave, start_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">Date de fin</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={editingLeave.end_date}
+                    onChange={(e) => setEditingLeave({ ...editingLeave, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Type de congé</Label>
+                <Select
+                  value={editingLeave.type}
+                  onValueChange={(value) => setEditingLeave({ ...editingLeave, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leaveTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="day_type">Type de journée</Label>
+                <Select
+                  value={editingLeave.day_type}
+                  onValueChange={(value) => setEditingLeave({ ...editingLeave, day_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un type de journée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Journée complète</SelectItem>
+                    <SelectItem value="half">Demi-journée</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editingLeave.day_type === "half" && (
+                <div className="space-y-2">
+                  <Label htmlFor="period">Période</Label>
+                  <Select
+                    value={editingLeave.period || "morning"}
+                    onValueChange={(value) => setEditingLeave({ ...editingLeave, period: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une période" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="morning">Matin</SelectItem>
+                      <SelectItem value="afternoon">Après-midi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="reason">Motif (optionnel)</Label>
+                <Textarea
+                  id="reason"
+                  placeholder="Précisez le motif de votre demande..."
+                  value={editingLeave.reason || ""}
+                  onChange={(e) => setEditingLeave({ ...editingLeave, reason: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setEditingLeave(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              disabled={loadingRequestId === (editingLeave?.id || '')}
+            >
+              {loadingRequestId === (editingLeave?.id || '') ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Enregistrer
             </Button>
           </DialogFooter>
         </DialogContent>
