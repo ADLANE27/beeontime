@@ -84,24 +84,11 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
       </div>
     );
     
-    const clipPathClass = isHalfDay ? 
-      (period === 'morning' ? "clip-path-left" : "clip-path-right") 
-      : "";
-    
-    // Style pour le clip-path
-    const clipPathStyle = isHalfDay ? {
-      clipPath: period === 'morning' 
-        ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' 
-        : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'
-    } : {};
-    
     return (
-      <div 
-        className={cn(
-          "absolute inset-0 rounded-sm overflow-hidden transition-opacity duration-300"
-        )}
-        style={clipPathStyle}
-      >
+      <div className={cn(
+        "absolute inset-0 rounded-sm overflow-hidden transition-opacity duration-300",
+        isHalfDay ? (period === 'morning' ? "clip-path-left" : "clip-path-right") : ""
+      )}>
         <div className="w-full h-full opacity-80 group-hover:opacity-90 transition-opacity duration-300" style={gradientStyle} />
         
         {isHalfDay 
