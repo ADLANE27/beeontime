@@ -35,8 +35,10 @@ const Portal = () => {
   useEffect(() => {
     // Set up a listener for auth errors
     const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+      console.log("Auth state event:", event);
+      
       if (event === 'SIGNED_OUT') {
-        setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
+        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
       } else if (event === 'USER_UPDATED') {
         setLoginError("");
       }
@@ -46,6 +48,20 @@ const Portal = () => {
       data.subscription.unsubscribe();
     };
   }, []);
+
+  // Handler for login attempts
+  const handleAuthError = async (e: any) => {
+    console.log("Auth error:", e);
+    const errorMessage = e?.error?.message || "";
+    
+    if (errorMessage.includes("Invalid login credentials")) {
+      setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+    } else if (errorMessage.includes("Email not confirmed")) {
+      setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
+    } else {
+      setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -129,7 +145,9 @@ const Portal = () => {
                   button_label: 'Se connecter',
                   loading_button_label: 'Vérification...',
                   email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe'
+                  password_input_placeholder: 'Votre mot de passe',
+                  email_input_error: 'Email invalide',
+                  password_input_error: 'Mot de passe invalide'
                 }
               }
             }}
@@ -139,6 +157,7 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
+            onError={handleAuthError}
           />
         </Card>
 
