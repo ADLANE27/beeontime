@@ -3,7 +3,6 @@ import { TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { leaveTypeColors } from "./LeaveTypeLegend";
 
@@ -89,10 +88,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
   };
 
   return (
-    <TableCell 
-      className={cn(baseClasses, todayClasses, weekendClasses, hoverClasses)}
-      data-today={isToday ? "true" : "false"}
-    >
+    <TableCell className={cn(baseClasses, todayClasses, weekendClasses, hoverClasses)}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="w-full h-full">
@@ -103,7 +99,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
         </TooltipTrigger>
         <TooltipContent side="top" align="center" className="p-3 max-w-xs bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border border-gray-100 animate-in fade-in-50 duration-300">
           <div className="space-y-2">
-            <div className="font-medium text-sm text-blue-900">{format(date, 'EEEE dd MMMM yyyy', { locale: fr })}</div>
+            <div className="font-medium text-sm text-blue-900">{format(date, 'EEEE dd MMMM yyyy')}</div>
             {leaveRequest && (
               <div className="text-sm text-gray-600 border-t pt-1">
                 <span className="font-medium">Congé: </span>
