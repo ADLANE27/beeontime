@@ -35,9 +35,9 @@ const Portal = () => {
   useEffect(() => {
     // Set up a listener for auth errors
     const { data } = supabase.auth.onAuthStateChange((event, _session) => {
-      if (event === 'USER_UPDATE_ERROR' || event === 'SIGNED_OUT_ERROR') {
+      if (event === 'PASSWORD_RECOVERY_ERROR' || event === 'SIGNED_OUT') {
         setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
-      } else {
+      } else if (event === 'USER_UPDATED') {
         setLoginError("");
       }
     });
