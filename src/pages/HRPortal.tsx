@@ -54,7 +54,11 @@ const HRPortal = () => {
   useEffect(() => {
     let redirectTimeout: NodeJS.Timeout | null = null;
 
-    if (authReady || authError || loadingTimeout) {
+    // Check if we can make a decision about authentication state
+    const canDetermineAuthState = authReady || authError || loadingTimeout;
+    
+    if (canDetermineAuthState) {
+      // User is authenticated and has a profile
       if (session && profile) {
         console.log("HR Portal: Session and profile found, checking role", profile.role);
         redirectTimeout = setTimeout(() => {
@@ -65,11 +69,15 @@ const HRPortal = () => {
             navigate('/employee', { replace: true });
           }
         }, 300); // Short delay to avoid immediate redirect
-      } else if (session && !profile && profileFetchAttempted) {
+      } 
+      // User is authenticated but no profile found
+      else if (session && !profile && profileFetchAttempted) {
         console.log("HR Portal: Session exists but no profile found after fetch attempt");
         setLoginError("Profil utilisateur introuvable. Veuillez contacter l'administrateur.");
         setAuthCheckComplete(true);
-      } else if (!session && (authReady || loadingTimeout)) {
+      } 
+      // User is not authenticated
+      else if (!session && canDetermineAuthState) {
         console.log("HR Portal: No session found, user should log in");
         setAuthCheckComplete(true);
       }
@@ -141,6 +149,9 @@ const HRPortal = () => {
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Vérification de votre session...</p>
+          <p className="text-xs text-muted-foreground/70">
+            {session ? "Récupération du profil..." : "Chargement de l'authentification..."}
+          </p>
           <Button 
             variant="link" 
             className="text-sm text-muted-foreground"
@@ -219,6 +230,7 @@ const HRPortal = () => {
     );
   }
 
+  // Main login form
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">

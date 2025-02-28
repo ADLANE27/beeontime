@@ -42,6 +42,7 @@ async function fetchProfileFromProfilesTable(userId: string): Promise<Profile | 
 async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile | null> {
   try {
     console.log("Attempting to fetch employee data for:", userId);
+    // Select only columns that actually exist in the employees table
     const { data, error } = await supabase
       .from("employees")
       .select("id, first_name, last_name, email")

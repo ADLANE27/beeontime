@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +29,7 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const profileRetryCount = useRef(0);
-  const MAX_PROFILE_RETRIES = 2; // Reduced from 3 to 2
+  const MAX_PROFILE_RETRIES = 2;
   const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create a safe state update function to prevent race conditions
@@ -53,6 +52,67 @@ export function useAuthState() {
     }
   }, []);
 
+  // Handle session state changes - Keep this outside of any conditional blocks
+  const handleAuthStateChange = useCallback(async (event: string, newSession: Session | null) => {
+    console.log("Auth state event:", event);
+    
+    if (!isMountedRef.current) return;
+    
+    if (event === 'SIGNED_IN') {
+      console.log("User signed in:", newSession?.user?.id);
+      safeUpdateState({
+        session: newSession,
+        user: newSession?.user || null,
+        authInitialized: true,
+        authError: null
+      });
+      
+      if (newSession?.user?.id) {
+        // Reset retry counter when attempting a new login
+        profileRetryCount.current = 0;
+        // Clear any existing timeouts
+        clearPendingTimeouts();
+        try {
+          await fetchUserProfile(newSession.user.id);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          safeUpdateState({ 
+            isLoading: false,
+            authError: error instanceof Error ? error : new Error("Erreur lors de la récupération du profil")
+          });
+        }
+      } else {
+        safeUpdateState({ isLoading: false });
+      }
+    } else if (event === 'SIGNED_OUT') {
+      console.log("User signed out");
+      // Clear any pending timeouts
+      clearPendingTimeouts();
+      safeUpdateState({
+        session: null,
+        user: null,
+        profile: null,
+        profileFetchAttempted: false,
+        isLoading: false,
+        authInitialized: true,
+        authError: null
+      });
+    } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+      console.log("User or token updated");
+      if (newSession) {
+        safeUpdateState({
+          session: newSession,
+          user: newSession.user
+        });
+      }
+    } else {
+      // Handle any other events by ensuring we're not stuck in loading
+      console.log("Other auth event:", event);
+      safeUpdateState({ isLoading: false, authInitialized: true });
+    }
+  }, [safeUpdateState, clearPendingTimeouts]);
+
+  // Define fetchUserProfile here BEFORE it's used in handleAuthStateChange to avoid the hook error
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!userId || !isMountedRef.current) return;
     
@@ -122,60 +182,6 @@ export function useAuthState() {
       }
     }
   }, [safeUpdateState, clearPendingTimeouts]);
-
-  // Handle session state changes
-  const handleAuthStateChange = useCallback(async (event: string, newSession: Session | null) => {
-    console.log("Auth state event:", event);
-    
-    if (!isMountedRef.current) return;
-    
-    if (event === 'SIGNED_IN') {
-      console.log("User signed in:", newSession?.user?.id);
-      safeUpdateState({
-        session: newSession,
-        user: newSession?.user || null,
-        authInitialized: true,
-        authError: null
-      });
-      
-      if (newSession?.user?.id) {
-        // Reset retry counter when attempting a new login
-        profileRetryCount.current = 0;
-        // Clear any existing timeouts
-        clearPendingTimeouts();
-        await fetchUserProfile(newSession.user.id);
-      } else {
-        safeUpdateState({ isLoading: false });
-      }
-    } else if (event === 'SIGNED_OUT') {
-      console.log("User signed out");
-      // Clear any pending timeouts
-      clearPendingTimeouts();
-      safeUpdateState({
-        session: null,
-        user: null,
-        profile: null,
-        profileFetchAttempted: false,
-        isLoading: false,
-        authInitialized: true,
-        authError: null
-      });
-    } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
-      console.log("User or token updated");
-      if (newSession) {
-        safeUpdateState({
-          session: newSession,
-          user: newSession.user
-        });
-      }
-    } else {
-      // Handle any other events by ensuring we're not stuck in loading
-      console.log("Other auth event:", event);
-      if (authState.isLoading && authState.authInitialized) {
-        safeUpdateState({ isLoading: false });
-      }
-    }
-  }, [safeUpdateState, fetchUserProfile, clearPendingTimeouts, authState.isLoading, authState.authInitialized]);
 
   // Initialize auth state on mount
   useEffect(() => {
