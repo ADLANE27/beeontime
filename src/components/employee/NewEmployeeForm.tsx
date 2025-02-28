@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PersonalInfoForm } from "./PersonalInfoForm";
@@ -43,10 +44,10 @@ export const NewEmployeeForm = ({
       breakStartTime: '12:30',
       breakEndTime: '13:30'
     },
-    currentYearVacationDays: initialData?.currentYearVacationDays || 17.5,
-    currentYearUsedDays: initialData?.currentYearUsedDays || 6,
-    previousYearVacationDays: initialData?.previousYearVacationDays || 28,
-    previousYearUsedDays: initialData?.previousYearUsedDays || 28,
+    currentYearVacationDays: initialData?.currentYearVacationDays || 0,
+    currentYearUsedDays: initialData?.currentYearUsedDays || 0,
+    previousYearVacationDays: initialData?.previousYearVacationDays || 0,
+    previousYearUsedDays: initialData?.previousYearUsedDays || 0,
     initialPassword: initialData?.initialPassword || '',
     streetAddress: initialData?.streetAddress || '',
     city: initialData?.city || '',
