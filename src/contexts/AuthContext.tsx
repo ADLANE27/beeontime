@@ -178,9 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        // Fix: Update the comparison to check if event is not 'SIGNED_OUT'
-        // This avoids the TypeScript error by using a boolean check instead of 
-        // directly comparing enum values that don't overlap
+        // Fix: Use !== operator to check if event is not 'SIGNED_OUT'
         // Pour PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
         if (newSession) {
           setSession(newSession);
