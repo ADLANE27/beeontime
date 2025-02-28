@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Dialog, DialogContent, DialogContentFullScreen, DialogHeader, DialogTit
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Phone, Building, Calendar, Loader2, Trash, UserPlus, Search, Clock, ShieldCheck, MapPin, FilterX, Filter } from "lucide-react";
+import { Mail, Phone, Building, Calendar, Loader2, Trash, UserPlus, Search, Clock, ShieldCheck, MapPin, FilterX, Filter, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -552,11 +553,26 @@ export const EmployeesList = () => {
 
       {/* Dialog for adding a new employee */}
       <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
-        <DialogContent className="w-full max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Nouvel employé</DialogTitle>
-          </DialogHeader>
-          <NewEmployeeForm onSuccess={() => setIsNewEmployeeDialogOpen(false)} />
+        <DialogContent className="fixed inset-0 flex items-center justify-center z-50 p-0 m-0 max-w-none bg-transparent">
+          <div className="bg-white rounded-lg shadow-lg w-[95%] sm:w-[90%] md:w-[85%] max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6 mx-auto my-auto transform scale-100 animate-scale-up">
+            <div className="sticky top-0 z-10 bg-white pt-2 pb-4 border-b mb-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-900">Nouvel employé</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="rounded-full h-8 w-8 p-0" 
+                  onClick={() => setIsNewEmployeeDialogOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="pb-4">
+              <NewEmployeeForm onSuccess={() => setIsNewEmployeeDialogOpen(false)} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
