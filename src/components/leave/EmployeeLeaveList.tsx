@@ -316,7 +316,7 @@ export const EmployeeLeaveList = () => {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="fixed inset-0 grid place-items-center sm:max-w-[425px] mx-auto my-auto">
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
             <DialogDescription>
@@ -346,7 +346,7 @@ export const EmployeeLeaveList = () => {
 
       {/* Dialog de modification */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="fixed inset-0 grid place-items-center sm:max-w-[425px] mx-auto my-auto">
           <DialogHeader>
             <DialogTitle>Modifier la demande de congé</DialogTitle>
           </DialogHeader>
