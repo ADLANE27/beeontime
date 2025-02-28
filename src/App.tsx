@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,68 +24,71 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const { session, isLoading: isAuthLoading, signOut } = useAuth();
+  const { session, isLoading, profile } = useAuth();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
+  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      if (!session?.user) {
-        await signOut();
-        return;
+    let timeoutId: number;
+    
+    // Set hasCheckedAuth to true when auth check is complete
+    if (!isLoading) {
+      setHasCheckedAuth(true);
+
+      // Determine redirect path based on auth status and role
+      if (!session) {
+        console.log("No session, redirecting to portal");
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      } else if (profile && requiredRole === "hr" && profile.role !== "hr") {
+        console.log("User is not HR, redirecting to employee dashboard");
+        setRedirectPath("/employee");
+      } else {
+        console.log("Auth check passed, showing protected content");
+        setRedirectPath(null); // No redirect needed
       }
-
-      try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Profile fetch error:", error);
-          toast.error("Erreur de vérification du profil");
-          await signOut();
-          return;
+    } else {
+      // Set a timeout to stop showing loading after 5 seconds regardless
+      timeoutId = window.setTimeout(() => {
+        setShowLoading(false);
+        console.log("Forcing auth check completion after timeout");
+        // If we still don't have auth info after timeout, redirect to login
+        if (isLoading) {
+          setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+          setHasCheckedAuth(true);
         }
-
-        if (!profile) {
-          console.error("Profile not found");
-          toast.error("Profil non trouvé");
-          await signOut();
-          return;
-        }
-
-        if (profile.role !== requiredRole) {
-          console.log("Unauthorized access attempt");
-          toast.error("Accès non autorisé");
-          await signOut();
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        toast.error("Erreur de vérification du profil");
-        await signOut();
-      }
-    };
-
-    if (!isAuthLoading && session) {
-      checkAuth();
+      }, 5000);
     }
-  }, [session, requiredRole, isAuthLoading, signOut]);
+    
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [isLoading, session, profile, requiredRole]);
 
-  if (isAuthLoading) {
+  // Show loading state only during initial auth check and before timeout
+  if (isLoading && showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-sm text-primary hover:underline mt-4"
+          >
+            Cliquez ici si le chargement persiste
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!session) {
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+  // If we need to redirect, do so
+  if (hasCheckedAuth && redirectPath) {
+    return <Navigate to={redirectPath} replace />;
   }
 
+  // Otherwise, render children
   return <>{children}</>;
 };
 

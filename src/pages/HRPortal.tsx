@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,97 +8,94 @@ import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading: isAuthLoading } = useAuth();
-  const [isCheckingRole, setIsCheckingRole] = useState(false);
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const MAX_VERIFICATION_ATTEMPTS = 3;
+  const { session, isLoading } = useAuth();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    let retryTimeout: NodeJS.Timeout;
-
-    const checkUserRole = async () => {
-      if (!session?.user) return;
-
-      try {
-        setIsCheckingRole(true);
-        console.log("Checking role for user:", session.user.email);
-        
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Profile fetch error:", error);
-          if (isMounted) {
-            toast.error("Erreur lors de la vérification du profil");
-            if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
-              setVerificationAttempts(prev => prev + 1);
-              retryTimeout = setTimeout(checkUserRole, 2000);
-            } else {
-              toast.error("Impossible de vérifier votre profil. Veuillez réessayer plus tard.");
-              await supabase.auth.signOut();
-            }
-          }
-          return;
-        }
-
-        if (!isMounted) return;
-
-        console.log("User profile data:", profile);
-
-        if (profile?.role === 'hr') {
-          console.log("User has HR role, redirecting to /hr");
-          navigate('/hr', { replace: true });
-        } else if (profile?.role === 'employee') {
-          console.log("User has employee role, redirecting to /employee");
-          navigate('/employee', { replace: true });
-        } else {
-          toast.error("Rôle utilisateur non reconnu");
-          await supabase.auth.signOut();
-        }
-      } catch (error) {
-        console.error("Role check error:", error);
-        if (isMounted) {
-          toast.error("Erreur lors de la vérification du rôle");
-        }
-      } finally {
-        if (isMounted) {
-          setIsCheckingRole(false);
-        }
-      }
-    };
-
-    if (session?.user && !isCheckingRole) {
-      checkUserRole();
+    // If user is already authenticated, redirect to HR dashboard
+    if (session?.user) {
+      console.log("User is authenticated, redirecting to HR dashboard");
+      navigate('/hr', { replace: true });
     }
+  }, [session, navigate]);
+
+  // Debug loading state
+  useEffect(() => {
+    console.log("Auth loading state:", isLoading);
+    console.log("Session state:", session ? "Authenticated" : "Not authenticated");
+  }, [isLoading, session]);
+
+  // Clean URL from error parameters and set error message
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
+      const errorParam = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
+      
+      if (errorDescription?.includes("Invalid login credentials")) {
+        setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+      } else if (errorDescription?.includes("Email not confirmed")) {
+        setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
+      } else if (errorParam) {
+        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
+      }
+      
+      // Remove error params from URL to avoid showing error again on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Listen for auth events
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state event:", event);
+      
+      if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+        if (session) {
+          setLocalLoading(true);
+          navigate('/hr', { replace: true });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
+      }
+    });
 
     return () => {
-      isMounted = false;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      authListener.subscription.unsubscribe();
     };
-  }, [session, navigate, verificationAttempts]);
+  }, [navigate]);
 
-  if (isAuthLoading || isCheckingRole) {
+  // Force timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localLoading) {
+        console.log("Local loading timeout reached, resetting state");
+        setLocalLoading(false);
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [localLoading]);
+
+  if (isLoading || localLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">
-            {isAuthLoading ? "Vérification de l'authentification..." : "Vérification du profil..."}
-          </p>
-          {verificationAttempts > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Tentative {verificationAttempts}/{MAX_VERIFICATION_ATTEMPTS}
-            </p>
-          )}
+          <p className="text-muted-foreground">Chargement...</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-sm text-primary hover:underline mt-2"
+          >
+            Cliquez ici si le chargement persiste
+          </button>
         </div>
       </div>
     );
@@ -126,6 +124,12 @@ const HRPortal = () => {
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>
           </div>
+
+          {loginError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
 
           <Auth
             supabaseClient={supabase}
@@ -158,6 +162,7 @@ const HRPortal = () => {
                 button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
                 input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
                 label: 'text-sm font-medium text-gray-700',
+                message: 'text-sm text-red-600'
               }
             }}
             localization={{
@@ -187,7 +192,6 @@ const HRPortal = () => {
       </div>
     </div>
   );
-
 };
 
 export default HRPortal;

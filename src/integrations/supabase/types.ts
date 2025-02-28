@@ -189,15 +189,7 @@ export type Database = {
           updated_at?: string
           work_schedule?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "employees_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       hr_event_documents: {
         Row: {

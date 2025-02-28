@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,19 +11,38 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, Check, X } from "lucide-react";
+import { Plus, Loader2, Trash2, Check, X, Pencil, Filter } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { parseISO, isAfter, isBefore, isEqual } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
+  const [selectedOvertimeId, setSelectedOvertimeId] = useState<string | null>(null);
+  
+  // Filtres
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [dateFromFilter, setDateFromFilter] = useState<string>("");
+  const [dateToFilter, setDateToFilter] = useState<string>("");
+  
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
@@ -40,6 +60,25 @@ export const OvertimeList = () => {
       if (error) throw error;
       return data;
     }
+  });
+
+  // Récupérer la liste des employés pour le filtre
+  const { data: employees } = useQuery({
+    queryKey: ['employees-list-overtime'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name')
+        .order('last_name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching employees:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    enabled: profile?.role === 'hr'
   });
 
   const { data: overtimeRequests, isLoading } = useQuery({
@@ -90,6 +129,44 @@ export const OvertimeList = () => {
     enabled: !!profile
   });
 
+  // Appliquer les filtres aux demandes d'heures supplémentaires
+  const filteredOvertimeRequests = useMemo(() => {
+    if (!overtimeRequests) return [];
+
+    return overtimeRequests.filter(request => {
+      // Filtre par employé
+      if (employeeFilter !== "all" && request.employee_id !== employeeFilter) {
+        return false;
+      }
+
+      // Filtre par date de début
+      if (dateFromFilter) {
+        const requestDate = parseISO(request.date);
+        const fromDate = parseISO(dateFromFilter);
+        if (isBefore(requestDate, fromDate) && !isEqual(requestDate, fromDate)) {
+          return false;
+        }
+      }
+
+      // Filtre par date de fin
+      if (dateToFilter) {
+        const requestDate = parseISO(request.date);
+        const toDate = parseISO(dateToFilter);
+        if (isAfter(requestDate, toDate) && !isEqual(requestDate, toDate)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [overtimeRequests, employeeFilter, dateFromFilter, dateToFilter]);
+
+  const resetFilters = () => {
+    setEmployeeFilter("all");
+    setDateFromFilter("");
+    setDateToFilter("");
+  };
+
   const addOvertimeMutation = useMutation({
     mutationFn: async (newRequest: {
       date: string;
@@ -117,6 +194,38 @@ export const OvertimeList = () => {
     onError: (error) => {
       console.error('Error adding overtime request:', error);
       toast.error("Erreur lors de l'enregistrement de la demande");
+    }
+  });
+
+  const updateOvertimeMutation = useMutation({
+    mutationFn: async (updatedRequest: {
+      id: string;
+      date: string;
+      start_time: string;
+      end_time: string;
+      reason: string;
+      hours: number;
+    }) => {
+      const { id, ...rest } = updatedRequest;
+      const { error } = await supabase
+        .from('overtime_requests')
+        .update(rest)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
+      toast.success("Demande d'heures supplémentaires mise à jour");
+      setOpenEdit(false);
+      setSelectedOvertimeId(null);
+      setDate("");
+      setStartTime("");
+      setEndTime("");
+      setReason("");
+    },
+    onError: (error) => {
+      console.error('Error updating overtime request:', error);
+      toast.error("Erreur lors de la mise à jour de la demande");
     }
   });
 
@@ -149,6 +258,8 @@ export const OvertimeList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
       toast.success("Demande supprimée avec succès");
+      setOpenDelete(false);
+      setSelectedOvertimeId(null);
     },
     onError: (error) => {
       console.error('Error deleting overtime request:', error);
@@ -189,9 +300,50 @@ export const OvertimeList = () => {
     });
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedOvertimeId || !date || !startTime || !endTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+    if (hours <= 0) {
+      toast.error("L'heure de fin doit être après l'heure de début");
+      return;
+    }
+
+    updateOvertimeMutation.mutate({
+      id: selectedOvertimeId,
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      reason,
+      hours
+    });
+  };
+
+  const handleEdit = (request: any) => {
+    setSelectedOvertimeId(request.id);
+    setDate(request.date);
+    setStartTime(request.start_time);
+    setEndTime(request.end_time);
+    setReason(request.reason || "");
+    setOpenEdit(true);
+  };
+
   const handleDelete = (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette demande ?")) {
-      deleteOvertimeMutation.mutate(id);
+    setSelectedOvertimeId(id);
+    setOpenDelete(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedOvertimeId) {
+      deleteOvertimeMutation.mutate(selectedOvertimeId);
     }
   };
 
@@ -207,141 +359,326 @@ export const OvertimeList = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        {profile?.role !== 'hr' && (
-          <Dialog open={openManual} onOpenChange={setOpenManual}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto whitespace-nowrap">
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter des heures
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="startTime">Heure de début</Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endTime">Heure de fin</Label>
-                    <Input
-                      id="endTime"
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Motif</Label>
-                  <Textarea
-                    id="reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={addOvertimeMutation.isPending}
-                >
-                  {addOvertimeMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  Enregistrer
+      <div className="flex flex-col gap-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl font-bold">Heures supplémentaires</h2>
+          {profile?.role !== 'hr' && (
+            <Dialog open={openManual} onOpenChange={setOpenManual}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto whitespace-nowrap">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter des heures
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-      <div className="space-y-4">
-        {overtimeRequests?.map((request) => (
-          <div
-            key={request.id}
-            className="flex items-center justify-between p-4 border rounded-lg"
-          >
-            <div>
-              {profile?.role === 'hr' && (
-                <p className="font-medium">
-                  {request.employees.first_name} {request.employees.last_name}
-                </p>
-              )}
-              <p className="text-sm text-gray-600">{request.date}</p>
-              <p className="text-sm text-gray-600">
-                De {request.start_time} à {request.end_time} ({request.hours} heures)
-              </p>
-              <p className="text-sm text-gray-600">{request.reason}</p>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] mx-auto my-auto">
+                <DialogHeader>
+                  <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleManualSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startTime">Heure de début</Label>
+                      <Input
+                        id="startTime"
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endTime">Heure de fin</Label>
+                      <Input
+                        id="endTime"
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reason">Motif</Label>
+                    <Textarea
+                      id="reason"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={addOvertimeMutation.isPending}
+                  >
+                    {addOvertimeMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Enregistrer
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+        
+        {profile?.role === 'hr' && (
+          <div className="bg-gray-50 p-4 rounded-lg border">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="employeeFilter" className="mb-2 block">Employé</Label>
+                <Select
+                  value={employeeFilter}
+                  onValueChange={setEmployeeFilter}
+                >
+                  <SelectTrigger id="employeeFilter">
+                    <SelectValue placeholder="Tous les employés" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les employés</SelectItem>
+                    {employees?.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="dateFromFilter" className="mb-2 block">Date de début</Label>
+                <Input
+                  id="dateFromFilter"
+                  type="date"
+                  value={dateFromFilter}
+                  onChange={(e) => setDateFromFilter(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="dateToFilter" className="mb-2 block">Date de fin</Label>
+                <Input
+                  id="dateToFilter"
+                  type="date"
+                  value={dateToFilter}
+                  onChange={(e) => setDateToFilter(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  request.status === "approved"
-                    ? "secondary"
-                    : request.status === "rejected"
-                    ? "destructive"
-                    : "outline"
-                }
-              >
-                {request.status === "pending" ? "En attente" : 
-                 request.status === "approved" ? "Approuvé" : "Refusé"}
-              </Badge>
-              {profile?.role === 'hr' && request.status === 'pending' && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'approved' })}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'rejected' })}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              {profile?.role !== 'hr' && request.status === "pending" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(request.id)}
-                  className="text-destructive hover:text-destructive/90"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+            
+            <div className="flex justify-end mt-4">
+              <Button variant="outline" onClick={resetFilters} className="mr-2">
+                Réinitialiser les filtres
+              </Button>
             </div>
           </div>
-        ))}
+        )}
       </div>
+
+      <div className="space-y-4">
+        {filteredOvertimeRequests.length > 0 ? (
+          filteredOvertimeRequests.map((request) => (
+            <div
+              key={request.id}
+              className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+            >
+              <div>
+                {profile?.role === 'hr' && (
+                  <p className="font-medium">
+                    {request.employees.first_name} {request.employees.last_name}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">{request.date}</p>
+                <p className="text-sm text-gray-600">
+                  De {request.start_time} à {request.end_time} ({request.hours} heures)
+                </p>
+                <p className="text-sm text-gray-600">{request.reason}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={
+                    request.status === "approved"
+                      ? "secondary"
+                      : request.status === "rejected"
+                      ? "destructive"
+                      : "outline"
+                  }
+                >
+                  {request.status === "pending" ? "En attente" : 
+                  request.status === "approved" ? "Approuvé" : "Refusé"}
+                </Badge>
+                {profile?.role === 'hr' && request.status === 'pending' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'approved' })}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'rejected' })}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {/* Pour l'employé, il peut supprimer sa propre demande en attente */}
+                {profile?.role !== 'hr' && request.status === "pending" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(request.id)}
+                    className="text-destructive hover:text-destructive/90"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {/* Pour l'admin RH, il peut modifier et supprimer n'importe quelle demande */}
+                {profile?.role === 'hr' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(request)}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(request.id)}
+                      className="text-destructive hover:text-destructive/90"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Aucune demande d'heures supplémentaires ne correspond aux critères de recherche</p>
+          </div>
+        )}
+      </div>
+
+      {/* Dialog pour la modification */}
+      <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+        <DialogContent className="fixed inset-0 grid place-items-center sm:max-w-[425px] mx-auto my-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier des heures supplémentaires</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editDate">Date</Label>
+              <Input
+                id="editDate"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editStartTime">Heure de début</Label>
+                <Input
+                  id="editStartTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editEndTime">Heure de fin</Label>
+                <Input
+                  id="editEndTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editReason">Motif</Label>
+              <Textarea
+                id="editReason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenEdit(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateOvertimeMutation.isPending}
+              >
+                {updateOvertimeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Mettre à jour
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour la confirmation de suppression */}
+      <Dialog open={openDelete} onOpenChange={setOpenDelete}>
+        <DialogContent className="fixed inset-0 grid place-items-center sm:max-w-[425px] mx-auto my-auto">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette demande d'heures supplémentaires ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpenDelete(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteOvertimeMutation.isPending}
+            >
+              {deleteOvertimeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

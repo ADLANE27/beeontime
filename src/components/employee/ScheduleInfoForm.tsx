@@ -1,3 +1,4 @@
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScheduleInfoFormProps } from "./types/employee-form";
@@ -16,54 +17,65 @@ export const ScheduleInfoForm = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Clock className="h-5 w-5" />
-        <h3 className="text-lg font-semibold">Horaires de travail</h3>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startTime">Heure d'arrivée</Label>
-          <Input
-            id="startTime"
-            type="time"
-            value={workSchedule.startTime}
-            onChange={(e) => handleScheduleChange("startTime", e.target.value)}
-            required
-          />
+          <Label htmlFor="startTime">Début journée</Label>
+          <div className="relative">
+            <Input
+              id="startTime"
+              type="time"
+              value={workSchedule.startTime}
+              onChange={(e) => handleScheduleChange("startTime", e.target.value)}
+              required
+              className="pl-3 pr-9"
+            />
+            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endTime">Heure de départ</Label>
-          <Input
-            id="endTime"
-            type="time"
-            value={workSchedule.endTime}
-            onChange={(e) => handleScheduleChange("endTime", e.target.value)}
-            required
-          />
+          <Label htmlFor="endTime">Fin journée</Label>
+          <div className="relative">
+            <Input
+              id="endTime"
+              type="time"
+              value={workSchedule.endTime}
+              onChange={(e) => handleScheduleChange("endTime", e.target.value)}
+              required
+              className="pl-3 pr-9"
+            />
+            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="breakStartTime">Début pause déjeuner</Label>
-          <Input
-            id="breakStartTime"
-            type="time"
-            value={workSchedule.breakStartTime}
-            onChange={(e) => handleScheduleChange("breakStartTime", e.target.value)}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="breakStartTime"
+              type="time"
+              value={workSchedule.breakStartTime}
+              onChange={(e) => handleScheduleChange("breakStartTime", e.target.value)}
+              required
+              className="pl-3 pr-9"
+            />
+            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="breakEndTime">Fin pause déjeuner</Label>
-          <Input
-            id="breakEndTime"
-            type="time"
-            value={workSchedule.breakEndTime}
-            onChange={(e) => handleScheduleChange("breakEndTime", e.target.value)}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="breakEndTime"
+              type="time"
+              value={workSchedule.breakEndTime}
+              onChange={(e) => handleScheduleChange("breakEndTime", e.target.value)}
+              required
+              className="pl-3 pr-9"
+            />
+            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          </div>
         </div>
       </div>
     </div>
