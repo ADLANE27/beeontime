@@ -339,15 +339,15 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <div className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white overflow-auto">
+        <div className="relative h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white overflow-auto">
           <div className={cn(
             "min-w-max transition-opacity duration-300",
             isChangingView ? "opacity-50" : "opacity-100"
           )}>
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-20 bg-white">
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-white z-10 w-[200px] shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
+                  <TableHead className="sticky left-0 top-0 bg-white z-30 w-[200px] shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
                     <div className="font-medium">Employé</div>
                   </TableHead>
                   {getDaysToShow().map((date, i) => (
