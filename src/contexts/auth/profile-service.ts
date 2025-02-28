@@ -103,56 +103,54 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 
   console.log("Attempting to fetch profile for user:", userId);
   
-  let profileData: Profile | null = null;
-  let employeeData: Profile | null = null;
-  let networkIssue = false;
-  
-  // First try the profiles table
   try {
-    profileData = await fetchProfileFromProfilesTable(userId);
+    // First try the profiles table with a direct approach for speed
+    const profileData = await fetchProfileFromProfilesTable(userId);
     if (profileData) {
       console.log("Profile found in profiles table, returning it");
       return profileData;
     }
-  } catch (error) {
-    console.warn("Error fetching from profiles table:", error);
-    networkIssue = true;
-    // Continue to employees table
-  }
-  
-  // If no profile found, try the employees table as fallback
-  if (!profileData) {
+    
+    // If no profile found, try the employees table as fallback
+    console.log("No profile found, checking employees table");
+    const employeeData = await fetchProfileFromEmployeesTable(userId);
+    if (employeeData) {
+      console.log("Employee record found, returning it as profile");
+      return employeeData;
+    }
+    
+    // If we get here, no profile was found in either table
+    console.log("No profile found for user:", userId);
+    
+    // Get auth user email if available - for better fallback profile
+    let userEmail = "";
     try {
-      console.log("No profile found, checking employees table");
-      employeeData = await fetchProfileFromEmployeesTable(userId);
-      if (employeeData) {
-        console.log("Employee record found, returning it as profile");
-        return employeeData;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        userEmail = user.email;
       }
-    } catch (error) {
-      console.warn("Error fetching from employees table:", error);
-      networkIssue = true;
+    } catch (e) {
+      console.warn("Could not get user email for fallback profile");
     }
-  }
-  
-  // Get auth user email if available - for better fallback profile
-  let userEmail = "";
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.email) {
-      userEmail = user.email;
+    
+    // Return a fallback profile with minimal data
+    return createFallbackProfile(userId, userEmail);
+    
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    
+    // Get auth user email if available - for better fallback profile
+    let userEmail = "";
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        userEmail = user.email;
+      }
+    } catch (e) {
+      console.warn("Could not get user email for fallback profile");
     }
-  } catch (e) {
-    console.warn("Could not get user email for fallback profile");
-  }
-  
-  // If we have network issues but we need to return something
-  if (networkIssue) {
-    console.log("Network issues detected, returning fallback profile");
+    
+    // Return a fallback profile with minimal data
     return createFallbackProfile(userId, userEmail);
   }
-  
-  // If no profile found in either table
-  console.log("No profile found for user:", userId);
-  return null;
 }

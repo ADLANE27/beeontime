@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ type AuthState = {
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
-  authInitialized: boolean;
+  authReady: boolean;
   profileFetchAttempted: boolean;
   authError: Error | null;
 };
@@ -22,14 +23,14 @@ export function useAuthState() {
     user: null,
     profile: null,
     isLoading: true,
-    authInitialized: false,
+    authReady: false,
     profileFetchAttempted: false,
     authError: null
   });
   
   const isMountedRef = useRef(true);
   const profileRetryCount = useRef(0);
-  const MAX_PROFILE_RETRIES = 2;
+  const MAX_PROFILE_RETRIES = 1; // Reduced from 2 to 1
   const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create a safe state update function to prevent race conditions
@@ -67,7 +68,8 @@ export function useAuthState() {
             profile: profileData,
             profileFetchAttempted: true,
             isLoading: false,
-            authError: null
+            authError: null,
+            authReady: true
           });
           // Reset retry counter on success
           profileRetryCount.current = 0;
@@ -83,13 +85,14 @@ export function useAuthState() {
               if (isMountedRef.current) {
                 fetchUserProfile(userId);
               }
-            }, 1000); // Retry after 1 second
+            }, 800); // Retry faster - reduced from 1000ms
             return;
           }
           
           safeUpdateState({ 
             profileFetchAttempted: true,
             isLoading: false,
+            authReady: true,
             // Set a more specific error message
             authError: new Error("Profil introuvable après plusieurs tentatives")
           });
@@ -108,7 +111,7 @@ export function useAuthState() {
           if (isMountedRef.current) {
             fetchUserProfile(userId);
           }
-        }, 1000); // Retry after 1 second
+        }, 800); // Retry faster - reduced from 1000ms
         return;
       }
       
@@ -117,6 +120,7 @@ export function useAuthState() {
         safeUpdateState({ 
           profileFetchAttempted: true,
           isLoading: false,
+          authReady: true,
           authError: error instanceof Error ? error : new Error("Erreur lors de la récupération du profil")
         });
       }
@@ -134,8 +138,7 @@ export function useAuthState() {
       safeUpdateState({
         session: newSession,
         user: newSession?.user || null,
-        authInitialized: true,
-        authError: null
+        authReady: true
       });
       
       if (newSession?.user?.id) {
@@ -149,11 +152,12 @@ export function useAuthState() {
           console.error("Error fetching user profile:", error);
           safeUpdateState({ 
             isLoading: false,
+            authReady: true,
             authError: error instanceof Error ? error : new Error("Erreur lors de la récupération du profil")
           });
         }
       } else {
-        safeUpdateState({ isLoading: false });
+        safeUpdateState({ isLoading: false, authReady: true });
       }
     } else if (event === 'SIGNED_OUT') {
       console.log("User signed out");
@@ -165,7 +169,7 @@ export function useAuthState() {
         profile: null,
         profileFetchAttempted: false,
         isLoading: false,
-        authInitialized: true,
+        authReady: true,
         authError: null
       });
     } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
@@ -173,13 +177,17 @@ export function useAuthState() {
       if (newSession) {
         safeUpdateState({
           session: newSession,
-          user: newSession.user
+          user: newSession.user,
+          authReady: true
         });
       }
+    } else if (event === 'INITIAL_SESSION') {
+      console.log("Initial session event");
+      safeUpdateState({ authReady: true });
     } else {
       // Handle any other events by ensuring we're not stuck in loading
       console.log("Other auth event:", event);
-      safeUpdateState({ isLoading: false, authInitialized: true });
+      safeUpdateState({ isLoading: false, authReady: true });
     }
   }, [safeUpdateState, fetchUserProfile, clearPendingTimeouts]);
 
@@ -196,7 +204,7 @@ export function useAuthState() {
           console.error("Error getting initial session:", error);
           safeUpdateState({
             isLoading: false,
-            authInitialized: true,
+            authReady: true,
             authError: error
           });
           return;
@@ -208,7 +216,8 @@ export function useAuthState() {
           console.log("Initial session found:", data.session.user?.id);
           safeUpdateState({
             session: data.session,
-            user: data.session.user
+            user: data.session.user,
+            authReady: true
           });
           
           if (data.session.user?.id) {
@@ -218,14 +227,14 @@ export function useAuthState() {
           console.log("No initial session found");
           safeUpdateState({ 
             isLoading: false,
-            authInitialized: true
+            authReady: true
           });
         }
       } catch (error) {
         console.error("Error in auth initialization:", error);
         safeUpdateState({ 
           isLoading: false,
-          authInitialized: true,
+          authReady: true,
           authError: error instanceof Error ? error : new Error("Erreur d'initialisation de l'authentification")
         });
       }
@@ -237,11 +246,11 @@ export function useAuthState() {
         console.warn("Auth initialization timeout - forcing loading state to complete");
         safeUpdateState({
           isLoading: false,
-          authInitialized: true,
+          authReady: true,
           authError: new Error("Délai d'authentification dépassé")
         });
       }
-    }, 8000); // Reduced to 8 seconds timeout
+    }, 6000); // Reduced to 6 seconds timeout (from 8)
     
     initialize();
     
@@ -259,14 +268,14 @@ export function useAuthState() {
   }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, clearPendingTimeouts, authState.isLoading]);
 
   // Destructure the state for API consistency
-  const { session, user, profile, isLoading, authInitialized, profileFetchAttempted, authError } = authState;
+  const { session, user, profile, isLoading, authReady, profileFetchAttempted, authError } = authState;
 
   return {
     session,
     user,
     profile,
     isLoading,
-    authInitialized,
+    authReady,
     profileFetchAttempted,
     authError,
     setProfile

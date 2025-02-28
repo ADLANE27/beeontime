@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,24 +37,42 @@ const HRPortal = () => {
     };
   }, []);
 
-  // Add timeout to prevent infinite loading
+  // Add timeout to prevent infinite loading - REDUCED TIMEOUT
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
-        console.warn("Loading timeout detected in HRPortal");
+        console.warn("Loading timeout detected in HRPortal - shortening timeout to 8 seconds");
         setLoadingTimeout(true);
       }
-    }, 12000); // 12 seconds timeout (reduced from 15)
+    }, 8000); // Reduced to 8 seconds timeout (from 12)
 
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
+
+  // Force auth check complete after authReady is true
+  useEffect(() => {
+    if (authReady && !authCheckComplete) {
+      console.log("Auth is ready, marking auth check complete");
+      setAuthCheckComplete(true);
+    }
+  }, [authReady, authCheckComplete]);
 
   // Handle authentication redirects
   useEffect(() => {
     let redirectTimeout: NodeJS.Timeout | null = null;
 
     // Check if we can determine authentication state
-    const canDetermineAuthState = authCheckComplete || authError || loadingTimeout;
+    const canDetermineAuthState = authCheckComplete || authError || loadingTimeout || authReady;
+    
+    console.log("Auth state check:", {
+      canDetermineAuthState,
+      authCheckComplete,
+      authReady,
+      hasSession: !!session,
+      hasProfile: !!profile,
+      profileFetchAttempted,
+      loadingTimeout
+    });
     
     if (canDetermineAuthState) {
       // User is authenticated and has a profile
@@ -84,7 +103,7 @@ const HRPortal = () => {
     return () => {
       if (redirectTimeout) clearTimeout(redirectTimeout);
     };
-  }, [session, profile, navigate, authCheckComplete, profileFetchAttempted, authError, loadingTimeout]);
+  }, [session, profile, navigate, authCheckComplete, profileFetchAttempted, authError, loadingTimeout, authReady]);
 
   // Check for error parameters in URL
   useEffect(() => {
