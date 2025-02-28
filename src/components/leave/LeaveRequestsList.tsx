@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Download, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Download, Loader2, Plus, Pencil, Trash2, Calendar, Clock, UserCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -289,7 +289,7 @@ export const LeaveRequestsList = () => {
   return (
     <Card className="p-6">
       <div className="flex justify-center mb-6">
-        <Button onClick={() => setIsNewLeaveOpen(true)}>
+        <Button onClick={() => setIsNewLeaveOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 shadow-md">
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle demande
         </Button>
@@ -297,7 +297,7 @@ export const LeaveRequestsList = () => {
 
       <div className="space-y-4">
         {leaveRequests?.map((request) => (
-          <Card key={request.id} className="p-4">
+          <Card key={request.id} className="p-4 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="space-y-2">
                 <h3 className="font-semibold">
@@ -608,35 +608,43 @@ export const LeaveRequestsList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de nouvelle demande - en plein écran */}
+      {/* Dialog de nouvelle demande - en plein écran avec design amélioré */}
       <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
-        <DialogContentFullScreen className="p-8">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl">Nouvelle demande de congés</DialogTitle>
-          </DialogHeader>
-          <div className="max-w-3xl mx-auto">
-            <LeaveRequestForm 
-              onSubmit={async (data) => {
-                try {
-                  const { error } = await supabase
-                    .from('leave_requests')
-                    .insert({
-                      ...data,
-                      status: 'approved'
-                    });
+        <DialogContentFullScreen className="bg-gray-50">
+          <div className="max-w-5xl mx-auto px-4 py-6">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-3xl font-bold text-center text-gray-800">
+                Nouvelle demande de congés
+              </DialogTitle>
+              <p className="text-center text-gray-600 mt-2">
+                Remplissez le formulaire pour créer une nouvelle demande de congés
+              </p>
+            </DialogHeader>
+          
+            <div className="bg-white rounded-xl shadow-lg p-8 max-w-3xl mx-auto">
+              <LeaveRequestForm 
+                onSubmit={async (data) => {
+                  try {
+                    const { error } = await supabase
+                      .from('leave_requests')
+                      .insert({
+                        ...data,
+                        status: 'approved'
+                      });
 
-                  if (error) throw error;
-                  
-                  toast.success("Demande de congés créée avec succès");
-                  setIsNewLeaveOpen(false);
-                  queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-                } catch (error) {
-                  console.error('Error creating leave request:', error);
-                  toast.error("Erreur lors de la création de la demande");
-                }
-              }}
-              isSubmitting={false}
-            />
+                    if (error) throw error;
+                    
+                    toast.success("Demande de congés créée avec succès");
+                    setIsNewLeaveOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+                  } catch (error) {
+                    console.error('Error creating leave request:', error);
+                    toast.error("Erreur lors de la création de la demande");
+                  }
+                }}
+                isSubmitting={false}
+              />
+            </div>
           </div>
         </DialogContentFullScreen>
       </Dialog>
