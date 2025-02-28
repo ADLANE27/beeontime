@@ -59,7 +59,7 @@ const getContractColor = (contractType: string | null) => {
   }
 };
 
-const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (id: string) => void }) => {
+const EmployeeCard = ({ employee, onDelete, onEdit }: { employee: Employee; onDelete: (id: string) => void; onEdit: () => void }) => {
   const currentYearBalance = Number(employee.current_year_vacation_days || 0) - Number(employee.current_year_used_days || 0);
   const previousYearBalance = Number(employee.previous_year_vacation_days || 0) - Number(employee.previous_year_used_days || 0);
   const totalBalance = currentYearBalance + previousYearBalance;
@@ -82,6 +82,12 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditDialogOpen(false);
+    onEdit(); // Call the parent component's onEdit function to refresh data
+    toast.success("Informations de l'employé mises à jour avec succès");
   };
 
   const contractColor = getContractColor(employee.contract_type);
@@ -160,7 +166,7 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
         </div>
 
         <div className="flex gap-2 pt-1">
-          <Dialog>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogTrigger asChild>
               <Button 
                 variant="outline" 
@@ -210,8 +216,9 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
                       postalCode: employee.postal_code || '',
                       country: employee.country || ''
                     }}
-                    onSuccess={() => setIsEditDialogOpen(false)}
+                    onSuccess={handleEditSuccess}
                     isEditing={true}
+                    employeeId={employee.id}
                   />
                 </div>
               </div>
@@ -268,6 +275,7 @@ export const EmployeesList = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
   const queryClient = useQueryClient();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchEmployees = async () => {
     setIsLoading(true);
@@ -290,7 +298,7 @@ export const EmployeesList = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [refreshTrigger]);
 
   useEffect(() => {
     let results = employees;
@@ -314,7 +322,12 @@ export const EmployeesList = () => {
 
   const handleCreateSuccess = () => {
     setIsNewEmployeeDialogOpen(false);
-    fetchEmployees();
+    setRefreshTrigger(prev => prev + 1); // Trigger refresh
+    toast.success("Nouvel employé créé avec succès");
+  };
+
+  const handleEditSuccess = () => {
+    setRefreshTrigger(prev => prev + 1); // Trigger refresh
   };
 
   const handleDeleteEmployee = async (id: string) => {
@@ -330,7 +343,7 @@ export const EmployeesList = () => {
       } else {
         toast.success("Employé supprimé avec succès");
         queryClient.invalidateQueries({ queryKey: ['employees'] });
-        fetchEmployees();
+        setRefreshTrigger(prev => prev + 1); // Trigger refresh
       }
     } catch (error) {
       console.error("Unexpected error deleting employee:", error);
@@ -459,6 +472,7 @@ export const EmployeesList = () => {
               key={employee.id}
               employee={employee}
               onDelete={handleDeleteEmployee}
+              onEdit={handleEditSuccess}
             />
           ))}
         </div>
