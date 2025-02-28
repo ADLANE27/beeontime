@@ -173,10 +173,6 @@ const HRPortal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
-            onSubmit={(formData) => {
-              setLocalLoading(true);
-              console.log("Login form submitted");
-            }}
           />
         </Card>
 
