@@ -42,9 +42,19 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     
     const isHalfDay = leaveRequest.day_type === 'half';
     const period = leaveRequest.period;
-    const leaveType = leaveRequest.type as keyof typeof leaveTypeColors || 'other';
     
-    const color = leaveTypeColors[leaveType]?.color || '#E0E0E0';
+    // Ensure we're mapping the leave type correctly, especially for sick leave
+    let leaveType = leaveRequest.type as keyof typeof leaveTypeColors;
+    
+    // If the type is sick, make sure it maps to the 'sick' key in leaveTypeColors
+    if (leaveType === 'sick' || leaveType === 'sickness' || leaveType === 'medical' || 
+        leaveType.toLowerCase().includes('maladie') || leaveType.toLowerCase().includes('arret')) {
+      leaveType = 'sick';
+    }
+    
+    // Default to 'other' if the type doesn't exist in our mapping
+    const color = leaveTypeColors[leaveType]?.color || leaveTypeColors.other.color;
+    
     const gradientStyle = {
       background: `linear-gradient(to right, ${color}70 0%, ${color}50 100%)`,
       boxShadow: `inset 0 0 0 1px ${color}50`
@@ -142,7 +152,8 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
             {leaveRequest && (
               <div className="text-sm text-gray-600 border-t pt-1">
                 <span className="font-medium">Congé: </span>
-                {leaveTypeColors[leaveRequest.type as keyof typeof leaveTypeColors]?.label || leaveRequest.type}
+                {leaveTypeColors[leaveRequest.type as keyof typeof leaveTypeColors]?.label || 
+                 (leaveRequest.type === 'sick' ? "Arrêt maladie" : leaveRequest.type)}
                 {leaveRequest.day_type === 'half' && (
                   <span className="ml-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100">
                     {leaveRequest.period === 'morning' ? 'Matin' : 'Après-midi'}
