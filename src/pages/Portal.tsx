@@ -12,7 +12,7 @@ import { toast } from "sonner";
 const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -21,7 +21,28 @@ const Portal = () => {
     console.log("Auth state event in Portal:", authLoading ? "LOADING" : "INITIAL_SESSION");
   }, [session, authLoading]);
 
-  // If already authenticated, redirect to employee dashboard
+  // Si la page est encore en chargement, afficher un loader
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
+        <Card className="shadow-lg max-w-md w-full">
+          <CardHeader className="space-y-1 text-center border-b pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Portail Employé
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 flex justify-center items-center py-10">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              <p className="text-gray-500">Chargement en cours...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Si déjà authentifié, rediriger vers le dashboard
   if (session && !authLoading) {
     console.log("User already authenticated, redirecting to dashboard");
     return <Navigate to="/employee" replace />;
@@ -36,7 +57,7 @@ const Portal = () => {
     }
 
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       console.log("Attempting to sign in with email:", email);
       
       const { error } = await signIn(email, password);
@@ -48,12 +69,17 @@ const Portal = () => {
       }
       
       console.log("Sign in successful, redirecting to employee dashboard");
-      navigate("/employee", { replace: true });
+      
+      // Utiliser un timeout pour s'assurer que l'état d'authentification a eu le temps de se mettre à jour
+      setTimeout(() => {
+        navigate("/employee", { replace: true });
+      }, 100);
+      
     } catch (error) {
       console.error("Exception during sign in:", error);
       toast.error("Une erreur est survenue lors de la connexion");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -77,7 +103,7 @@ const Portal = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@exemple.com"
                   className="h-12"
-                  disabled={isLoading || authLoading}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -90,16 +116,16 @@ const Portal = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="********"
                   className="h-12"
-                  disabled={isLoading || authLoading}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
               <Button
                 type="submit"
                 className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                disabled={isLoading || authLoading}
+                disabled={isSubmitting}
               >
-                {isLoading || authLoading ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Connexion en cours...

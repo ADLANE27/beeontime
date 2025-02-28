@@ -60,15 +60,19 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setIsLoggingOut(true);
     try {
       console.log("Logout initiated");
+      toast.loading("Déconnexion en cours...");
       
       // Call the signOut method from AuthContext
       await signOut();
       
-      // Force navigation to portal
-      console.log("Navigating to portal after logout");
-      navigate("/portal", { replace: true });
-      
+      toast.dismiss();
       toast.success("Déconnexion réussie");
+      
+      // Force navigation to portal with a small delay to ensure state is updated
+      console.log("Navigating to portal after logout");
+      setTimeout(() => {
+        navigate("/portal", { replace: true });
+      }, 200);
     } catch (error) {
       console.error('Error during logout:', error);
       toast.error("Erreur lors de la déconnexion");

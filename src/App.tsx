@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -23,11 +23,17 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode; 
+  requiredRole?: "hr" | "employee";
+}
+
+const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
   const { session, isLoading, profile } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("ProtectedRoute: Auth state changed", { 
@@ -69,10 +75,10 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
     return () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [isLoading, session, profile, requiredRole]);
+  }, [isLoading, session, profile, requiredRole, navigate]);
 
   // Show loading state only during initial auth check and before timeout
-  if (isLoading && showLoading) {
+  if (isLoading && showLoading && !hasCheckedAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">

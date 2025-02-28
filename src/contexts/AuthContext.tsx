@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   async function fetchProfile(userId: string) {
     try {
@@ -59,14 +60,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("Checking initial session...");
     
+    // Créer une variable pour suivre si le composant est toujours monté
+    let isMounted = true;
+    
     // Set up a timeout to prevent indefinite loading
     const loadingTimeout = setTimeout(() => {
-      console.log("Auth loading timeout reached, forcing completion");
-      setIsLoading(false);
+      if (isMounted) {
+        console.log("Auth loading timeout reached, forcing completion");
+        setIsLoading(false);
+        setAuthInitialized(true);
+      }
     }, 5000);
     
     // Check for an existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
       console.log("Initial session check result:", session ? "Session found" : "No session");
       
       setSession(session);
@@ -74,13 +83,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user?.id) {
         const profile = await fetchProfile(session.user.id);
-        setProfile(profile);
+        if (isMounted) {
+          setProfile(profile);
+        }
       }
       
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+        setAuthInitialized(true);
+      }
     }).catch(error => {
-      console.error("Error checking initial session:", error);
-      setIsLoading(false);
+      if (isMounted) {
+        console.error("Error checking initial session:", error);
+        setIsLoading(false);
+        setAuthInitialized(true);
+      }
     });
     
     // Set up auth state change listener
@@ -88,20 +105,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         console.log("Auth state event:", event);
         
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user?.id) {
           const profile = await fetchProfile(session.user.id);
-          setProfile(profile);
+          if (isMounted) {
+            setProfile(profile);
+          }
         } else {
-          setProfile(null);
+          if (isMounted) {
+            setProfile(null);
+          }
         }
       }
     );
     
     // Cleanup
     return () => {
+      isMounted = false;
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
@@ -110,6 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting sign in for:", email);
+      setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -117,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error("Sign in error:", error.message);
+        setIsLoading(false);
         return { error };
       }
 
@@ -126,9 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(profile);
       }
 
+      setIsLoading(false);
       return { error: null };
     } catch (error) {
       console.error("Exception during sign in:", error);
+      setIsLoading(false);
       return { error: error as Error };
     }
   };
@@ -136,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log("Signing out...");
+      setIsLoading(true);
       
       // First perform the Supabase signout
       const { error } = await supabase.auth.signOut();
@@ -152,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       
       console.log("Sign out complete");
+      setIsLoading(false);
     } catch (error) {
       console.error("Exception during sign out:", error);
       
@@ -159,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUser(null);
       setProfile(null);
+      setIsLoading(false);
     }
   };
 

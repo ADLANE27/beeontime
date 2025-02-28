@@ -2,13 +2,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useEmployeesList = () => {
+  const { session } = useAuth();
+  
   return useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
       try {
         console.log("Fetching employees list...");
+        
+        // Vérifier que nous avons une session active
+        if (!session) {
+          console.log("No active session, aborting employees fetch");
+          return [];
+        }
+        
         const { data, error } = await supabase
           .from("employees")
           .select("*")
@@ -27,6 +37,7 @@ export const useEmployeesList = () => {
         return []; // Return empty array instead of throwing to prevent query retry loops
       }
     },
+    enabled: !!session, // N'exécute la requête que si une session existe
     retry: 1,
     retryDelay: 1000,
     refetchOnWindowFocus: false,
