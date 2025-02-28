@@ -25,7 +25,7 @@ export function useAuthState() {
         setIsLoading(false);
         setAuthInitialized(true);
       }
-    }, 3000); // Reduced from 5000ms to 3000ms for faster timeout
+    }, 2000); // Reduced from 3000ms to 2000ms for faster timeout
     
     // Check for an existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -70,9 +70,11 @@ export function useAuthState() {
         
         if (!isMounted) return;
         
+        // Update state based on the event
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Reload profile when auth state changes
         try {
           if (session?.user?.id) {
             const profile = await fetchProfile(session.user.id);
@@ -88,7 +90,7 @@ export function useAuthState() {
       }
     );
     
-    // Cleanup
+    // Cleanup function
     return () => {
       isMounted = false;
       clearTimeout(loadingTimeout);
