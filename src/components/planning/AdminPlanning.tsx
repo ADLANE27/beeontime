@@ -397,27 +397,6 @@ export const AdminPlanning = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="gradient"
-              onClick={toggleViewMode}
-              className="group transition-all duration-200 hover:shadow hover:scale-105"
-            >
-              <CalendarIcon className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="relative overflow-hidden h-5">
-                <span className={cn(
-                  "inline-block absolute inset-0 transition-transform duration-300",
-                  viewMode === 'month' ? "transform-none" : "transform translate-y-full opacity-0"
-                )}>
-                  Vue hebdomadaire
-                </span>
-                <span className={cn(
-                  "inline-block absolute inset-0 transition-transform duration-300",
-                  viewMode === 'month' ? "transform -translate-y-full opacity-0" : "transform-none"
-                )}>
-                  Vue mensuelle
-                </span>
-              </span>
-            </Button>
             <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2 shadow-sm hover:shadow transition-all duration-200 hover:scale-105">
               <Download className="h-4 w-4 group-hover:animate-bounce" />
               PDF
