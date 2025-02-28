@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -28,16 +28,13 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile, profileFetchAttempted, authReady } = useAuth();
+  const { session, isLoading, profile, authReady } = useAuth();
   
-  // Simple loading state
-  if (isLoading && !authReady) {
+  // Show loading state while authentication is initializing
+  if (isLoading || !authReady) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement de votre profil...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -47,14 +44,14 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // Session but no profile after fetch attempt -> redirect to login
-  if (!profile && profileFetchAttempted) {
-    toast.error("Impossible de récupérer votre profil. Veuillez vous reconnecter.");
+  // Session but no profile -> redirect to login with error
+  if (!profile) {
+    toast.error("Session invalide. Veuillez vous reconnecter.");
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
   // Wrong role for HR section
-  if (profile && requiredRole === "hr" && profile.role !== "hr") {
+  if (requiredRole === "hr" && profile.role !== "hr") {
     toast.error("Vous n'avez pas les droits pour accéder à cette page.");
     return <Navigate to="/employee" replace />;
   }

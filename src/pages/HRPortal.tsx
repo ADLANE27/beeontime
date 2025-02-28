@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Building2, Lock } from "lucide-react";
+import { Building2, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,46 +13,35 @@ import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, profileFetchAttempted, authReady, signOut } = useAuth();
+  const { session, isLoading, profile, authReady } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Handle auth redirects
+  // Handle authentication redirects
   useEffect(() => {
-    // If loading, wait
-    if (isLoading) return;
-
-    // If authenticated with HR role, go to HR dashboard
-    if (session?.user && profile?.role === "hr") {
-      navigate('/hr', { replace: true });
-      return;
-    }
+    if (!authReady) return;
     
-    // If authenticated but not HR, go to employee dashboard
-    if (session?.user && profile && profile.role !== "hr") {
-      toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-      navigate('/employee', { replace: true });
-      return;
+    if (session && profile) {
+      if (profile.role === "hr") {
+        navigate('/hr', { replace: true });
+      } else {
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+        navigate('/employee', { replace: true });
+      }
     }
-    
-    // If profile fetch attempted but no profile found
-    if (session?.user && !profile && profileFetchAttempted && !loginError) {
-      setLoginError("Impossible de récupérer votre profil. Veuillez contacter un administrateur.");
-    }
-  }, [session, profile, navigate, profileFetchAttempted, loginError, isLoading, authReady]);
+  }, [session, profile, navigate, authReady]);
 
   // Check for error parameters in URL
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
-      const errorParam = url.searchParams.get('error');
+    if (url.searchParams.has('error')) {
       const errorDescription = url.searchParams.get('error_description');
       
       if (errorDescription?.includes("Invalid login credentials")) {
         setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
       } else if (errorDescription?.includes("Email not confirmed")) {
         setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-      } else if (errorParam) {
-        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
+      } else {
+        setLoginError(`Erreur de connexion: ${errorDescription || "Connexion invalide"}`);
       }
       
       // Remove error params from URL
@@ -60,19 +49,12 @@ const HRPortal = () => {
     }
   }, []);
 
-  if (isLoading) {
+  if (isLoading || !authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement de votre profil...</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            variant="link"
-            className="text-sm text-primary hover:underline mt-2"
-          >
-            Cliquez ici si le chargement persiste
-          </Button>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Chargement en cours...</p>
         </div>
       </div>
     );

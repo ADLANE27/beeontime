@@ -67,10 +67,6 @@ export function useAuthMethods(
       // Then perform the Supabase signout
       const { error } = await supabase.auth.signOut();
       
-      if (error) {
-        console.error("Error during signOut:", error);
-      }
-      
       setIsLoading(false);
       return { error };
     } catch (error) {

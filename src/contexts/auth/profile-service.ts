@@ -4,8 +4,7 @@ import { Profile } from "./types";
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
-    console.log("Fetching profile for user:", userId);
-    
+    // Try to get profile from the profiles table
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -17,16 +16,12 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       throw error;
     }
 
+    // If profile was found, return it
     if (data) {
-      console.log("Profile data retrieved:", {
-        id: data.id,
-        role: data.role
-      });
       return data as Profile;
     } 
     
-    console.log("No profile found in profiles table, checking employees table...");
-    // Try fallback to employees table if profile not found
+    // Try fallback to employees table
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
       .select("*")
@@ -35,23 +30,21 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       
     if (employeeError) {
       console.error("Error in employee fallback fetch:", employeeError);
+      throw employeeError;
     }
     
     if (employeeData) {
-      console.log("Employee data found as fallback");
       // Create a profile-like object from employee data
-      const profileFromEmployee: Profile = {
+      return {
         id: employeeData.id,
         role: "employee", // Default role for employees
         first_name: employeeData.first_name,
         last_name: employeeData.last_name,
         email: employeeData.email
       };
-      return profileFromEmployee;
     }
     
-    // Minimal fallback profile
-    console.log("Creating minimal fallback profile");
+    // If no profile found in either table, return minimal fallback profile
     return {
       id: userId,
       role: "employee", // Default fallback role

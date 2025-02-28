@@ -17,7 +17,7 @@ export interface AuthContextType {
       session: Session | null;
     };
   }>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: Error | null }>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -34,5 +34,5 @@ export const AuthContext = createContext<AuthContextType>({
       session: null,
     },
   }),
-  signOut: async () => {},
+  signOut: async () => ({ error: null }),
 });
