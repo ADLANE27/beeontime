@@ -10,6 +10,18 @@ import { Profile } from "./types";
 function createFallbackProfile(userId: string, email?: string, role?: string): Profile {
   console.log("Creating fallback profile for user:", userId);
   
+  // Force role to HR for known admin email
+  if (email === "a.debassi@aftraduction.fr") {
+    console.log("Creating HR profile for known admin email:", email);
+    return {
+      id: userId,
+      role: "hr", 
+      email: email || "",
+      first_name: "",
+      last_name: ""
+    };
+  }
+  
   // Ensure role is either "employee" or "hr"
   const validRole: "employee" | "hr" = role === "hr" ? "hr" : "employee";
   
@@ -32,12 +44,75 @@ function isHrEmail(email: string): boolean {
   
   email = email.toLowerCase();
   
+  // Check explicitly for a.debassi first
+  if (email === "a.debassi@aftraduction.fr") {
+    console.log("Admin email detected:", email);
+    return true;
+  }
+  
   // HR-specific email patterns
   return email.startsWith("rh@") || 
          email.startsWith("hr@") ||
          email.includes(".rh@") || 
-         email.includes(".hr@") ||
-         email === "a.debassi@aftraduction.fr"; // Adding known admin email
+         email.includes(".hr@");
+}
+
+/**
+ * Ensures the admin profile exists in the database
+ * @param userId The user ID to create profile for
+ * @param email The admin email
+ */
+async function ensureAdminProfile(userId: string, email: string): Promise<void> {
+  console.log("Ensuring admin profile exists for:", email);
+  
+  try {
+    // Check if profile exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error("Error checking for existing profile:", fetchError);
+      return;
+    }
+    
+    if (existingProfile) {
+      console.log("Existing profile found:", existingProfile);
+      
+      // Update role to HR if not already
+      if (existingProfile.role !== "hr") {
+        console.log("Updating existing profile to HR role");
+        const { error } = await supabase
+          .from("profiles")
+          .update({ role: "hr" })
+          .eq("id", userId);
+          
+        if (error) {
+          console.error("Failed to update profile to HR:", error);
+        }
+      }
+    } else {
+      // Create new HR profile
+      console.log("No profile found, creating new HR profile");
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          email: email,
+          role: "hr"
+        });
+        
+      if (error) {
+        console.error("Failed to create HR profile:", error);
+      } else {
+        console.log("Successfully created HR profile");
+      }
+    }
+  } catch (err) {
+    console.error("Error in ensureAdminProfile:", err);
+  }
 }
 
 /**
@@ -54,6 +129,24 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   console.log("Attempting to fetch profile for user:", userId);
   
   try {
+    // Try to get auth user for email determination first
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Special case for a.debassi admin email
+    if (user && user.email === "a.debassi@aftraduction.fr") {
+      console.log("Admin user detected, ensuring profile");
+      await ensureAdminProfile(userId, user.email);
+      
+      // Return immediately with HR role
+      return {
+        id: userId,
+        role: "hr",
+        email: user.email,
+        first_name: "",
+        last_name: ""
+      };
+    }
+    
     // Faster direct approach - query both tables at once
     const [profilesResult, employeesResult] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
@@ -83,9 +176,6 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     // If we get here, no profile was found in either table
     console.log("No profile found for user:", userId);
     
-    // Try to get auth user for better fallback profile
-    const { data: { user } } = await supabase.auth.getUser();
-    
     if (!user || !user.email) {
       console.log("No auth user found, using minimal fallback");
       return createFallbackProfile(userId, undefined, "employee");
@@ -95,32 +185,15 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     
     // If admin email is recognized, create an HR profile and save it
     if (isHrEmail(user.email)) {
-      const hrProfile: Profile = {
+      await ensureAdminProfile(userId, user.email);
+      
+      return {
         id: userId,
         role: "hr",
         email: user.email,
         first_name: "",
         last_name: ""
       };
-      
-      // Try to save this profile to the database for future logins
-      try {
-        const { error } = await supabase.from("profiles").insert({
-          id: userId,
-          email: user.email,
-          role: "hr"
-        });
-        
-        if (error) {
-          console.error("Failed to save HR profile:", error);
-        } else {
-          console.log("Successfully created HR profile in database");
-        }
-      } catch (err) {
-        console.error("Error saving HR profile:", err);
-      }
-      
-      return hrProfile;
     }
     
     // For non-HR users, return employee fallback

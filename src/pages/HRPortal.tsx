@@ -9,8 +9,10 @@ import { TimeoutError } from "@/components/auth/TimeoutError";
 import { ProfileError } from "@/components/auth/ProfileError";
 import { LoginForm } from "@/components/auth/LoginForm";
 
-// Create admin profile helper function
+// Create admin profile helper function - moved outside component for clarity
 async function ensureAdminProfile(userId: string, email: string) {
+  console.log("Ensuring admin profile in HR Portal for:", email);
+  
   // Check if profile already exists
   const { data: existingProfile } = await supabase
     .from("profiles")
@@ -31,6 +33,8 @@ async function ensureAdminProfile(userId: string, email: string) {
         console.error("Failed to update admin role:", error);
       } else {
         console.log("Updated admin role to HR");
+        // Refresh page to pick up new role
+        window.location.reload();
       }
     }
     return;
@@ -49,6 +53,8 @@ async function ensureAdminProfile(userId: string, email: string) {
     console.error("Failed to create admin profile:", error);
   } else {
     console.log("Successfully created admin profile");
+    // Refresh page to pick up new role
+    window.location.reload();
   }
 }
 
@@ -60,6 +66,7 @@ const HRPortal = () => {
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [manualSignInAttempted, setManualSignInAttempted] = useState(false);
+  const [isProcessingAdminProfile, setIsProcessingAdminProfile] = useState(false);
 
   // Check network status
   useEffect(() => {
@@ -108,12 +115,31 @@ const HRPortal = () => {
       hasSession: !!session,
       hasProfile: !!profile,
       profileFetchAttempted,
-      loadingTimeout
+      loadingTimeout,
+      email: session?.user?.email
     });
     
     if (canDetermineAuthState) {
+      // Special handling for a.debassi@aftraduction.fr - always ensure they have HR role
+      if (session?.user?.email === "a.debassi@aftraduction.fr" && !isProcessingAdminProfile) {
+        console.log("Admin user detected in HRPortal, ensuring admin profile");
+        setIsProcessingAdminProfile(true);
+        ensureAdminProfile(session.user.id, session.user.email)
+          .then(() => {
+            // If we already have a profile but it's not HR, force the HR role
+            if (profile && profile.role !== "hr") {
+              navigate('/hr', { replace: true });
+            }
+            setIsProcessingAdminProfile(false);
+          })
+          .catch(err => {
+            console.error("Error ensuring admin profile:", err);
+            setIsProcessingAdminProfile(false);
+          });
+      }
+      
       // User is authenticated and has a profile
-      if (session && profile) {
+      else if (session && profile) {
         console.log("HR Portal: Session and profile found, checking role", profile.role);
         
         // If email matches known admin pattern, ensure they have an admin profile
@@ -142,8 +168,16 @@ const HRPortal = () => {
       } 
       // Bypass profile check if we have session but no profile
       else if (session) {
-        console.log("HR Portal: Session exists but no profile found - redirecting to employee view");
-        navigate('/employee', { replace: true });
+        console.log("HR Portal: Session exists but no profile found - checking if admin email");
+        
+        // Special handling for admin email
+        if (session.user?.email === "a.debassi@aftraduction.fr") {
+          console.log("Admin email detected but no profile yet");
+          // Don't redirect yet, wait for profile creation to complete
+        } else {
+          console.log("Redirecting to employee view (non-admin email)");
+          navigate('/employee', { replace: true });
+        }
       }
       // User is not authenticated
       else if (!session && canDetermineAuthState) {
@@ -151,7 +185,7 @@ const HRPortal = () => {
         setAuthCheckComplete(true);
       }
     }
-  }, [session, profile, navigate, authCheckComplete, profileFetchAttempted, authError, loadingTimeout, authReady]);
+  }, [session, profile, navigate, authCheckComplete, profileFetchAttempted, authError, loadingTimeout, authReady, isProcessingAdminProfile]);
 
   // Manual sign-in handler with faster processing
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -208,6 +242,16 @@ const HRPortal = () => {
   const handleCheckNetwork = () => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
   };
+
+  // Show processing state when creating admin profile
+  if (isProcessingAdminProfile) {
+    return (
+      <LoadingState 
+        message="Configuration du compte administrateur..."
+        disableRefresh={true}
+      />
+    );
+  }
 
   // Show minimal loading state only during actual sign-in attempts
   if (manualSignInAttempted) {
