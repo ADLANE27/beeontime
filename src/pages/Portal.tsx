@@ -13,9 +13,13 @@ const Portal = () => {
   const navigate = useNavigate();
   const { session, isLoading } = useAuth();
   const [loginError, setLoginError] = useState("");
+  const [loginAttempted, setLoginAttempted] = useState(false);
 
   useEffect(() => {
+    console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
+    
     if (session?.user) {
+      console.log("User is logged in, redirecting to employee dashboard");
       navigate('/employee', { replace: true });
     }
 
@@ -38,9 +42,11 @@ const Portal = () => {
 
     // Listen for auth events
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event:", event);
+      console.log("Auth state event in Portal:", event);
+      setLoginAttempted(true);
       
       if (event === 'SIGNED_IN' && session) {
+        console.log("SIGNED_IN event - redirecting to employee dashboard");
         navigate('/employee', { replace: true });
       } else if (event === 'SIGNED_OUT') {
         setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
@@ -49,13 +55,21 @@ const Portal = () => {
       }
     });
 
-    // Clean up listener
+    // Set a timeout for the loading state
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.log("Portal loading timeout reached");
+      }
+    }, 5000);
+
+    // Clean up listener and timeout
     return () => {
       authListener.subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
-  }, [session, navigate]);
+  }, [session, navigate, isLoading]);
 
-  if (isLoading) {
+  if (isLoading && !loginAttempted) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">

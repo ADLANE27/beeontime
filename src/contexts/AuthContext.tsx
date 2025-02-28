@@ -25,20 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("SignOut triggered from AuthContext");
       
-      // First clear local state
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setAuthChecked(true);
-      
-      // Then call Supabase's signOut method
+      // Call Supabase's signOut method first
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Error during Supabase signOut:", error);
         throw error;
       }
-            
+      
+      // Then clear local state only after the Supabase call succeeds
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      
+      console.log("SignOut completed successfully");
       return;
     } catch (error) {
       console.error("Sign out error:", error);
@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Auth state changed:", event);
       
       if (mounted) {
+        // Update session state immediately
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         

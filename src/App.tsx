@@ -48,7 +48,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
         setRedirectPath(null); // No redirect needed
       }
     } else {
-      // Set a timeout to stop showing loading after 5 seconds regardless
+      // Set a timeout to stop showing loading after 3 seconds regardless
       timeoutId = window.setTimeout(() => {
         setShowLoading(false);
         console.log("Forcing auth check completion after timeout");
@@ -57,7 +57,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
           setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
           setHasCheckedAuth(true);
         }
-      }, 5000);
+      }, 3000);
     }
     
     return () => {

@@ -15,7 +15,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth(); // Use signOut from auth context
+  const { signOut, user } = useAuth();
   const isAdmin = location.pathname.startsWith("/hr");
   const [userName, setUserName] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -23,12 +23,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     const getUserData = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
+        if (user?.id) {
           const { data: userData, error } = await supabase
             .from('employees')
             .select('first_name, last_name')
-            .eq('id', data.session.user.id)
+            .eq('id', user.id)
             .single();
           
           if (!error && userData) {
@@ -41,7 +40,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     };
     
     getUserData();
-  }, []);
+  }, [user]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return; // Prevent multiple clicks
@@ -49,26 +48,24 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setIsLoggingOut(true);
     try {
       console.log("Logout initiated");
-      
-      // First, call the signOut method from AuthContext
       await signOut();
       
-      // Force navigation to portal regardless of any errors
+      // Force navigation to portal
+      console.log("Navigating to portal after logout");
       navigate("/portal", { replace: true });
       
       toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Error during logout:', error);
+      toast.error("Erreur lors de la déconnexion");
       
-      // As a fallback, try direct logout with Supabase
+      // As a fallback, try direct logout and force navigation
       try {
         await supabase.auth.signOut();
-        navigate("/portal", { replace: true });
-        toast.success("Déconnexion effectuée");
       } catch (e) {
         console.error("Direct logout failed:", e);
-        toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
-        // Force navigation to portal as last resort
+      } finally {
+        // Always navigate to portal regardless of errors
         window.location.href = "/portal";
       }
     } finally {
