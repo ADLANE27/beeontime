@@ -607,8 +607,9 @@ export const LeaveRequestsList = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de nouvelle demande - correction du positionnement */}
       <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouvelle demande de congés</DialogTitle>
           </DialogHeader>
