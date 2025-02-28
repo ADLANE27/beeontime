@@ -6,7 +6,7 @@ import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight, CalendarDays, XCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
@@ -17,6 +17,7 @@ import { createEvents } from 'ics';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
@@ -56,6 +57,7 @@ export const AdminPlanning = () => {
   const [isChangingView, setIsChangingView] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [highlightedDate, setHighlightedDate] = useState<Date | null>(null);
+  const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const firstDayOfPeriod = viewMode === 'month' 
@@ -125,10 +127,17 @@ export const AdminPlanning = () => {
     fetchData();
   }, [currentDate, viewMode]);
 
+  useEffect(() => {
+    // Si on vient de supprimer le filtre, on remet en évidence la date actuelle
+    if (!filterByDate && !highlightedDate) {
+      setHighlightedDate(new Date());
+    }
+  }, [filterByDate, highlightedDate]);
+
   // Effet pour faire défiler jusqu'à la colonne de la date sélectionnée/aujourd'hui
   useEffect(() => {
     // Attendre que les données soient chargées
-    if (!isLoading && tableContainerRef.current) {
+    if (!isLoading && tableContainerRef.current && !filterByDate) {
       // Déterminer la date à mettre en évidence (aujourd'hui ou date sélectionnée)
       const dateToHighlight = highlightedDate || new Date();
       
@@ -151,9 +160,11 @@ export const AdminPlanning = () => {
         }, 100);
       }
     }
-  }, [isLoading, highlightedDate]);
+  }, [isLoading, highlightedDate, filterByDate]);
 
   const nextPeriod = () => {
+    if (filterByDate) return; // Ne pas permettre de changer de période si un filtre de date est actif
+    
     setIsChangingView(true);
     setHighlightedDate(null);
     setTimeout(() => {
@@ -167,6 +178,8 @@ export const AdminPlanning = () => {
   };
 
   const previousPeriod = () => {
+    if (filterByDate) return; // Ne pas permettre de changer de période si un filtre de date est actif
+    
     setIsChangingView(true);
     setHighlightedDate(null);
     setTimeout(() => {
@@ -181,6 +194,9 @@ export const AdminPlanning = () => {
 
   const goToToday = () => {
     setIsChangingView(true);
+    
+    // Supprimer le filtre de date si présent
+    setFilterByDate(null);
     
     // Définir la date sur aujourd'hui
     const today = new Date();
@@ -207,10 +223,25 @@ export const AdminPlanning = () => {
     // Mettre à jour les dates sélectionnées
     setSelectedDate(date);
     setCurrentDate(date);
-    setHighlightedDate(date);
+    
+    // Appliquer le filtre de date
+    setFilterByDate(date);
+    setHighlightedDate(null); // Pas besoin de mettre en évidence si on filtre déjà
     
     // Notification pour l'utilisateur
-    toast.success(`Affichage du ${format(date, 'dd MMMM yyyy', { locale: fr })}`);
+    toast.success(`Filtrage par date: ${format(date, 'dd MMMM yyyy', { locale: fr })}`);
+    
+    setTimeout(() => {
+      setIsChangingView(false);
+    }, 150);
+  };
+
+  const clearDateFilter = () => {
+    setIsChangingView(true);
+    setFilterByDate(null);
+    
+    // Notification pour l'utilisateur
+    toast.success("Filtre de date supprimé");
     
     setTimeout(() => {
       setIsChangingView(false);
@@ -227,6 +258,12 @@ export const AdminPlanning = () => {
   };
 
   const getDaysToShow = () => {
+    // Si un filtre de date est actif, ne montrer que cette date
+    if (filterByDate) {
+      return [filterByDate];
+    }
+    
+    // Sinon, montrer toutes les dates de la période
     const days: Date[] = [];
     const lastDay = viewMode === 'month'
       ? new Date(firstDayOfPeriod.getFullYear(), firstDayOfPeriod.getMonth() + 1, 0)
@@ -339,7 +376,11 @@ export const AdminPlanning = () => {
                 variant="ghost" 
                 size="icon" 
                 onClick={previousPeriod}
-                className="rounded-none border-r border-gray-100 hover:bg-gray-50 transition-colors"
+                className={cn(
+                  "rounded-none border-r border-gray-100 hover:bg-gray-50 transition-colors",
+                  filterByDate ? "opacity-50 cursor-not-allowed" : ""
+                )}
+                disabled={!!filterByDate}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -348,16 +389,23 @@ export const AdminPlanning = () => {
                   "block transition-all duration-300",
                   isChangingView ? "opacity-0 transform -translate-y-4" : "opacity-100 transform translate-y-0"
                 )}>
-                  {capitalizeFirstLetter(
-                    format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
-                  )}
+                  {filterByDate 
+                    ? format(filterByDate, 'dd MMMM yyyy', { locale: fr })
+                    : capitalizeFirstLetter(
+                        format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
+                      )
+                  }
                 </span>
               </h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={nextPeriod}
-                className="rounded-none border-l border-gray-100 hover:bg-gray-50 transition-colors"
+                className={cn(
+                  "rounded-none border-l border-gray-100 hover:bg-gray-50 transition-colors",
+                  filterByDate ? "opacity-50 cursor-not-allowed" : ""
+                )}
+                disabled={!!filterByDate}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -376,9 +424,12 @@ export const AdminPlanning = () => {
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant={filterByDate ? "default" : "outline"}
                     size="sm"
-                    className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105 flex items-center gap-1.5"
+                    className={cn(
+                      "shadow-sm hover:shadow transition-all duration-200 hover:scale-105 flex items-center gap-1.5",
+                      filterByDate ? "bg-blue-600 text-white hover:bg-blue-700" : ""
+                    )}
                   >
                     <CalendarDays className="h-3.5 w-3.5" />
                     <span>Date précise</span>
@@ -394,6 +445,18 @@ export const AdminPlanning = () => {
                   />
                 </PopoverContent>
               </Popover>
+              
+              {filterByDate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearDateFilter}
+                  className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105 flex items-center gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  <span>Supprimer le filtre</span>
+                </Button>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -407,6 +470,25 @@ export const AdminPlanning = () => {
             </Button>
           </div>
         </div>
+
+        {filterByDate && (
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="default" className="bg-blue-500">Mode filtre</Badge>
+              <span className="text-sm text-blue-700">
+                Affichage uniquement de la journée du {format(filterByDate, 'dd MMMM yyyy', { locale: fr })}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearDateFilter}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+            >
+              Voir le mois complet
+            </Button>
+          </div>
+        )}
 
         <LeaveTypeLegend />
         
@@ -431,7 +513,8 @@ export const AdminPlanning = () => {
                         "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
                         isWeekend(date) ? "text-gray-500" : "",
                         isToday(date) ? "text-blue-600 font-semibold" : "",
-                        highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-50" : ""
+                        filterByDate ? "bg-blue-50" : "",
+                        !filterByDate && highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-50" : ""
                       )}
                     >
                       <div className="text-xs">
@@ -439,7 +522,8 @@ export const AdminPlanning = () => {
                         <div className={cn(
                           "text-sm mt-1 transition-all duration-200",
                           isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : "",
-                          highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-200 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
+                          filterByDate ? "bg-blue-200 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner font-semibold" : "",
+                          !filterByDate && highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-200 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
                         )}>
                           {format(date, 'dd')}
                         </div>
@@ -483,7 +567,9 @@ export const AdminPlanning = () => {
                           timeRecord={getTimeRecordForDay(employee.id, date)}
                           isWeekend={isWeekend(date)}
                           isToday={isToday(date)}
-                          isHighlighted={highlightedDate ? isSameDay(date, highlightedDate) : false}
+                          isHighlighted={
+                            filterByDate ? true : (highlightedDate ? isSameDay(date, highlightedDate) : false)
+                          }
                         />
                       ))}
                     </TableRow>
