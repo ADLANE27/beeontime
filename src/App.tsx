@@ -30,9 +30,16 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
+    console.log("ProtectedRoute: Auth state changed", { 
+      isLoading, 
+      hasSession: !!session, 
+      profileRole: profile?.role,
+      requiredRole
+    });
+    
     let timeoutId: number;
     
-    // Set hasCheckedAuth to true when auth check is complete
+    // Only process when we have a definitive auth state or timeout reached
     if (!isLoading) {
       setHasCheckedAuth(true);
 
@@ -52,7 +59,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
       timeoutId = window.setTimeout(() => {
         setShowLoading(false);
         console.log("Forcing auth check completion after timeout");
-        // If we still don't have auth info after timeout, redirect to login
         if (isLoading) {
           setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
           setHasCheckedAuth(true);
@@ -85,6 +91,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
 
   // If we need to redirect, do so
   if (hasCheckedAuth && redirectPath) {
+    console.log(`Redirecting to ${redirectPath}`);
     return <Navigate to={redirectPath} replace />;
   }
 

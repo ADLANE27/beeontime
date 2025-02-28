@@ -1,179 +1,125 @@
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { Card } from "@/components/ui/card";
-import { Building2, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LogIn, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Navigate, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Portal = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, session, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { session, isLoading } = useAuth();
-  const [loginError, setLoginError] = useState("");
-  const [loginAttempted, setLoginAttempted] = useState(false);
 
   useEffect(() => {
     console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
-    
-    if (session?.user) {
-      console.log("User is logged in, redirecting to employee dashboard");
-      navigate('/employee', { replace: true });
-    }
+    console.log("Auth state event in Portal:", authLoading ? "LOADING" : "INITIAL_SESSION");
+  }, [session, authLoading]);
 
-    // Clean URL from error parameters
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
-      const errorParam = url.searchParams.get('error');
-      const errorDescription = url.searchParams.get('error_description');
-      
-      if (errorDescription?.includes("Invalid login credentials")) {
-        setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
-      } else if (errorDescription?.includes("Email not confirmed")) {
-        setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-      } else if (errorParam) {
-        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
-      }
-      
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    // Listen for auth events
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event in Portal:", event);
-      setLoginAttempted(true);
-      
-      if (event === 'SIGNED_IN' && session) {
-        console.log("SIGNED_IN event - redirecting to employee dashboard");
-        navigate('/employee', { replace: true });
-      } else if (event === 'SIGNED_OUT') {
-        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
-      } else if (event === 'USER_UPDATED') {
-        setLoginError("");
-      }
-    });
-
-    // Set a timeout for the loading state
-    const timeoutId = setTimeout(() => {
-      if (isLoading) {
-        console.log("Portal loading timeout reached");
-      }
-    }, 5000);
-
-    // Clean up listener and timeout
-    return () => {
-      authListener.subscription.unsubscribe();
-      clearTimeout(timeoutId);
-    };
-  }, [session, navigate, isLoading]);
-
-  if (isLoading && !loginAttempted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="text-sm text-primary hover:underline mt-2"
-          >
-            Cliquez ici si le chargement persiste
-          </button>
-        </div>
-      </div>
-    );
+  // If already authenticated, redirect to employee dashboard
+  if (session && !authLoading) {
+    console.log("User already authenticated, redirecting to dashboard");
+    return <Navigate to="/employee" replace />;
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Veuillez saisir votre email et votre mot de passe");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log("Attempting to sign in with email:", email);
+      
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        console.error("Sign in error:", error);
+        toast.error("Identifiants invalides, veuillez réessayer");
+        return;
+      }
+      
+      console.log("Sign in successful, redirecting to employee dashboard");
+      navigate("/employee", { replace: true });
+    } catch (error) {
+      console.error("Exception during sign in:", error);
+      toast.error("Une erreur est survenue lors de la connexion");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="bg-white p-3 rounded-full shadow-sm">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
-          <img 
-            src="/lovable-uploads/ebd70f88-aacb-40cd-b225-d94a0c0f1903.png" 
-            alt="AFTraduction Logo" 
-            className="h-16 w-auto"
-          />
-          <h1 className="text-2xl font-bold text-gray-900">Portail Employé</h1>
-          <p className="text-sm text-gray-600 text-center">
-            Connectez-vous pour accéder à votre espace
-          </p>
-        </div>
-
-        <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          <div className="flex items-center gap-2 mb-6 p-3 bg-primary/5 rounded-lg">
-            <Lock className="h-4 w-4 text-primary" />
-            <span className="text-sm text-primary">Connexion sécurisée</span>
-          </div>
-          
-          {loginError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
-
-          <Auth
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#0F172A',
-                    brandAccent: '#1E293B',
-                    inputBackground: 'white',
-                    inputText: '#0F172A',
-                    inputBorder: '#E2E8F0',
-                    inputBorderHover: '#CBD5E1',
-                    inputBorderFocus: '#0F172A',
-                  },
-                  borderWidths: {
-                    buttonBorderWidth: '1px',
-                    inputBorderWidth: '1px',
-                  },
-                  radii: {
-                    borderRadiusButton: '0.5rem',
-                    buttonBorderRadius: '0.5rem',
-                    inputBorderRadius: '0.5rem',
-                  },
-                }
-              },
-              className: {
-                container: 'space-y-4',
-                button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
-                input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
-                label: 'text-sm font-medium text-gray-700',
-                message: 'text-sm text-red-600'
-              }
-            }}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Adresse email',
-                  password_label: 'Mot de passe',
-                  button_label: 'Se connecter',
-                  loading_button_label: 'Vérification...',
-                  email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe'
-                }
-              }
-            }}
-            theme="light"
-            providers={[]}
-            redirectTo={window.location.origin}
-            showLinks={false}
-            view="sign_in"
-            magicLink={false}
-          />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
+      <div className="max-w-md w-full">
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-1 text-center border-b pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Portail Employé
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre.email@exemple.com"
+                  className="h-12"
+                  disabled={isLoading || authLoading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="********"
+                  className="h-12"
+                  disabled={isLoading || authLoading}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                disabled={isLoading || authLoading}
+              >
+                {isLoading || authLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion en cours...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Se connecter
+                  </>
+                )}
+              </Button>
+              
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-500">
+                  Si vous ne parvenez pas à vous connecter, contactez votre service RH.
+                </p>
+              </div>
+            </form>
+          </CardContent>
         </Card>
-
-        <p className="text-center text-sm text-gray-600 mt-8">
-          © {new Date().getFullYear()} AFTraduction. Tous droits réservés.
-        </p>
       </div>
     </div>
   );

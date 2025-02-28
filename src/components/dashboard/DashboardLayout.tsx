@@ -24,18 +24,27 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const getUserData = async () => {
       try {
         if (user?.id) {
+          console.log("Fetching employee name for user:", user.id);
           const { data: userData, error } = await supabase
             .from('employees')
             .select('first_name, last_name')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
-          if (!error && userData) {
+          if (error) {
+            console.error('Error fetching user data:', error);
+            return;
+          }
+          
+          if (userData) {
+            console.log("Employee data retrieved:", userData);
             setUserName(`${userData.first_name} ${userData.last_name}`);
+          } else {
+            console.log("No employee record found for user ID:", user.id);
           }
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('Exception in getUserData:', error);
       }
     };
     
@@ -43,11 +52,16 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, [user]);
 
   const handleLogout = async () => {
-    if (isLoggingOut) return; // Prevent multiple clicks
+    if (isLoggingOut) {
+      console.log("Logout already in progress, ignoring request");
+      return;
+    }
     
     setIsLoggingOut(true);
     try {
       console.log("Logout initiated");
+      
+      // Call the signOut method from AuthContext
       await signOut();
       
       // Force navigation to portal
@@ -61,11 +75,13 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       
       // As a fallback, try direct logout and force navigation
       try {
+        console.log("Attempting direct Supabase signOut");
         await supabase.auth.signOut();
       } catch (e) {
         console.error("Direct logout failed:", e);
       } finally {
         // Always navigate to portal regardless of errors
+        console.log("Forcing navigation to portal");
         window.location.href = "/portal";
       }
     } finally {
