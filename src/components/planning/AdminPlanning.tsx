@@ -1,5 +1,4 @@
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -341,94 +340,95 @@ export const AdminPlanning = () => {
         
         <div className="relative rounded-lg border border-gray-100 bg-white shadow-inner">
           <div 
-            className={cn(
-              "overflow-auto max-h-[500px]",
-              isChangingView ? "opacity-50" : "opacity-100",
-              "transition-opacity duration-300"
-            )}
+            className="overflow-auto max-h-[500px]"
             style={{ 
               scrollbarWidth: 'thin',
               scrollbarColor: '#cbd5e1 #f8fafc'
             }}
           >
-            <Table className="min-w-max">
-              <TableHeader className="sticky top-0 z-20">
-                <TableRow>
-                  <TableHead 
-                    className="sticky left-0 z-30 bg-white shadow-md w-[200px] border-r border-gray-100"
-                  >
-                    <div className="font-semibold text-gray-900 flex items-center pl-2">
-                      Employé
-                      <div className="ml-auto w-[15px] h-full bg-gradient-to-r from-transparent to-gray-100/70"></div>
-                    </div>
-                  </TableHead>
-                  {getDaysToShow().map((date, i) => (
+            <div className={cn(
+              "min-w-max transition-opacity duration-300",
+              isChangingView ? "opacity-50" : "opacity-100"
+            )}>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-white">
                     <TableHead 
-                      key={i} 
-                      className={cn(
-                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-white z-10 font-semibold",
-                        isWeekend(date) ? "text-gray-500" : "",
-                        isToday(date) ? "text-blue-600" : ""
-                      )}
+                      className="sticky left-0 z-30 bg-white shadow-md w-[200px] border-r border-gray-100 top-0"
                     >
-                      <div className="text-xs">
-                        <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
-                        <div className={cn(
-                          "text-sm mt-1 transition-all duration-200",
-                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
-                        )}>
-                          {format(date, 'dd')}
-                        </div>
+                      <div className="font-semibold text-gray-900 flex items-center pl-2">
+                        Employé
+                        <div className="ml-auto w-[15px] h-full bg-gradient-to-r from-transparent to-gray-100/70"></div>
                       </div>
                     </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={getDaysToShow().length + 1} className="h-96">
-                      <div className="flex flex-col items-center justify-center h-full space-y-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                        <p className="text-gray-500">Chargement du planning...</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  employees.map((employee, index) => (
-                    <TableRow 
-                      key={employee.id} 
-                      className={cn(
-                        "hover:bg-gray-50/30 transition-all duration-150",
-                        index % 2 === 0 ? "bg-gray-50/10" : ""
-                      )}
-                    >
+                    {getDaysToShow().map((date, i) => (
                       <TableHead 
-                        className="sticky left-0 bg-white z-20 w-[200px] shadow-md border-r border-gray-100 hover:bg-gray-50 transition-all duration-100"
+                        key={i} 
+                        className={cn(
+                          "text-center min-w-[100px] p-2 whitespace-pre-line sticky top-0 bg-white z-20 font-semibold",
+                          isWeekend(date) ? "text-gray-500" : "",
+                          isToday(date) ? "text-blue-600" : ""
+                        )}
                       >
-                        <div className="flex flex-col py-1 pl-2 relative group">
-                          <div className="truncate font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                            {`${employee.first_name} ${employee.last_name}`}
+                        <div className="text-xs">
+                          <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
+                          <div className={cn(
+                            "text-sm mt-1 transition-all duration-200",
+                            isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
+                          )}>
+                            {format(date, 'dd')}
                           </div>
-                          <div className="text-xs text-gray-500 truncate">{employee.position}</div>
-                          <div className="absolute right-0 top-0 bottom-0 w-[15px] bg-gradient-to-r from-transparent to-gray-100/70"></div>
                         </div>
                       </TableHead>
-                      {getDaysToShow().map((date, i) => (
-                        <PlanningCell
-                          key={i}
-                          date={date}
-                          leaveRequest={getLeaveRequestForDay(employee.id, date)}
-                          timeRecord={getTimeRecordForDay(employee.id, date)}
-                          isWeekend={isWeekend(date)}
-                          isToday={isToday(date)}
-                        />
-                      ))}
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={getDaysToShow().length + 1} className="h-96">
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                          <p className="text-gray-500">Chargement du planning...</p>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    employees.map((employee, index) => (
+                      <TableRow 
+                        key={employee.id} 
+                        className={cn(
+                          "hover:bg-gray-50/30 transition-all duration-150",
+                          index % 2 === 0 ? "bg-gray-50/10" : ""
+                        )}
+                      >
+                        <TableHead 
+                          className="sticky left-0 bg-white z-20 w-[200px] shadow-md border-r border-gray-100 hover:bg-gray-50 transition-all duration-100"
+                        >
+                          <div className="flex flex-col py-1 pl-2 relative group">
+                            <div className="truncate font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                              {`${employee.first_name} ${employee.last_name}`}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">{employee.position}</div>
+                            <div className="absolute right-0 top-0 bottom-0 w-[15px] bg-gradient-to-r from-transparent to-gray-100/70"></div>
+                          </div>
+                        </TableHead>
+                        {getDaysToShow().map((date, i) => (
+                          <PlanningCell
+                            key={i}
+                            date={date}
+                            leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                            timeRecord={getTimeRecordForDay(employee.id, date)}
+                            isWeekend={isWeekend(date)}
+                            isToday={isToday(date)}
+                          />
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </div>
