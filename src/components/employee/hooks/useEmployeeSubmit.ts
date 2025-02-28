@@ -54,33 +54,29 @@ export const useEmployeeSubmit = (
         toast.success("Employé mis à jour avec succès");
         onSuccess();
       } else {
-        // For new employee creation, we need to use a different approach
-        // Since we don't have admin rights in the frontend
-        
-        // Generate UUID for the new user
+        // For new employee creation
         const newUserId = uuidv4();
         console.log("Generated new user ID:", newUserId);
         
-        // First create the employee record with this ID
-        console.log("Creating employee with ID:", newUserId);
-        const { data: employeeResult, error: employeeError } = await supabase
+        // Step 1: Create the employee record
+        console.log("Creating employee record with ID:", newUserId);
+        const { error: employeeError } = await supabase
           .from('employees')
           .insert({
             ...employeeRecord,
             id: newUserId
-          })
-          .select();
+          });
         
         if (employeeError) {
           console.error("Error creating employee:", employeeError);
           throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
         }
         
-        console.log("Employee created successfully:", employeeResult);
+        console.log("Employee record created successfully");
         
-        // Create a profile entry with the same ID
+        // Step 2: Create the profile entry
         console.log("Creating profile with ID:", newUserId);
-        const { data: profileResult, error: profileError } = await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: newUserId,
@@ -88,36 +84,32 @@ export const useEmployeeSubmit = (
             first_name: employeeData.firstName,
             last_name: employeeData.lastName,
             role: 'employee'
-          })
-          .select();
+          });
         
         if (profileError) {
           console.error("Error creating profile:", profileError);
           
-          // Try to clean up the employee record we just created
+          // Clean up the employee record if profile creation fails
           console.log("Attempting to delete employee after profile creation failure");
-          const { error: cleanupError } = await supabase
+          await supabase
             .from('employees')
             .delete()
             .eq('id', newUserId);
-            
-          if (cleanupError) {
-            console.error("Error cleaning up employee:", cleanupError);
-          }
           
           throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
         }
         
-        console.log("Profile created successfully:", profileResult);
+        console.log("Profile created successfully");
         
-        // We should create a signup-link for the user instead of direct auth creation
-        // This would be sent to them via email, but for now we'll just log it
+        // Log information for manual account creation
         console.log(`
-          A user was created with:
+          Employee created successfully:
+          ID: ${newUserId}
           Email: ${employeeData.email}
           Password: ${employeeData.initialPassword}
           
-          They should be able to sign in with these credentials after an admin activates their account.
+          An administrator needs to manually create this user in Supabase Auth
+          or send them an invitation link.
         `);
         
         toast.success("Nouvel employé créé avec succès");
