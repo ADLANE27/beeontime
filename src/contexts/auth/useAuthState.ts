@@ -30,7 +30,8 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const profileRetryCount = useRef(0);
-  const MAX_PROFILE_RETRIES = 3;
+  const MAX_PROFILE_RETRIES = 2; // Reduced from 3 to 2
+  const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create a safe state update function to prevent race conditions
   const safeUpdateState = useCallback((updates: Partial<AuthState>) => {
@@ -43,6 +44,14 @@ export function useAuthState() {
   const setProfile = useCallback((profile: Profile | null) => {
     safeUpdateState({ profile });
   }, [safeUpdateState]);
+
+  // Clear any pending timeouts
+  const clearPendingTimeouts = useCallback(() => {
+    if (profileFetchTimeoutRef.current) {
+      clearTimeout(profileFetchTimeoutRef.current);
+      profileFetchTimeoutRef.current = null;
+    }
+  }, []);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!userId || !isMountedRef.current) return;
@@ -67,14 +76,22 @@ export function useAuthState() {
           // Increment retry counter and try again if under max retries
           if (profileRetryCount.current < MAX_PROFILE_RETRIES) {
             profileRetryCount.current++;
-            setTimeout(() => fetchUserProfile(userId), 1000); // Retry after 1 second
+            
+            // Use a ref to store the timeout so we can clear it if needed
+            clearPendingTimeouts();
+            profileFetchTimeoutRef.current = setTimeout(() => {
+              if (isMountedRef.current) {
+                fetchUserProfile(userId);
+              }
+            }, 1000); // Retry after 1 second
             return;
           }
           
           safeUpdateState({ 
             profileFetchAttempted: true,
             isLoading: false,
-            authError: new Error("Profile not found")
+            // Set a more specific error message
+            authError: new Error("Profil introuvable après plusieurs tentatives")
           });
         }
       }
@@ -84,19 +101,27 @@ export function useAuthState() {
       // Increment retry counter and try again if under max retries
       if (profileRetryCount.current < MAX_PROFILE_RETRIES) {
         profileRetryCount.current++;
-        setTimeout(() => fetchUserProfile(userId), 1000); // Retry after 1 second
+        
+        // Use a ref to store the timeout so we can clear it if needed
+        clearPendingTimeouts();
+        profileFetchTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchUserProfile(userId);
+          }
+        }, 1000); // Retry after 1 second
         return;
       }
       
       if (isMountedRef.current) {
+        // Add a way to escape from infinite loading
         safeUpdateState({ 
           profileFetchAttempted: true,
           isLoading: false,
-          authError: error instanceof Error ? error : new Error("Unknown error fetching profile")
+          authError: error instanceof Error ? error : new Error("Erreur lors de la récupération du profil")
         });
       }
     }
-  }, [safeUpdateState]);
+  }, [safeUpdateState, clearPendingTimeouts]);
 
   // Handle session state changes
   const handleAuthStateChange = useCallback(async (event: string, newSession: Session | null) => {
@@ -116,12 +141,16 @@ export function useAuthState() {
       if (newSession?.user?.id) {
         // Reset retry counter when attempting a new login
         profileRetryCount.current = 0;
+        // Clear any existing timeouts
+        clearPendingTimeouts();
         await fetchUserProfile(newSession.user.id);
       } else {
         safeUpdateState({ isLoading: false });
       }
     } else if (event === 'SIGNED_OUT') {
       console.log("User signed out");
+      // Clear any pending timeouts
+      clearPendingTimeouts();
       safeUpdateState({
         session: null,
         user: null,
@@ -139,8 +168,14 @@ export function useAuthState() {
           user: newSession.user
         });
       }
+    } else {
+      // Handle any other events by ensuring we're not stuck in loading
+      console.log("Other auth event:", event);
+      if (authState.isLoading && authState.authInitialized) {
+        safeUpdateState({ isLoading: false });
+      }
     }
-  }, [safeUpdateState, fetchUserProfile]);
+  }, [safeUpdateState, fetchUserProfile, clearPendingTimeouts, authState.isLoading, authState.authInitialized]);
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -185,10 +220,22 @@ export function useAuthState() {
         safeUpdateState({ 
           isLoading: false,
           authInitialized: true,
-          authError: error instanceof Error ? error : new Error("Unknown error in auth initialization")
+          authError: error instanceof Error ? error : new Error("Erreur d'initialisation de l'authentification")
         });
       }
     };
+
+    // Add a timeout to prevent indefinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (isMountedRef.current && authState.isLoading) {
+        console.warn("Auth initialization timeout - forcing loading state to complete");
+        safeUpdateState({
+          isLoading: false,
+          authInitialized: true,
+          authError: new Error("Délai d'authentification dépassé")
+        });
+      }
+    }, 10000); // 10 seconds timeout
     
     initialize();
     
@@ -200,8 +247,10 @@ export function useAuthState() {
       console.log("Auth state hook cleaning up...");
       isMountedRef.current = false;
       subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
+      clearPendingTimeouts();
     };
-  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange]);
+  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, clearPendingTimeouts, authState.isLoading]);
 
   // Destructure the state for API consistency
   const { session, user, profile, isLoading, authInitialized, profileFetchAttempted, authError } = authState;

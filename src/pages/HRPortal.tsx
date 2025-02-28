@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Building2, Lock, Loader2, WifiOff, AlertCircle } from "lucide-react";
+import { Building2, Lock, Loader2, WifiOff, AlertCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,10 +13,11 @@ import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, authReady, profileFetchAttempted } = useAuth();
+  const { session, isLoading, profile, authReady, profileFetchAttempted, authError } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   // Check network status
   useEffect(() => {
@@ -37,26 +38,47 @@ const HRPortal = () => {
     };
   }, []);
 
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.warn("Loading timeout detected in HRPortal");
+        setLoadingTimeout(true);
+      }
+    }, 15000); // 15 seconds timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoading]);
+
   // Handle authentication redirects
   useEffect(() => {
-    if (!authReady) return;
-    
-    if (session && profile) {
-      console.log("HR Portal: Session and profile found, checking role", profile.role);
-      if (profile.role === "hr") {
-        navigate('/hr', { replace: true });
-      } else {
-        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-        navigate('/employee', { replace: true });
+    let redirectTimeout: NodeJS.Timeout | null = null;
+
+    if (authReady || authError || loadingTimeout) {
+      if (session && profile) {
+        console.log("HR Portal: Session and profile found, checking role", profile.role);
+        redirectTimeout = setTimeout(() => {
+          if (profile.role === "hr") {
+            navigate('/hr', { replace: true });
+          } else {
+            toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+            navigate('/employee', { replace: true });
+          }
+        }, 300); // Short delay to avoid immediate redirect
+      } else if (session && !profile && profileFetchAttempted) {
+        console.log("HR Portal: Session exists but no profile found after fetch attempt");
+        setLoginError("Profil utilisateur introuvable. Veuillez contacter l'administrateur.");
+        setAuthCheckComplete(true);
+      } else if (!session && (authReady || loadingTimeout)) {
+        console.log("HR Portal: No session found, user should log in");
+        setAuthCheckComplete(true);
       }
-    } else if (session && !profile && profileFetchAttempted) {
-      console.log("HR Portal: Session exists but no profile found after fetch attempt");
-      setLoginError("Profil utilisateur introuvable. Veuillez contacter l'administrateur.");
-    } else if (!session && authReady) {
-      console.log("HR Portal: No session found, user should log in");
-      setAuthCheckComplete(true);
     }
-  }, [session, profile, navigate, authReady, profileFetchAttempted]);
+
+    return () => {
+      if (redirectTimeout) clearTimeout(redirectTimeout);
+    };
+  }, [session, profile, navigate, authReady, profileFetchAttempted, authError, loadingTimeout]);
 
   // Check for error parameters in URL
   useEffect(() => {
@@ -107,14 +129,54 @@ const HRPortal = () => {
     }
   };
 
+  // Handle manual refresh
+  const handleManualRefresh = () => {
+    window.location.reload();
+  };
+
   // Show clear loading state during authentication check
-  if (!authCheckComplete && isLoading) {
+  if (!authCheckComplete && isLoading && !loadingTimeout) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Vérification de votre session...</p>
+          <Button 
+            variant="link" 
+            className="text-sm text-muted-foreground"
+            onClick={handleManualRefresh}
+          >
+            <RefreshCw className="h-3 w-3 mr-2" />
+            Rafraîchir
+          </Button>
         </div>
+      </div>
+    );
+  }
+
+  // Loading timeout detected
+  if (loadingTimeout && !authCheckComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6 space-y-6">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+            <h1 className="text-2xl font-bold">Délai de connexion dépassé</h1>
+            <p className="text-gray-600">
+              La vérification de votre session prend plus de temps que prévu. Veuillez rafraîchir la page.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <Button 
+              className="w-full" 
+              onClick={handleManualRefresh}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Rafraîchir la page
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -135,8 +197,9 @@ const HRPortal = () => {
           <div className="space-y-4">
             <Button 
               className="w-full" 
-              onClick={() => window.location.reload()}
+              onClick={handleManualRefresh}
             >
+              <RefreshCw className="h-4 w-4 mr-2" />
               Rafraîchir la page
             </Button>
             
@@ -193,6 +256,16 @@ const HRPortal = () => {
           {loginError && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
+
+          {authError && (
+            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Problème d'authentification</AlertTitle>
+              <AlertDescription>
+                {authError.message || "Une erreur s'est produite lors de l'authentification."}
+              </AlertDescription>
             </Alert>
           )}
 
