@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -27,33 +28,28 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile, authReady, profileFetchAttempted } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted } = useAuth();
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
-  const navigate = useNavigate();
-
+  const [timeoutTriggered, setTimeoutTriggered] = useState(false);
+  
   useEffect(() => {
-    const checkAuth = () => {
-      // Don't make decisions if we're still properly loading (but implement a safety fallback below)
-      if (isLoading && !profileFetchAttempted) {
-        console.log("Still loading auth state, waiting...");
-        return;
-      }
-      
-      // No session means we need to redirect to login
+    // Simplified auth check logic
+    if (!isLoading) {
+      // No session means redirect to login
       if (!session) {
         console.log("No session, redirecting to portal");
         setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
         return;
       }
       
-      // Session exists but no profile, but we already tried to fetch it - redirect to login
+      // Session exists but no profile after fetch attempt - redirect to login
       if (session && !profile && profileFetchAttempted) {
         console.log("Session exists but no profile after fetch attempt, redirecting to portal");
         setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
         return;
       }
       
-      // User has a profile but wrong role for HR section
+      // User has wrong role for HR section
       if (profile && requiredRole === "hr" && profile.role !== "hr") {
         console.log("User is not HR, redirecting to employee dashboard");
         toast.error("Vous n'avez pas les droits pour accéder à cette page.");
@@ -61,31 +57,30 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
         return;
       }
       
-      // User authenticated with correct role - keep redirectPath null
+      // User is authenticated with correct role
       console.log("Auth check passed, showing protected content");
       setRedirectPath(null);
-    };
+    }
     
-    checkAuth();
-    
-    // Loading timeout as a safety mechanism
+    // Shorter loading timeout as safety mechanism
     const timeoutId = setTimeout(() => {
       if (isLoading) {
-        console.log("Loading timeout reached, redirecting to login");
+        console.log("Loading timeout reached in protected route, redirecting to login");
+        setTimeoutTriggered(true);
         setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
       }
-    }, 5000);
+    }, 2500); // Reduced from 5s to 2.5s
     
     return () => clearTimeout(timeoutId);
   }, [isLoading, session, profile, requiredRole, profileFetchAttempted]);
 
-  // Show loading state for a reasonable time
-  if (isLoading && !redirectPath && !profileFetchAttempted) {
+  // Show loading state with improved UX
+  if (isLoading && !redirectPath && !timeoutTriggered) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
+          <p className="text-muted-foreground">Chargement de votre profil...</p>
           <button 
             onClick={() => setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal")} 
             className="text-sm text-primary hover:underline mt-4"

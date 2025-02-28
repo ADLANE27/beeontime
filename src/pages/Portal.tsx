@@ -15,31 +15,31 @@ const Portal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading: authLoading, profile } = useAuth();
   const navigate = useNavigate();
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [safetyLoadingTriggered, setSafetyLoadingTriggered] = useState(false);
 
   useEffect(() => {
     console.log("Portal: session state:", session ? "Logged in" : "Not logged in");
     console.log("Portal: profile state:", profile ? `Role: ${profile.role}` : "No profile");
     
-    // Set a safety timeout for loading state
+    // More reliable safety timeout for loading state
     const timeoutId = setTimeout(() => {
       if (authLoading) {
         console.log("Auth loading timeout reached in portal");
-        setLoadingTimeout(true);
+        setSafetyLoadingTriggered(true);
       }
-    }, 3000);
+    }, 2500); // Reduced from 3s to 2.5s
     
     return () => clearTimeout(timeoutId);
   }, [session, authLoading, profile]);
 
-  // Handle loading state with timeout safety
-  const isActuallyLoading = authLoading && !loadingTimeout;
-  
-  // If already authenticated, redirect to dashboard
-  if (session && profile && !isActuallyLoading) {
+  // If already authenticated and we have a profile, redirect to dashboard
+  if (session && profile && !authLoading) {
     console.log("User already authenticated, redirecting to dashboard");
     return <Navigate to="/employee" replace />;
   }
+
+  // Simplified loading check
+  const isActuallyLoading = authLoading && !safetyLoadingTriggered;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +72,87 @@ const Portal = () => {
     }
   };
 
+  // Show "Try again" button if loading takes too long
+  const renderLoadingOrForm = () => {
+    if (isActuallyLoading) {
+      return (
+        <div className="flex flex-col items-center space-y-4 py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <p className="text-gray-500">Chargement en cours...</p>
+        </div>
+      );
+    } else if (safetyLoadingTriggered) {
+      return (
+        <div className="flex flex-col items-center space-y-4 py-8">
+          <p className="text-gray-500">Le chargement prend plus de temps que prévu.</p>
+          <Button 
+            onClick={() => {
+              setSafetyLoadingTriggered(false);
+              window.location.reload();
+            }}
+            variant="outline"
+          >
+            Réessayer
+          </Button>
+        </div>
+      );
+    } else {
+      return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="votre.email@exemple.com"
+              className="h-12"
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Mot de passe</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="********"
+              className="h-12"
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connexion en cours...
+              </>
+            ) : (
+              <>
+                <LogIn className="mr-2 h-4 w-4" />
+                Se connecter
+              </>
+            )}
+          </Button>
+          
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-500">
+              Si vous ne parvenez pas à vous connecter, contactez votre service RH.
+            </p>
+          </div>
+        </form>
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full">
@@ -82,64 +163,7 @@ const Portal = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            {isActuallyLoading ? (
-              <div className="flex flex-col items-center space-y-4 py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-                <p className="text-gray-500">Chargement en cours...</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="votre.email@exemple.com"
-                    className="h-12"
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="********"
-                    className="h-12"
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connexion en cours...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Se connecter
-                    </>
-                  )}
-                </Button>
-                
-                <div className="text-center mt-4">
-                  <p className="text-sm text-gray-500">
-                    Si vous ne parvenez pas à vous connecter, contactez votre service RH.
-                  </p>
-                </div>
-              </form>
-            )}
+            {renderLoadingOrForm()}
           </CardContent>
         </Card>
       </div>

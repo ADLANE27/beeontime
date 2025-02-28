@@ -15,33 +15,16 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const isProfileFetchingRef = useRef(false);
-  const profileFetchTimeoutRef = useRef<number | null>(null);
 
-  // Function to safely update profile with timeout protection
+  // Simplified profile update without timeout complexity
   const updateProfile = async (userId: string) => {
-    // Prevent duplicate profile fetches or fetches after unmount
     if (isProfileFetchingRef.current || !isMountedRef.current) return;
     
     try {
       isProfileFetchingRef.current = true;
       console.log("Fetching profile for user:", userId);
       
-      // Set a timeout to prevent infinite loading
-      profileFetchTimeoutRef.current = window.setTimeout(() => {
-        if (isMountedRef.current && isProfileFetchingRef.current) {
-          console.log("Profile fetch timeout reached, marking as attempted anyway");
-          isProfileFetchingRef.current = false;
-          setProfileFetchAttempted(true);
-        }
-      }, 5000);
-      
       const profileData = await fetchProfile(userId);
-      
-      // Clear the timeout since we got a response
-      if (profileFetchTimeoutRef.current) {
-        clearTimeout(profileFetchTimeoutRef.current);
-        profileFetchTimeoutRef.current = null;
-      }
       
       if (isMountedRef.current) {
         setProfile(profileData);
@@ -51,22 +34,16 @@ export function useAuthState() {
     } catch (error) {
       console.error("Error fetching profile:", error);
       if (isMountedRef.current) {
-        // Even on error, we've attempted to fetch profile
         setProfileFetchAttempted(true);
       }
     } finally {
       if (isMountedRef.current) {
         isProfileFetchingRef.current = false;
-        // Clear timeout if it's still active
-        if (profileFetchTimeoutRef.current) {
-          clearTimeout(profileFetchTimeoutRef.current);
-          profileFetchTimeoutRef.current = null;
-        }
       }
     }
   };
 
-  // Clear auth state
+  // Clear auth state - simplified
   const clearAuthState = () => {
     if (isMountedRef.current) {
       console.log("Clearing auth state");
@@ -77,7 +54,7 @@ export function useAuthState() {
     }
   };
 
-  // Handle session state updates including profile fetching
+  // Handle session update - simplified
   const handleSessionUpdate = async (newSession: Session | null) => {
     if (!isMountedRef.current) return;
     
@@ -87,7 +64,6 @@ export function useAuthState() {
       setSession(newSession);
       setUser(newSession.user);
       
-      // Only fetch profile if we have a user and haven't already started fetching
       if (newSession.user?.id && !isProfileFetchingRef.current) {
         await updateProfile(newSession.user.id);
       }
@@ -95,7 +71,6 @@ export function useAuthState() {
       clearAuthState();
     }
     
-    // Mark auth as initialized and not loading anymore
     if (isMountedRef.current) {
       setIsLoading(false);
       setAuthInitialized(true);
@@ -104,18 +79,16 @@ export function useAuthState() {
 
   useEffect(() => {
     console.log("Auth state hook initializing...");
-    
-    // Create a variable to track if the component is still mounted
     isMountedRef.current = true;
     
-    // Set up a timeout to prevent indefinite loading
+    // Simplified timeout mechanism
     const loadingTimeout = setTimeout(() => {
       if (isMountedRef.current && !authInitialized) {
         console.log("Auth loading timeout reached, forcing completion");
         setIsLoading(false);
         setAuthInitialized(true);
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // Reduced timeout from 5s to 3s
     
     // Check for an existing session
     const initializeAuth = async () => {
@@ -144,10 +117,9 @@ export function useAuthState() {
         
         if (!isMountedRef.current) return;
         
-        // Handle different auth events
+        // Handle different auth events with simplified logic
         switch (event) {
           case 'SIGNED_IN':
-            // Clear previous state to avoid conflicts
             if (profile) {
               setProfile(null);
               setProfileFetchAttempted(false);
@@ -163,14 +135,10 @@ export function useAuthState() {
             
           case 'USER_UPDATED':
           case 'TOKEN_REFRESHED':
-            if (session) {
+            if (session?.user?.id && !isProfileFetchingRef.current) {
               setSession(session);
               setUser(session.user);
-              
-              // Re-fetch profile on user update if user exists and profile fetch not already in progress
-              if (session.user?.id && !isProfileFetchingRef.current) {
-                await updateProfile(session.user.id);
-              }
+              await updateProfile(session.user.id);
             }
             break;
         }
@@ -182,13 +150,6 @@ export function useAuthState() {
       console.log("Auth state hook cleaning up...");
       isMountedRef.current = false;
       clearTimeout(loadingTimeout);
-      
-      // Clear profile fetch timeout if it exists
-      if (profileFetchTimeoutRef.current) {
-        clearTimeout(profileFetchTimeoutRef.current);
-        profileFetchTimeoutRef.current = null;
-      }
-      
       subscription.unsubscribe();
     };
   }, []);

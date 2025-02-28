@@ -18,17 +18,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile
   } = useAuthState();
   
+  // Combine loading states more explicitly
   const isLoading = stateLoading || isLoadingOverride;
-  const setIsLoading = setIsLoadingOverride;
   
-  const { signIn, signOut } = useAuthMethods(setProfile, setIsLoading);
+  const { signIn, signOut } = useAuthMethods(setProfile, setIsLoadingOverride);
 
   // Set auth ready state when initialization is complete
   useEffect(() => {
     if (authInitialized) {
+      console.log("Auth initialized, setting authReady to true");
       setAuthReady(true);
     }
   }, [authInitialized]);
+
+  // Debug auth state changes
+  useEffect(() => {
+    console.log("Auth state updated:", {
+      session: !!session,
+      profile: !!profile,
+      isLoading,
+      authReady,
+      profileFetchAttempted
+    });
+  }, [session, profile, isLoading, authReady, profileFetchAttempted]);
 
   return (
     <AuthContext.Provider
