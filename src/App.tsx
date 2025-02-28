@@ -24,7 +24,15 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, profile } = useAuth();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
+  useEffect(() => {
+    // Set hasCheckedAuth to true when auth check is complete
+    if (!isLoading) {
+      setHasCheckedAuth(true);
+    }
+  }, [isLoading]);
 
   // Show loading state only during initial auth check
   if (isLoading) {
@@ -39,8 +47,13 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: Rea
   }
 
   // If no session, redirect to appropriate portal
-  if (!session) {
+  if (hasCheckedAuth && !session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+  }
+
+  // If wrong role, redirect to appropriate dashboard
+  if (profile && requiredRole === "hr" && profile.role !== "hr") {
+    return <Navigate to="/employee" replace />;
   }
 
   return <>{children}</>;

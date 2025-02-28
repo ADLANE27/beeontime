@@ -13,6 +13,7 @@ const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
     // If user is already authenticated, redirect to HR dashboard
@@ -35,6 +36,7 @@ const HRPortal = () => {
       
       if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session) {
+          setLocalLoading(true);
           navigate('/hr', { replace: true });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -63,11 +65,14 @@ const HRPortal = () => {
     }
   }, []);
 
-  if (isLoading) {
+  if (isLoading || localLoading) {
     // Add a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
       console.log("Loading timeout reached, forcing refresh");
-      window.location.reload();
+      setLocalLoading(false);
+      if (isLoading) {
+        window.location.reload();
+      }
     }, 5000); // 5 seconds timeout
     
     return (
@@ -168,6 +173,10 @@ const HRPortal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
+            onSubmit={(formData) => {
+              setLocalLoading(true);
+              console.log("Login form submitted");
+            }}
           />
         </Card>
 

@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  profile: { role?: string } | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,12 +18,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<{ role?: string } | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);
+      setProfile(null);
       toast.success("Déconnexion réussie");
     } catch (error) {
       console.error("Sign out error:", error);
@@ -34,7 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initial session check
     const checkSession = async () => {
       try {
+        console.log("Checking initial session...");
         const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log("Initial session check result:", initialSession ? "Has session" : "No session");
+        
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
         
@@ -50,12 +57,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("Error fetching profile:", profileError);
           } else {
             console.log("User profile loaded:", profile);
+            setProfile(profile);
           }
         }
+
+        // Mark auth as checked regardless of result
+        setAuthChecked(true);
       } catch (error) {
         console.error("Session check error:", error);
+        // Still mark auth as checked even on error
+        setAuthChecked(true);
       } finally {
-        setIsLoading(false);
+        // Always complete loading after a reasonable timeout
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
       }
     };
     
@@ -64,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log("Auth state changed:", event);
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -81,18 +98,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error fetching profile:", profileError);
         } else {
           console.log("User profile loaded:", profile);
+          setProfile(profile);
         }
       }
       
+      // Always update loading state after auth change
       setIsLoading(false);
+      setAuthChecked(true);
     });
 
-    return () => subscription.unsubscribe();
+    // Force timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.log("Auth loading timeout reached, forcing completion");
+        setIsLoading(false);
+        setAuthChecked(true);
+      }
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, signOut }}>
-      {children}
+    <AuthContext.Provider value={{ session, user, isLoading, signOut, profile }}>
+      {authChecked || !isLoading ? children : (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+          <div className="space-y-4 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Vérification de l'authentification...</p>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }
