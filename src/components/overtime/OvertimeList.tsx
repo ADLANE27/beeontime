@@ -448,7 +448,7 @@ export const OvertimeList = () => {
 
       {/* Dialog pour la modification */}
       <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] mx-auto my-auto">
           <DialogHeader>
             <DialogTitle>Modifier des heures supplémentaires</DialogTitle>
           </DialogHeader>
@@ -517,7 +517,7 @@ export const OvertimeList = () => {
 
       {/* Dialog pour la confirmation de suppression */}
       <Dialog open={openDelete} onOpenChange={setOpenDelete}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] mx-auto my-auto">
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
             <DialogDescription>
