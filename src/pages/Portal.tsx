@@ -44,24 +44,42 @@ const Portal = () => {
       }
     });
 
+    // Set up a listener for auth errors
+    const authListener = supabase.auth.onAuthStateChange(async (event, _session) => {
+      if (event === 'SIGNED_OUT') {
+        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
+      } else if (event === 'USER_UPDATED') {
+        setLoginError("");
+      }
+    });
+
+    // Listen for errors in the URL
+    const checkForErrors = () => {
+      const url = new URL(window.location.href);
+      const errorParam = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
+      
+      if (errorParam) {
+        if (errorDescription?.includes("Invalid login credentials")) {
+          setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+        } else if (errorDescription?.includes("Email not confirmed")) {
+          setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
+        } else {
+          setLoginError(`Erreur de connexion: ${errorDescription}`);
+        }
+        
+        // Remove error params from URL to avoid showing error again on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    
+    checkForErrors();
+
     return () => {
       data.subscription.unsubscribe();
+      authListener.data.subscription.unsubscribe();
     };
   }, []);
-
-  // Handler for login attempts
-  const handleAuthError = async (e: any) => {
-    console.log("Auth error:", e);
-    const errorMessage = e?.error?.message || "";
-    
-    if (errorMessage.includes("Invalid login credentials")) {
-      setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
-    } else if (errorMessage.includes("Email not confirmed")) {
-      setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-    } else {
-      setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
-    }
-  };
 
   if (isLoading) {
     return (
@@ -155,7 +173,6 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
-            onError={handleAuthError}
           />
         </Card>
 
