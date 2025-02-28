@@ -140,7 +140,7 @@ const HRDashboard = () => {
     },
     { 
       value: "events", 
-      label: "Événements RH", 
+      label: "Événements", 
       icon: CalendarCheck,
       gradient: "from-teal-600 to-emerald-700",
       lightGradient: "from-teal-100 to-emerald-200",
@@ -150,7 +150,7 @@ const HRDashboard = () => {
     },
     { 
       value: "leave", 
-      label: "Demandes de congés", 
+      label: "Congés", 
       icon: Clock,
       gradient: "from-amber-600 to-orange-700",
       lightGradient: "from-amber-100 to-orange-200",
@@ -161,7 +161,7 @@ const HRDashboard = () => {
     },
     { 
       value: "overtime", 
-      label: "Heures supplémentaires", 
+      label: "Heures supp.", 
       icon: Clock3,
       gradient: "from-orange-600 to-pink-700",
       lightGradient: "from-orange-100 to-pink-200",
@@ -193,7 +193,7 @@ const HRDashboard = () => {
     },
     { 
       value: "statistics", 
-      label: "Statistiques", 
+      label: "Stats", 
       icon: FileBarChart,
       gradient: "from-indigo-600 to-violet-700",
       lightGradient: "from-indigo-100 to-violet-200",
