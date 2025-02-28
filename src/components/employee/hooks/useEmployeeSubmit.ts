@@ -14,6 +14,14 @@ export const useEmployeeSubmit = (
   const handleSubmit = async (employeeData: NewEmployee) => {
     setIsSubmitting(true);
     try {
+      // Check for active session before proceeding
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("Vous devez être connecté pour effectuer cette action");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare data for Supabase
       const employeeRecord = {
         first_name: employeeData.firstName,
@@ -47,7 +55,12 @@ export const useEmployeeSubmit = (
           .eq('id', employeeId);
           
         if (error) {
-          throw new Error(error.message);
+          if (error.code === 'PGRST301') {
+            toast.error("Vous n'avez pas les permissions nécessaires pour modifier cet employé");
+          } else {
+            throw new Error(error.message);
+          }
+          return;
         }
         
         toast.success("Employé mis à jour avec succès");
@@ -135,12 +148,26 @@ export const useEmployeeSubmit = (
           onSuccess();
         } catch (innerError: any) {
           console.error('Inner error submitting employee data:', innerError);
-          throw innerError;
+          
+          // Handle RLS policy errors
+          if (innerError.code === 'PGRST301') {
+            toast.error("Vous n'avez pas les permissions nécessaires pour créer un employé");
+          } else {
+            throw innerError;
+          }
         }
       }
     } catch (error: any) {
       console.error('Error submitting employee data:', error);
-      toast.error(`Erreur: ${error.message}`);
+      
+      // More detailed error handling
+      if (error.code === '42501') {
+        toast.error("Erreur d'autorisation: Vérifiez vos permissions");
+      } else if (error.code === 'PGRST301') {
+        toast.error("Accès refusé par les politiques de sécurité");
+      } else {
+        toast.error(`Erreur: ${error.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }

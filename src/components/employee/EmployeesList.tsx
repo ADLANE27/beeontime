@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { useEmployeesList } from "./hooks/useEmployeesList";
 
-// Modifié pour correspondre aux données retournées par Supabase
 interface Employee {
   id: string;
   first_name: string;
@@ -23,13 +21,13 @@ interface Employee {
   email: string;
   phone: string | null;
   position: string | null;
-  contract_type: string | null;  // Changé de ContractType à string | null
+  contract_type: string | null;
   start_date: string | null;
   current_year_vacation_days: number | null;
   current_year_used_days: number | null;
   previous_year_vacation_days: number | null;
   previous_year_used_days: number | null;
-  work_schedule: any;  // Changé de WorkSchedule à any pour être compatible avec Json
+  work_schedule: any;
   birth_date: string | null;
   birth_place: string | null;
   birth_country: string | null;
@@ -86,7 +84,7 @@ const EmployeeCard = ({ employee, onDelete, onEdit }: { employee: Employee; onDe
 
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false);
-    onEdit(); // Call the parent component's onEdit function to refresh data
+    onEdit();
     toast.success("Informations de l'employé mises à jour avec succès");
   };
 
@@ -277,27 +275,42 @@ export const EmployeesList = () => {
   const queryClient = useQueryClient();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const fetchEmployees = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .order('last_name', { ascending: true });
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setIsLoading(true);
+      try {
+        const { data: employeesData, error } = await supabase
+          .from('employees')
+          .select('*')
+          .order('last_name', { ascending: true });
 
-      if (error) {
-        console.error("Error fetching employees:", error);
-        toast.error("Erreur lors du chargement des employés");
-      } else {
-        setEmployees(data || []);
+        if (error) {
+          console.error("Error fetching employees:", error);
+          toast.error("Erreur lors du chargement des employés");
+        } else {
+          setEmployees(employeesData || []);
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        toast.error("Une erreur est survenue lors du chargement des données");
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
+    };
+
+    const { data, isLoading: queryLoading, error, isAuthError } = useEmployeesList();
+    
+    if (data) {
+      setEmployees(data);
+      setIsLoading(false);
+    } else if (error && !isAuthError) {
+      console.error("Error loading employees:", error);
+      toast.error("Erreur lors du chargement des employés");
+    }
+    
+    if (!queryLoading && !error) {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchEmployees();
   }, [refreshTrigger]);
 
   useEffect(() => {
@@ -322,12 +335,12 @@ export const EmployeesList = () => {
 
   const handleCreateSuccess = () => {
     setIsNewEmployeeDialogOpen(false);
-    setRefreshTrigger(prev => prev + 1); // Trigger refresh
+    setRefreshTrigger(prev => prev + 1);
     toast.success("Nouvel employé créé avec succès");
   };
 
   const handleEditSuccess = () => {
-    setRefreshTrigger(prev => prev + 1); // Trigger refresh
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleDeleteEmployee = async (id: string) => {
@@ -343,7 +356,7 @@ export const EmployeesList = () => {
       } else {
         toast.success("Employé supprimé avec succès");
         queryClient.invalidateQueries({ queryKey: ['employees'] });
-        setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        setRefreshTrigger(prev => prev + 1);
       }
     } catch (error) {
       console.error("Unexpected error deleting employee:", error);
