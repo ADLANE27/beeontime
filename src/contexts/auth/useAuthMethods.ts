@@ -31,8 +31,13 @@ export function useAuthMethods(
 
       if (data?.user) {
         console.log("Sign in successful:", data.user.id);
-        const profile = await fetchProfile(data.user.id);
-        setProfile(profile);
+        try {
+          const profile = await fetchProfile(data.user.id);
+          setProfile(profile);
+        } catch (profileError) {
+          console.error("Error fetching profile after sign in:", profileError);
+          // Continue even if profile fetch fails - auth is still successful
+        }
       }
 
       setIsLoading(false);
@@ -69,12 +74,14 @@ export function useAuthMethods(
       
       if (error) {
         console.error("Error during sign out:", error);
+        throw error; // Re-throw to allow proper handling upstream
       }
-      
-      setIsLoading(false);
     } catch (error) {
       console.error("Exception during sign out:", error);
+      // Ensure we reset the profile even if there's an error
       setProfile(null);
+      throw error; // Re-throw the error to be handled by the caller
+    } finally {
       setIsLoading(false);
     }
   };

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,77 +15,39 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
+  const { signOut, user, profile } = useAuth();
   const isAdmin = location.pathname.startsWith("/hr");
-  const [userName, setUserName] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        if (user?.id) {
-          console.log("Fetching employee name for user:", user.id);
-          const { data: userData, error } = await supabase
-            .from('employees')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error('Error fetching user data:', error);
-            return;
-          }
-          
-          if (userData) {
-            console.log("Employee data retrieved:", userData);
-            setUserName(`${userData.first_name} ${userData.last_name}`);
-          } else {
-            console.log("No employee record found for user ID:", user.id);
-          }
-        }
-      } catch (error) {
-        console.error('Exception in getUserData:', error);
-      }
-    };
-    
-    getUserData();
-  }, [user]);
+  // Use profile data directly if available
+  const userName = profile ? 
+    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
+    null;
 
   const handleLogout = async () => {
-    if (isLoggingOut) {
-      console.log("Logout already in progress, ignoring request");
-      return;
-    }
+    if (isLoggingOut) return;
     
     setIsLoggingOut(true);
+    const toastId = toast.loading("Déconnexion en cours...");
+    
     try {
-      console.log("Logout initiated");
-      toast.loading("Déconnexion en cours...");
-      
-      // Call the signOut method from AuthContext
       await signOut();
-      
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.success("Déconnexion réussie");
       
-      // Force navigation to portal with a small delay to ensure state is updated
-      console.log("Navigating to portal after logout");
-      setTimeout(() => {
-        navigate("/portal", { replace: true });
-      }, 200);
+      // Navigate to portal
+      navigate("/portal", { replace: true });
     } catch (error) {
       console.error('Error during logout:', error);
+      toast.dismiss(toastId);
       toast.error("Erreur lors de la déconnexion");
       
-      // As a fallback, try direct logout and force navigation
+      // Emergency fallback
       try {
-        console.log("Attempting direct Supabase signOut");
         await supabase.auth.signOut();
+        window.location.href = "/portal";
       } catch (e) {
         console.error("Direct logout failed:", e);
-      } finally {
-        // Always navigate to portal regardless of errors
-        console.log("Forcing navigation to portal");
         window.location.href = "/portal";
       }
     } finally {

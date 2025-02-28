@@ -16,7 +16,6 @@ export function useAuthState() {
   const isMountedRef = useRef(true);
 
   useEffect(() => {
-    isMountedRef.current = true;
     console.log("Auth state hook initializing...");
     
     const initialize = async () => {
@@ -35,6 +34,7 @@ export function useAuthState() {
             try {
               console.log("Fetching initial profile for user:", data.session.user.id);
               const profileData = await fetchProfile(data.session.user.id);
+              
               if (isMountedRef.current) {
                 console.log("Profile data retrieved:", profileData ? "success" : "not found");
                 setProfile(profileData);
@@ -82,20 +82,24 @@ export function useAuthState() {
             try {
               console.log("Fetching profile after sign in for user:", newSession.user.id);
               const profileData = await fetchProfile(newSession.user.id);
+              
               if (isMountedRef.current) {
                 console.log("Profile data after sign in:", profileData ? "success" : "not found");
                 setProfile(profileData);
                 setProfileFetchAttempted(true);
+                setIsLoading(false);
               }
             } catch (error) {
               console.error("Error fetching profile on sign in:", error);
               if (isMountedRef.current) {
                 setProfileFetchAttempted(true);
+                setIsLoading(false);
               }
             }
+          } else {
+            setIsLoading(false);
           }
           
-          setIsLoading(false);
           setAuthInitialized(true);
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
@@ -115,6 +119,7 @@ export function useAuthState() {
       }
     );
     
+    // Clean up function
     return () => {
       console.log("Auth state hook cleaning up...");
       isMountedRef.current = false;

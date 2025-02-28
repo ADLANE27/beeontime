@@ -28,7 +28,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       return profileData as Profile;
     }
     
-    // If no profile found, try the employees table
+    // If no profile found, try the employees table as fallback
     console.log("No profile found, checking employees table");
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
@@ -58,6 +58,6 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     return null;
   } catch (error) {
     console.error("Exception in fetchProfile:", error);
-    return null;
+    throw error; // Re-throw to allow proper handling upstream
   }
 }

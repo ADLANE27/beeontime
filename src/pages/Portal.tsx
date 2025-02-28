@@ -15,13 +15,13 @@ const Portal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading, profile, authReady } = useAuth();
 
-  // Show clear loading state while auth is initializing
+  // Authentication is still initializing
   if (isLoading && !authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
-          <p className="mt-2 text-gray-500">Chargement en cours...</p>
+          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
         </div>
       </div>
     );
@@ -47,11 +47,11 @@ const Portal = () => {
       
       if (error) {
         toast.error("Identifiants invalides, veuillez réessayer");
+        console.error("Login error details:", error.message);
       }
-      
     } catch (error) {
       toast.error("Une erreur est survenue lors de la connexion");
-      console.error("Login error:", error);
+      console.error("Login exception:", error);
     } finally {
       setIsSubmitting(false);
     }
