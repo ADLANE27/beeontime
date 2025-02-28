@@ -6,9 +6,6 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
     console.log("Fetching profile for user:", userId);
     
-    // Add a small delay to ensure supabase is properly initialized
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
