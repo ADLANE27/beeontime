@@ -15,7 +15,7 @@ const Portal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading, profile, authReady } = useAuth();
 
-  // Show loading state while auth is initializing
+  // Show clear loading state while auth is initializing
   if (isLoading && !authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
@@ -51,6 +51,7 @@ const Portal = () => {
       
     } catch (error) {
       toast.error("Une erreur est survenue lors de la connexion");
+      console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
     }

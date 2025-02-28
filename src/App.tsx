@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +22,7 @@ const queryClient = new QueryClient({
 });
 
 interface ProtectedRouteProps {
-  children: React.ReactNode; 
+  children: React.ReactNode;
   requiredRole?: "hr" | "employee";
 }
 
@@ -44,7 +43,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // Session but no profile -> redirect to login with error
+  // Session but no profile -> error message and redirect
   if (!profile) {
     toast.error("Session invalide. Veuillez vous reconnecter.");
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;

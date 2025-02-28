@@ -3,38 +3,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { Profile } from "./types";
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
+  if (!userId) {
+    console.error("Cannot fetch profile: userId is empty");
+    return null;
+  }
+
   try {
-    // Try to get profile from the profiles table
-    const { data, error } = await supabase
+    console.log("Attempting to fetch profile for user:", userId);
+    
+    // First try the profiles table
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      throw error;
+    if (profileError) {
+      console.error("Error fetching from profiles table:", profileError);
+      throw profileError;
     }
 
-    // If profile was found, return it
-    if (data) {
-      return data as Profile;
-    } 
+    if (profileData) {
+      console.log("Profile found in profiles table");
+      return profileData as Profile;
+    }
     
-    // Try fallback to employees table
+    // If no profile found, try the employees table
+    console.log("No profile found, checking employees table");
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
-      .select("*")
+      .select("id, first_name, last_name, email")
       .eq("id", userId)
       .maybeSingle();
       
     if (employeeError) {
-      console.error("Error in employee fallback fetch:", employeeError);
+      console.error("Error fetching from employees table:", employeeError);
       throw employeeError;
     }
     
     if (employeeData) {
-      // Create a profile-like object from employee data
+      console.log("Employee record found");
+      // Create a profile from employee data
       return {
         id: employeeData.id,
         role: "employee", // Default role for employees
@@ -44,23 +53,11 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       };
     }
     
-    // If no profile found in either table, return minimal fallback profile
-    return {
-      id: userId,
-      role: "employee", // Default fallback role
-      email: "",
-      first_name: "",
-      last_name: ""
-    };
+    // No profile found in either table
+    console.log("No profile found in either table");
+    return null;
   } catch (error) {
     console.error("Exception in fetchProfile:", error);
-    // Return a minimal profile to prevent login loops
-    return {
-      id: userId,
-      role: "employee", // Default fallback role
-      email: "",
-      first_name: "",
-      last_name: ""
-    };
+    return null;
   }
 }

@@ -56,7 +56,7 @@ export function useAuthMethods(
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<void> => {
     try {
       console.log("Signing out...");
       setIsLoading(true);
@@ -67,13 +67,15 @@ export function useAuthMethods(
       // Then perform the Supabase signout
       const { error } = await supabase.auth.signOut();
       
+      if (error) {
+        console.error("Error during sign out:", error);
+      }
+      
       setIsLoading(false);
-      return { error };
     } catch (error) {
       console.error("Exception during sign out:", error);
       setProfile(null);
       setIsLoading(false);
-      return { error: error as Error };
     }
   };
 

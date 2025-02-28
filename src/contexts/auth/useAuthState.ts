@@ -17,7 +17,7 @@ export function useAuthState() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    let authTimeout: NodeJS.Timeout;
+    console.log("Auth state hook initializing...");
     
     const initialize = async () => {
       try {
@@ -27,24 +27,28 @@ export function useAuthState() {
         if (!isMountedRef.current) return;
         
         if (data.session) {
+          console.log("Initial session found:", data.session.user?.id);
           setSession(data.session);
           setUser(data.session.user);
           
-          try {
-            // Fetch profile if we have a user
-            if (data.session.user?.id) {
+          if (data.session.user?.id) {
+            try {
+              console.log("Fetching initial profile for user:", data.session.user.id);
               const profileData = await fetchProfile(data.session.user.id);
               if (isMountedRef.current) {
+                console.log("Profile data retrieved:", profileData ? "success" : "not found");
                 setProfile(profileData);
+                setProfileFetchAttempted(true);
+              }
+            } catch (error) {
+              console.error("Error fetching initial profile:", error);
+              if (isMountedRef.current) {
+                setProfileFetchAttempted(true);
               }
             }
-          } catch (error) {
-            console.error("Error fetching initial profile:", error);
-          } finally {
-            if (isMountedRef.current) {
-              setProfileFetchAttempted(true);
-            }
           }
+        } else {
+          console.log("No initial session found");
         }
         
         if (isMountedRef.current) {
@@ -62,30 +66,24 @@ export function useAuthState() {
     
     initialize();
     
-    // Set a reasonable timeout for auth initialization
-    authTimeout = setTimeout(() => {
-      if (isMountedRef.current && !authInitialized) {
-        console.log("Auth loading timeout reached, forcing completion");
-        setIsLoading(false);
-        setAuthInitialized(true);
-      }
-    }, 2000);
-    
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state event:", event);
         
+        if (!isMountedRef.current) return;
+        
         if (event === 'SIGNED_IN') {
-          if (!isMountedRef.current) return;
-          
+          console.log("User signed in:", newSession?.user?.id);
           setSession(newSession);
           setUser(newSession?.user || null);
           
           if (newSession?.user?.id) {
             try {
+              console.log("Fetching profile after sign in for user:", newSession.user.id);
               const profileData = await fetchProfile(newSession.user.id);
               if (isMountedRef.current) {
+                console.log("Profile data after sign in:", profileData ? "success" : "not found");
                 setProfile(profileData);
                 setProfileFetchAttempted(true);
               }
@@ -97,21 +95,19 @@ export function useAuthState() {
             }
           }
           
-          if (isMountedRef.current) {
-            setIsLoading(false);
-            setAuthInitialized(true);
-          }
+          setIsLoading(false);
+          setAuthInitialized(true);
         } else if (event === 'SIGNED_OUT') {
-          if (isMountedRef.current) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setProfileFetchAttempted(false);
-            setIsLoading(false);
-            setAuthInitialized(true);
-          }
+          console.log("User signed out");
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setProfileFetchAttempted(false);
+          setIsLoading(false);
+          setAuthInitialized(true);
         } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
-          if (newSession && isMountedRef.current) {
+          console.log("User or token updated");
+          if (newSession) {
             setSession(newSession);
             setUser(newSession.user);
           }
@@ -122,7 +118,6 @@ export function useAuthState() {
     return () => {
       console.log("Auth state hook cleaning up...");
       isMountedRef.current = false;
-      clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
