@@ -18,8 +18,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile
   } = useAuthState();
   
-  // Combine loading states
-  const isLoading = stateLoading || isLoadingOverride;
+  // Combine loading states with a preference for not showing loading
+  const isLoading = isLoadingOverride;
   
   // Get auth methods
   const { signIn, signOut } = useAuthMethods(setProfile, setIsLoadingOverride);

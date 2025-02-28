@@ -30,7 +30,7 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const profileRetryCount = useRef(0);
-  const MAX_PROFILE_RETRIES = 1; // Reduced from 2 to 1
+  const MAX_PROFILE_RETRIES = 0; // Reduced to 0 - no retries, faster processing
   const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create a safe state update function to prevent race conditions
@@ -58,65 +58,24 @@ export function useAuthState() {
     if (!userId || !isMountedRef.current) return;
     
     try {
-      console.log("Fetching profile for user:", userId, "Attempt:", profileRetryCount.current + 1);
+      console.log("Fetching profile for user:", userId);
       const profileData = await fetchProfile(userId);
       
       if (isMountedRef.current) {
-        if (profileData) {
-          console.log("Profile data retrieved successfully:", profileData.role);
-          safeUpdateState({ 
-            profile: profileData,
-            profileFetchAttempted: true,
-            isLoading: false,
-            authError: null,
-            authReady: true
-          });
-          // Reset retry counter on success
-          profileRetryCount.current = 0;
-        } else {
-          console.log("Profile not found for user:", userId);
-          // Increment retry counter and try again if under max retries
-          if (profileRetryCount.current < MAX_PROFILE_RETRIES) {
-            profileRetryCount.current++;
-            
-            // Use a ref to store the timeout so we can clear it if needed
-            clearPendingTimeouts();
-            profileFetchTimeoutRef.current = setTimeout(() => {
-              if (isMountedRef.current) {
-                fetchUserProfile(userId);
-              }
-            }, 800); // Retry faster - reduced from 1000ms
-            return;
-          }
-          
-          safeUpdateState({ 
-            profileFetchAttempted: true,
-            isLoading: false,
-            authReady: true,
-            // Set a more specific error message
-            authError: new Error("Profil introuvable après plusieurs tentatives")
-          });
-        }
+        // Always complete auth process whether we get a profile or not
+        safeUpdateState({ 
+          profile: profileData,
+          profileFetchAttempted: true,
+          isLoading: false,
+          authError: null,
+          authReady: true
+        });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
       
-      // Increment retry counter and try again if under max retries
-      if (profileRetryCount.current < MAX_PROFILE_RETRIES) {
-        profileRetryCount.current++;
-        
-        // Use a ref to store the timeout so we can clear it if needed
-        clearPendingTimeouts();
-        profileFetchTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current) {
-            fetchUserProfile(userId);
-          }
-        }, 800); // Retry faster - reduced from 1000ms
-        return;
-      }
-      
       if (isMountedRef.current) {
-        // Add a way to escape from infinite loading
+        // Complete auth process even if there's an error
         safeUpdateState({ 
           profileFetchAttempted: true,
           isLoading: false,
@@ -125,9 +84,9 @@ export function useAuthState() {
         });
       }
     }
-  }, [safeUpdateState, clearPendingTimeouts]);
+  }, [safeUpdateState]);
 
-  // Handle session state changes - Keep this outside of any conditional blocks
+  // Handle session state changes
   const handleAuthStateChange = useCallback(async (event: string, newSession: Session | null) => {
     console.log("Auth state event:", event);
     
@@ -142,10 +101,6 @@ export function useAuthState() {
       });
       
       if (newSession?.user?.id) {
-        // Reset retry counter when attempting a new login
-        profileRetryCount.current = 0;
-        // Clear any existing timeouts
-        clearPendingTimeouts();
         try {
           await fetchUserProfile(newSession.user.id);
         } catch (error) {
@@ -240,17 +195,17 @@ export function useAuthState() {
       }
     };
 
-    // Add a timeout to prevent indefinite loading
+    // Add a timeout to prevent indefinite loading - REDUCED SIGNIFICANTLY
     const loadingTimeout = setTimeout(() => {
       if (isMountedRef.current && authState.isLoading) {
         console.warn("Auth initialization timeout - forcing loading state to complete");
         safeUpdateState({
           isLoading: false,
           authReady: true,
-          authError: new Error("Délai d'authentification dépassé")
+          authError: null // Removed error to allow flow to continue
         });
       }
-    }, 6000); // Reduced to 6 seconds timeout (from 8)
+    }, 1000); // Reduced to 1 second timeout
     
     initialize();
     

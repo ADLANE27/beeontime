@@ -3,90 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Profile } from "./types";
 
 /**
- * Fetches a user profile from the profiles table
- * @param userId The user ID to fetch the profile for
- * @returns The profile data or null if not found
- */
-async function fetchProfileFromProfilesTable(userId: string): Promise<Profile | null> {
-  try {
-    console.log("Attempting to fetch profile from profiles table for:", userId);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-      
-    if (error) {
-      console.error("Error fetching from profiles table:", error);
-      throw new Error(`Failed to fetch from profiles table: ${error.message}`);
-    }
-    
-    if (data) {
-      console.log("Profile found in profiles table:", data.role);
-    } else {
-      console.log("No profile found in profiles table for user:", userId);
-    }
-    
-    return data as Profile | null;
-  } catch (error) {
-    console.error("Network error fetching profile from profiles table:", error);
-    throw error; // Let the caller handle this error or retry
-  }
-}
-
-/**
- * Fetches employee data and converts it to a profile format
- * @param userId The user ID to fetch the employee data for
- * @returns The profile data created from employee data or null if not found
- */
-async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile | null> {
-  try {
-    console.log("Attempting to fetch employee data for:", userId);
-    
-    // Important: Select only columns that actually exist in the employees table
-    const { data, error } = await supabase
-      .from("employees")
-      .select("id, first_name, last_name, email")
-      .eq("id", userId)
-      .maybeSingle();
-      
-    if (error) {
-      console.error("Error fetching from employees table:", error);
-      throw new Error(`Failed to fetch from employees table: ${error.message}`);
-    }
-    
-    if (!data) {
-      console.log("No employee record found for user:", userId);
-      return null;
-    }
-    
-    console.log("Employee record found:", data);
-    
-    // Create a profile from employee data
-    return {
-      id: data.id,
-      role: "employee", // Default role for employees - 'role' doesn't exist in employees table
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email
-    };
-  } catch (error) {
-    console.error("Network error fetching from employees table:", error);
-    throw error; // Let the caller handle this error or retry
-  }
-}
-
-/**
  * Creates a fallback profile when network issues prevent fetching the real one
  * @param userId The user ID to create a fallback profile for
  * @returns A basic fallback profile
  */
-function createFallbackProfile(userId: string, email?: string): Profile {
+function createFallbackProfile(userId: string, email?: string, role?: string): Profile {
   console.log("Creating fallback profile for user:", userId);
   return {
     id: userId,
-    role: "employee", // Default conservative role
-    email: email || ""
+    role: role || "employee", // Default conservative role
+    email: email || "",
+    first_name: "",
+    last_name: ""
   };
 }
 
@@ -104,53 +32,65 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   console.log("Attempting to fetch profile for user:", userId);
   
   try {
-    // First try the profiles table with a direct approach for speed
-    const profileData = await fetchProfileFromProfilesTable(userId);
-    if (profileData) {
-      console.log("Profile found in profiles table, returning it");
-      return profileData;
+    // Faster direct approach - query both tables at once
+    const [profilesResult, employeesResult] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      supabase.from("employees").select("id, first_name, last_name, email").eq("id", userId).maybeSingle()
+    ]);
+    
+    // Check if we got a profile from profiles table
+    if (profilesResult.data && !profilesResult.error) {
+      console.log("Profile found in profiles table:", profilesResult.data.role);
+      return profilesResult.data as Profile;
     }
     
-    // If no profile found, try the employees table as fallback
-    console.log("No profile found, checking employees table");
-    const employeeData = await fetchProfileFromEmployeesTable(userId);
-    if (employeeData) {
+    // Check if we got an employee record
+    if (employeesResult.data && !employeesResult.error) {
       console.log("Employee record found, returning it as profile");
-      return employeeData;
+      
+      // Create a profile from employee data
+      return {
+        id: employeesResult.data.id,
+        role: "employee", // Default role for employees
+        first_name: employeesResult.data.first_name,
+        last_name: employeesResult.data.last_name,
+        email: employeesResult.data.email
+      };
     }
     
     // If we get here, no profile was found in either table
     console.log("No profile found for user:", userId);
     
-    // Get auth user email if available - for better fallback profile
-    let userEmail = "";
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        userEmail = user.email;
+    // Try to get auth user for better fallback profile
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Check if user has a specific email domain to determine role
+    let role = "employee";
+    if (user?.email?.includes("@aftraduction.fr")) {
+      // Try to detect HR email
+      if (user.email.startsWith("rh@") || user.email.startsWith("hr@") || 
+          user.email.includes(".rh@") || user.email.includes(".hr@")) {
+        role = "hr";
       }
-    } catch (e) {
-      console.warn("Could not get user email for fallback profile");
     }
     
-    // Return a fallback profile with minimal data
-    return createFallbackProfile(userId, userEmail);
+    // Return a fallback profile with intelligent role guess
+    return createFallbackProfile(userId, user?.email, role);
     
   } catch (error) {
     console.error("Error fetching profile:", error);
     
-    // Get auth user email if available - for better fallback profile
-    let userEmail = "";
+    // Try to get auth user for better fallback profile
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        userEmail = user.email;
+      if (user) {
+        return createFallbackProfile(userId, user.email);
       }
     } catch (e) {
       console.warn("Could not get user email for fallback profile");
     }
     
-    // Return a fallback profile with minimal data
-    return createFallbackProfile(userId, userEmail);
+    // Return a basic fallback profile with minimal data
+    return createFallbackProfile(userId);
   }
 }
