@@ -32,19 +32,20 @@ const Portal = () => {
     };
   }, [session, navigate]);
 
-  // Custom auth handler to provide better error messages
-  const handleLoginError = (error: any) => {
-    setLoginError("");
-    
-    if (error) {
-      console.error("Login error:", error);
-      if (error.message.includes("Invalid login credentials")) {
-        setLoginError("Email ou mot de passe incorrect.");
+  useEffect(() => {
+    // Set up a listener for auth errors
+    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+      if (event === 'USER_UPDATE_ERROR' || event === 'SIGNED_OUT_ERROR') {
+        setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
       } else {
-        setLoginError(`Erreur de connexion: ${error.message}`);
+        setLoginError("");
       }
-    }
-  };
+    });
+
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -138,7 +139,6 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
-            onError={handleLoginError}
           />
         </Card>
 
@@ -151,4 +151,3 @@ const Portal = () => {
 };
 
 export default Portal;
-
