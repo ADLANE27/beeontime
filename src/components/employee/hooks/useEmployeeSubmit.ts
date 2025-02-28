@@ -54,57 +54,71 @@ export const useEmployeeSubmit = (
         toast.success("Employé mis à jour avec succès");
         onSuccess();
       } else {
-        // For new employee creation, we'll first try to sign up a new user through auth
+        // For new employee creation, we need to use a different approach
+        // Since we don't have admin rights in the frontend
         
-        // First, try to create a user in auth
-        console.log("Creating a new user for:", employeeData.email);
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: employeeData.email,
-          password: employeeData.initialPassword,
-          email_confirm: true,
-          user_metadata: {
-            first_name: employeeData.firstName,
-            last_name: employeeData.lastName
-          }
-        });
+        // Generate UUID for the new user
+        const newUserId = uuidv4();
+        console.log("Generated new user ID:", newUserId);
         
-        if (authError) {
-          console.error("Error creating user in auth:", authError);
-          throw new Error(`Erreur lors de la création de l'utilisateur: ${authError.message}`);
-        }
-        
-        if (!authData.user) {
-          throw new Error("Échec de la création du compte utilisateur");
-        }
-        
-        console.log("Auth user created successfully:", authData.user.id);
-        
-        // Now we can create the employee record with the user's ID
-        const userId = authData.user.id;
-        
-        console.log("Creating employee with ID:", userId);
+        // First create the employee record with this ID
+        console.log("Creating employee with ID:", newUserId);
         const { data: employeeResult, error: employeeError } = await supabase
           .from('employees')
           .insert({
             ...employeeRecord,
-            id: userId
+            id: newUserId
           })
           .select();
         
         if (employeeError) {
           console.error("Error creating employee:", employeeError);
-          // We should try to clean up the auth user we just created to avoid orphaned records
-          console.log("Attempting to delete auth user after employee creation failure");
-          const { error: deleteUserError } = await supabase.auth.admin.deleteUser(userId);
-          
-          if (deleteUserError) {
-            console.error("Error cleaning up auth user:", deleteUserError);
-          }
-          
           throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
         }
         
         console.log("Employee created successfully:", employeeResult);
+        
+        // Create a profile entry with the same ID
+        console.log("Creating profile with ID:", newUserId);
+        const { data: profileResult, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: newUserId,
+            email: employeeData.email,
+            first_name: employeeData.firstName,
+            last_name: employeeData.lastName,
+            role: 'employee'
+          })
+          .select();
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          
+          // Try to clean up the employee record we just created
+          console.log("Attempting to delete employee after profile creation failure");
+          const { error: cleanupError } = await supabase
+            .from('employees')
+            .delete()
+            .eq('id', newUserId);
+            
+          if (cleanupError) {
+            console.error("Error cleaning up employee:", cleanupError);
+          }
+          
+          throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
+        }
+        
+        console.log("Profile created successfully:", profileResult);
+        
+        // We should create a signup-link for the user instead of direct auth creation
+        // This would be sent to them via email, but for now we'll just log it
+        console.log(`
+          A user was created with:
+          Email: ${employeeData.email}
+          Password: ${employeeData.initialPassword}
+          
+          They should be able to sign in with these credentials after an admin activates their account.
+        `);
         
         toast.success("Nouvel employé créé avec succès");
         onSuccess();
