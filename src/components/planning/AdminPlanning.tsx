@@ -492,7 +492,7 @@ export const AdminPlanning = () => {
             isChangingView ? "opacity-50" : "opacity-100"
           )}>
             <Table>
-              <TableHeader className="sticky top-0 z-20 bg-white">
+              <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
                 <TableRow>
                   <TableHead className="sticky left-0 top-0 bg-white z-30 w-[200px] shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
                     <div className="font-medium">Employé</div>
@@ -501,7 +501,7 @@ export const AdminPlanning = () => {
                     <TableHead 
                       key={i} 
                       className={cn(
-                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
+                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium sticky top-0 z-20",
                         isWeekend(date) ? "text-gray-500" : "",
                         isToday(date) ? "text-blue-600 font-semibold" : "",
                         filterByDate ? "bg-blue-50" : "",
