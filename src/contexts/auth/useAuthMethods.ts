@@ -1,0 +1,68 @@
+
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchProfile } from "./profile-service";
+
+export function useAuthMethods(setProfile: (profile: any) => void, setIsLoading: (isLoading: boolean) => void) {
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log("Attempting sign in for:", email);
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Sign in error:", error.message);
+        setIsLoading(false);
+        return { error };
+      }
+
+      if (data?.user) {
+        console.log("Sign in successful:", data.user.id);
+        const profile = await fetchProfile(data.user.id);
+        setProfile(profile);
+      }
+
+      setIsLoading(false);
+      return { error: null };
+    } catch (error) {
+      console.error("Exception during sign in:", error);
+      setIsLoading(false);
+      return { error: error as Error };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      console.log("Signing out...");
+      setIsLoading(true);
+      
+      // First perform the Supabase signout
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error during Supabase signOut:", error);
+        // Continue anyway to clean up local state
+      }
+      
+      // Always clear local state regardless of Supabase response
+      console.log("Clearing local auth state");
+      
+      console.log("Sign out complete");
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Exception during sign out:", error);
+      
+      // Still clear local state on error
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    signIn,
+    signOut
+  };
+}

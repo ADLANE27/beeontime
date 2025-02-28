@@ -10,7 +10,7 @@ import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/auth";
 import { supabase } from "./integrations/supabase/client";
 import { toast } from "sonner";
 
