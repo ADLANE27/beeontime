@@ -40,72 +40,60 @@ export const useEmployeeSubmit = (
         country: employeeData.country
       };
 
-      let result;
-      
       if (isEditing && employeeId) {
         // Update existing employee
-        result = await supabase
+        const { error } = await supabase
           .from('employees')
           .update(employeeRecord)
           .eq('id', employeeId);
           
-        if (result.error) {
-          throw new Error(result.error.message);
+        if (error) {
+          throw new Error(error.message);
         }
         
         toast.success("Employé mis à jour avec succès");
         onSuccess();
       } else {
-        // Create a new employee via direct table insert first
-        // This allows us to bypass the edge function for now
-        try {
-          // Generate a UUID for the new employee
-          const newId = uuidv4();
-          
-          // First try direct insertion into employees table with explicit ID
-          const { data, error } = await supabase
-            .from('employees')
-            .insert({
-              ...employeeRecord,
-              id: newId, // Add the required ID field
-            })
-            .select();
-          
-          if (error) {
-            console.log("Direct insertion failed, trying edge function:", error);
-            throw error; // This will trigger the edge function approach
-          }
-          
-          toast.success("Nouvel employé créé avec succès");
-          onSuccess();
-        } catch (directInsertError) {
-          console.log("Falling back to edge function for employee creation");
-          
-          // Fall back to edge function
-          const response = await supabase.functions.invoke('create-employee', {
-            body: {
-              employeeData: {
-                ...employeeRecord,
-                password: employeeData.initialPassword
-              }
-            }
+        // For new employee creation, we need to:
+        // 1. Create a profile entry first (since employees references profiles)
+        // 2. Then create the employee record
+
+        // Generate UUID for the new user
+        const newUserId = uuidv4();
+        
+        // First create a profile entry
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: newUserId,
+            email: employeeData.email,
+            first_name: employeeData.firstName,
+            last_name: employeeData.lastName,
+            role: 'employee'
           });
-          
-          console.log("Edge function response:", response);
-          
-          // Check for errors in the response
-          if (response.error) {
-            throw new Error(`Erreur lors de la création de l'employé: ${response.error.message}`);
-          }
-          
-          if (!response.data?.success) {
-            throw new Error(response.data?.message || "Une erreur inconnue s'est produite lors de la création de l'employé");
-          }
-          
-          // Success with edge function!
-          toast.success("Nouvel employé créé avec succès");
-          onSuccess();
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
         }
+        
+        // Then create the employee record with the same ID
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .insert({
+            ...employeeRecord,
+            id: newUserId
+          });
+        
+        if (employeeError) {
+          console.error("Error creating employee:", employeeError);
+          // Try to clean up the profile we just created to avoid orphaned records
+          await supabase.from('profiles').delete().eq('id', newUserId);
+          throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
+        }
+        
+        toast.success("Nouvel employé créé avec succès");
+        onSuccess();
       }
     } catch (error: any) {
       console.error('Error submitting employee data:', error);
