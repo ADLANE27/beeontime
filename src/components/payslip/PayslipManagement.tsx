@@ -232,16 +232,12 @@ export const PayslipManagement = () => {
 
       <TabsContent value="payslips">
         <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Gestion des fiches de paie</h2>
-          
-          <div className="space-y-4 mb-8 bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-700">
-              <Upload className="h-5 w-5 text-blue-600" />
-              Téléverser une nouvelle fiche de paie
-            </h3>
-            <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Gestion des fiches de paie</h2>
+            
+            <div className="flex items-center gap-2">
               <select
-                className="flex h-11 w-full rounded-md border-2 border-blue-200 bg-white px-3 py-2 text-sm ring-offset-background focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
               >
@@ -253,52 +249,51 @@ export const PayslipManagement = () => {
                 ))}
               </select>
               
-              <div className="relative flex-1 group">
-                <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 transition-all bg-white hover:border-blue-500 hover:bg-blue-50">
-                  <div className="flex flex-col items-center justify-center">
-                    <FileUp className="h-10 w-10 text-blue-400 mb-2 group-hover:text-blue-600 transition-colors" />
-                    <p className="text-sm text-blue-600 font-medium mb-1 text-center">
-                      {selectedFile ? selectedFile.name : "Glissez-déposez ou cliquez pour téléverser un fichier"}
-                    </p>
-                    <p className="text-xs text-blue-400 text-center">
-                      Formats supportés: PDF
-                    </p>
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  aria-label="Sélectionner un fichier"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative h-9 w-9 border-dashed border-blue-300"
+                  disabled={!!selectedFile}
+                  tabIndex={-1}
+                >
+                  <FileUp className="h-4 w-4 text-blue-500" />
+                </Button>
                 {selectedFile && (
-                  <Badge className="absolute -top-2 -right-2 bg-blue-500 text-white px-3 py-1 rounded-full shadow-sm">
-                    <File className="h-3 w-3 mr-1" />
-                    Fichier sélectionné
+                  <Badge className="absolute -top-2 -right-2 bg-blue-500 text-white px-1.5 py-0.5 rounded-full text-xs z-20">
+                    <File className="h-2.5 w-2.5 mr-0.5" />
                   </Badge>
                 )}
               </div>
               
               <Button 
                 onClick={handlePayslipUpload} 
-                className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 shadow-md h-11 px-6 transition-all hover:scale-105"
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 h-9"
+                disabled={!selectedFile || !selectedEmployee}
               >
-                <Upload className="mr-2 h-4 w-4" />
-                Téléverser
+                <Upload className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-4">
             {employees?.filter(employee => 
               documents?.some(doc => 
                 doc.employee_id === employee.id && doc.type === 'payslip'
               )
             ).map((employee) => (
               <div key={employee.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 border-b">
-                  <h3 className="font-semibold text-gray-800 flex items-center">
-                    <FileCheck className="h-5 w-5 text-blue-500 mr-2" />
+                <div className="bg-gray-50 p-2 border-b">
+                  <h3 className="font-medium text-gray-800 flex items-center text-sm">
+                    <FileCheck className="h-4 w-4 text-blue-500 mr-1.5" />
                     {`${employee.first_name} ${employee.last_name}`}
                   </h3>
                 </div>
@@ -306,39 +301,38 @@ export const PayslipManagement = () => {
                   {documents?.filter(doc => doc.employee_id === employee.id && doc.type === 'payslip')
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                    <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-50 rounded-full">
-                          <FileText className="h-5 w-5 text-blue-500" />
+                        <div className="p-1.5 bg-blue-50 rounded-full">
+                          <FileText className="h-4 w-4 text-blue-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{doc.title}</p>
-                          <p className="text-sm text-gray-500">
-                            <Calendar className="h-3.5 w-3.5 inline mr-1" />
+                          <p className="font-medium text-gray-800 text-sm">{doc.title}</p>
+                          <p className="text-xs text-gray-500">
+                            <Calendar className="h-3 w-3 inline mr-1" />
                             {format(new Date(doc.created_at), "dd MMMM yyyy", { locale: fr })}
                           </p>
                         </div>
                       </div>
-                      <div className="space-x-2">
+                      <div className="flex items-center space-x-1">
                         <Button 
-                          variant="outline" 
-                          size="sm"
+                          variant="ghost" 
+                          size="icon"
                           onClick={() => handleDownload(doc.id, doc.file_path, doc.title)}
                           disabled={downloadingDoc === doc.id}
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-105 transition-transform"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           {downloadingDoc === doc.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Download className="mr-2 h-4 w-4" />
+                            <Download className="h-4 w-4" />
                           )}
-                          Télécharger
                         </Button>
                         <Button 
-                          variant="destructive" 
-                          size="sm" 
+                          variant="ghost" 
+                          size="icon"
                           onClick={() => handleDelete('payslip', doc.id)}
-                          className="hover:scale-105 transition-transform"
+                          className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -353,10 +347,9 @@ export const PayslipManagement = () => {
                 doc.employee_id === employee.id && doc.type === 'payslip'
               )
             ).length === 0 && (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <FileSearch className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 text-lg">Aucune fiche de paie n'a encore été téléversée</p>
-                <p className="text-gray-400 text-sm mt-1">Utilisez le formulaire ci-dessus pour ajouter une fiche de paie</p>
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <FileSearch className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">Aucune fiche de paie n'a encore été téléversée</p>
               </div>
             )}
           </div>
@@ -365,45 +358,41 @@ export const PayslipManagement = () => {
 
       <TabsContent value="documents">
         <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Documents importants</h2>
-          
-          <div className="space-y-4 mb-8 bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-lg border border-green-200 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-green-700">
-              <Upload className="h-5 w-5 text-green-600" />
-              Téléverser un nouveau document
-            </h3>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1 group">
-                <div className="border-2 border-dashed border-green-300 rounded-lg p-4 transition-all bg-white hover:border-green-500 hover:bg-green-50">
-                  <div className="flex flex-col items-center justify-center">
-                    <FileUp className="h-10 w-10 text-green-400 mb-2 group-hover:text-green-600 transition-colors" />
-                    <p className="text-sm text-green-600 font-medium mb-1 text-center">
-                      {selectedFile ? selectedFile.name : "Glissez-déposez ou cliquez pour téléverser un fichier"}
-                    </p>
-                    <p className="text-xs text-green-400 text-center">
-                      Formats supportés: PDF, Word, Excel
-                    </p>
-                    <Input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Documents importants</h2>
+            
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  aria-label="Sélectionner un fichier"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative h-9 w-9 border-dashed border-green-300"
+                  disabled={!!selectedFile}
+                  tabIndex={-1}
+                >
+                  <FileUp className="h-4 w-4 text-green-500" />
+                </Button>
                 {selectedFile && (
-                  <Badge className="absolute -top-2 -right-2 bg-green-500 text-white px-3 py-1 rounded-full shadow-sm">
-                    <File className="h-3 w-3 mr-1" />
-                    Fichier sélectionné
+                  <Badge className="absolute -top-2 -right-2 bg-green-500 text-white px-1.5 py-0.5 rounded-full text-xs z-20">
+                    <File className="h-2.5 w-2.5 mr-0.5" />
                   </Badge>
                 )}
               </div>
+              
               <Button 
                 onClick={handleDocumentUpload} 
-                className="whitespace-nowrap bg-green-600 hover:bg-green-700 shadow-md h-11 px-6 transition-all hover:scale-105"
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 h-9"
+                disabled={!selectedFile}
               >
-                <Upload className="mr-2 h-4 w-4" />
-                Téléverser
+                <Upload className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -411,9 +400,9 @@ export const PayslipManagement = () => {
           <div className="space-y-4">
             {documents?.filter(doc => doc.type === 'important_document').length ? (
               <div className="rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-3 border-b">
-                  <h3 className="font-semibold text-gray-800 flex items-center">
-                    <FileCheck className="h-5 w-5 text-green-500 mr-2" />
+                <div className="bg-gray-50 p-2 border-b">
+                  <h3 className="font-medium text-gray-800 flex items-center text-sm">
+                    <FileCheck className="h-4 w-4 text-green-500 mr-1.5" />
                     Documents d'entreprise
                   </h3>
                 </div>
@@ -421,39 +410,38 @@ export const PayslipManagement = () => {
                   {documents?.filter(doc => doc.type === 'important_document')
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                    <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-50 rounded-full">
-                          <FileText className="h-5 w-5 text-green-500" />
+                        <div className="p-1.5 bg-green-50 rounded-full">
+                          <FileText className="h-4 w-4 text-green-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{doc.title}</p>
-                          <p className="text-sm text-gray-500">
-                            <Calendar className="h-3.5 w-3.5 inline mr-1" />
+                          <p className="font-medium text-gray-800 text-sm">{doc.title}</p>
+                          <p className="text-xs text-gray-500">
+                            <Calendar className="h-3 w-3 inline mr-1" />
                             {format(new Date(doc.created_at), "dd MMMM yyyy", { locale: fr })}
                           </p>
                         </div>
                       </div>
-                      <div className="space-x-2">
+                      <div className="flex items-center space-x-1">
                         <Button 
-                          variant="outline" 
-                          size="sm"
+                          variant="ghost" 
+                          size="icon"
                           onClick={() => handleDownload(doc.id, doc.file_path, doc.title)}
                           disabled={downloadingDoc === doc.id}
-                          className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:scale-105 transition-transform"
+                          className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
                           {downloadingDoc === doc.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Download className="mr-2 h-4 w-4" />
+                            <Download className="h-4 w-4" />
                           )}
-                          Télécharger
                         </Button>
                         <Button 
-                          variant="destructive" 
-                          size="sm"
+                          variant="ghost" 
+                          size="icon"
                           onClick={() => handleDelete('document', doc.id)}
-                          className="hover:scale-105 transition-transform"
+                          className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -463,10 +451,9 @@ export const PayslipManagement = () => {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <FileSearch className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 text-lg">Aucun document important n'a encore été téléversé</p>
-                <p className="text-gray-400 text-sm mt-1">Utilisez le formulaire ci-dessus pour ajouter un document</p>
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <FileSearch className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">Aucun document important n'a encore été téléversé</p>
               </div>
             )}
           </div>
