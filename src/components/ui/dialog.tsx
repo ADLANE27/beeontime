@@ -61,7 +61,7 @@ const DialogContentFullScreen = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-0 z-50 grid w-full h-full gap-4 border bg-background p-6 shadow-lg overflow-y-auto",
+        "fixed inset-0 z-50 grid w-full h-full gap-4 border bg-background p-6 shadow-lg overflow-y-auto animate-in fade-in-0",
         className
       )}
       {...props}
