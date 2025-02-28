@@ -15,8 +15,9 @@ const Portal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading, profile, authReady } = useAuth();
 
-  // Authentication is still initializing
-  if (isLoading && !authReady) {
+  // Consolidated loading state handling - shows a loading indicator
+  // only when authentication is still initializing
+  if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -28,7 +29,7 @@ const Portal = () => {
   }
 
   // If already authenticated and we have a profile, redirect to dashboard
-  if (session && profile && authReady) {
+  if (session && profile) {
     return <Navigate to="/employee" replace />;
   }
 
