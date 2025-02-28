@@ -412,15 +412,6 @@ export const AdminPlanning = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={goToToday}
-                className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
-              >
-                Aujourd'hui
-              </Button>
-              
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
