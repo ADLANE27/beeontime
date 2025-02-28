@@ -1,6 +1,6 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Database } from "@/integrations/supabase/types";
 import { generatePlanningPDF } from "@/utils/pdf";
 import { createEvents } from 'ics';
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
