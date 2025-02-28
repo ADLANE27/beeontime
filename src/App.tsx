@@ -61,7 +61,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
         setRedirectPath(null); // No redirect needed
       }
     } else {
-      // Set a timeout to stop showing loading after 2 seconds
+      // Set a timeout to stop showing loading after a shorter time
       timeoutId = window.setTimeout(() => {
         setShowLoading(false);
         console.log("Forcing auth check completion after timeout");
@@ -69,7 +69,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
           setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
           setHasCheckedAuth(true);
         }
-      }, 2000); // Reduced from 3000ms to 2000ms for faster loading experience
+      }, 1800); // Reduced from 2000ms to 1800ms for faster loading experience
     }
     
     return () => {

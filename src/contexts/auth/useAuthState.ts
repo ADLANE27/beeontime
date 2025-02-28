@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Profile } from "./types";
@@ -11,25 +11,26 @@ export function useAuthState() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    console.log("Checking initial session...");
+    console.log("Auth state hook initializing...");
     
     // Create a variable to track if the component is still mounted
-    let isMounted = true;
+    isMountedRef.current = true;
     
     // Set up a timeout to prevent indefinite loading
     const loadingTimeout = setTimeout(() => {
-      if (isMounted) {
+      if (isMountedRef.current) {
         console.log("Auth loading timeout reached, forcing completion");
         setIsLoading(false);
         setAuthInitialized(true);
       }
-    }, 2000); // Reduced from 3000ms to 2000ms for faster timeout
+    }, 1800); // Reduced timeout for faster auth initialization
     
     // Check for an existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       console.log("Initial session check result:", session ? "Session found" : "No session");
       
@@ -40,8 +41,9 @@ export function useAuthState() {
         try {
           if (session.user?.id) {
             const profile = await fetchProfile(session.user.id);
-            if (isMounted) {
+            if (isMountedRef.current) {
               setProfile(profile);
+              console.log("Profile fetched successfully:", profile?.role);
             }
           }
         } catch (error) {
@@ -49,13 +51,13 @@ export function useAuthState() {
         }
       }
       
-      if (isMounted) {
+      if (isMountedRef.current) {
         setIsLoading(false);
         setAuthInitialized(true);
         clearTimeout(loadingTimeout); // Clear timeout once loaded
       }
     }).catch(error => {
-      if (isMounted) {
+      if (isMountedRef.current) {
         console.error("Error checking initial session:", error);
         setIsLoading(false);
         setAuthInitialized(true);
@@ -68,18 +70,25 @@ export function useAuthState() {
       async (event, session) => {
         console.log("Auth state event:", event);
         
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
         
         // Update state based on the event
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Immediately set loading to false if signing out to prevent loading screen
+        if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          setIsLoading(false);
+        }
+        
         // Reload profile when auth state changes
         try {
           if (session?.user?.id) {
             const profile = await fetchProfile(session.user.id);
-            if (isMounted) {
+            if (isMountedRef.current) {
               setProfile(profile);
+              console.log("Profile updated after auth change:", profile?.role);
             }
           } else {
             setProfile(null);
@@ -92,7 +101,7 @@ export function useAuthState() {
     
     // Cleanup function
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };

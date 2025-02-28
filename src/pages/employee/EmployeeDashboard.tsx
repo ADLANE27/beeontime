@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Clock4, CalendarDays, AlertTriangle, Menu } from "lucide-react";
@@ -7,7 +8,7 @@ import { PayslipList } from "@/components/payslip/PayslipList";
 import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 import { TimeClock } from "@/components/attendance/TimeClock";
 import { EmployeeDelayList } from "@/components/delays/EmployeeDelayList";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +18,18 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EmployeeDashboard = () => {
   const [selectedTab, setSelectedTab] = useState("documents");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    // For debugging - log when dashboard mounts and if session exists
+    console.log("EmployeeDashboard mounted, session status:", session ? "Active" : "None");
+  }, [session]);
 
   const menuItems = [
     { value: "documents", label: "Documents", icon: FileText },
