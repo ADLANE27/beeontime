@@ -48,27 +48,46 @@ export const useEmployeeSubmit = (
           .update(employeeRecord)
           .eq('id', employeeId);
       } else {
-        // Pour la création d'un nouvel employé, nous allons d'abord essayer d'insérer directement 
-        // l'employé sans créer de profil, car il semble que le profil soit créé automatiquement 
-        // par un trigger dans Supabase lors de la création d'un utilisateur dans auth.users
+        // Pour la création d'un nouvel employé, nous devons vérifier si l'utilisateur existe déjà dans auth
+
+        // 1. Vérifiez d'abord si un utilisateur avec cet email existe dans auth
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', employeeData.email)
+          .single();
+
+        let userId;
         
-        // Generate UUID for the new employee
-        const id = crypto.randomUUID();
+        if (existingUser) {
+          // Si l'utilisateur existe déjà, utilisez son ID
+          userId = existingUser.id;
+          
+          // Vérifiez si un employé existe déjà avec cet ID
+          const { data: existingEmployee } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+            
+          if (existingEmployee) {
+            throw new Error(`Un employé avec l'email ${employeeData.email} existe déjà.`);
+          }
+        } else {
+          // Si l'utilisateur n'existe pas dans profiles, l'authentification est nécessaire
+          throw new Error(
+            "Impossible de créer l'employé. Veuillez d'abord créer un compte utilisateur dans le système d'authentification. " +
+            "Créez un utilisateur avec l'email " + employeeData.email + " via le panneau d'administration Supabase."
+          );
+        }
         
-        // Créer l'employé directement
+        // Créer l'employé avec l'ID d'utilisateur existant
         result = await supabase
           .from('employees')
           .insert({
-            id,
+            id: userId,
             ...employeeRecord
           });
-          
-        // Si cela échoue en raison de la contrainte de clé étrangère, nous informons l'utilisateur
-        if (result.error && result.error.message.includes('violates foreign key constraint')) {
-          throw new Error(
-            "Impossible de créer l'employé. Veuillez d'abord créer un compte utilisateur dans le système d'authentification."
-          );
-        }
       }
       
       if (result.error) {
