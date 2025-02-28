@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -260,7 +259,6 @@ export const EmployeesList = () => {
   const [filterContract, setFilterContract] = useState<string>("all");
   const queryClient = useQueryClient();
 
-  // Set up real-time subscription
   useEffect(() => {
     console.log('Setting up real-time subscription for employees...');
     
@@ -275,10 +273,8 @@ export const EmployeesList = () => {
         },
         async (payload) => {
           console.log('Received real-time update:', payload);
-          // Invalidate and refetch the employees query
           await queryClient.invalidateQueries({ queryKey: ['employees'] });
           
-          // Show toast notification for updates
           const action = payload.eventType === 'INSERT' ? 'ajouté' 
             : payload.eventType === 'DELETE' ? 'supprimé' 
             : 'mis à jour';
@@ -296,14 +292,12 @@ export const EmployeesList = () => {
         }
       });
 
-    // Cleanup subscription on component unmount
     return () => {
       console.log('Cleaning up employees subscription...');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
-  // Query with automatic background updates
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
@@ -323,19 +317,15 @@ export const EmployeesList = () => {
         work_schedule: employee.work_schedule as WorkSchedule
       })) as Employee[];
     },
-    // Enable background refetching
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 30000, // Refetch every 30 seconds as a fallback
+    refetchInterval: 30000,
   });
 
   const handleDeleteEmployee = async (employeeId: string) => {
     try {
-      // Start transaction to delete all related data
       console.log(`Deleting employee with ID: ${employeeId}`);
       
-      // 1. Delete related documents
-      console.log("Deleting leave request documents...");
       const { data: leaveRequests } = await supabase
         .from('leave_requests')
         .select('id')
@@ -349,7 +339,6 @@ export const EmployeesList = () => {
           .in('leave_request_id', leaveRequestIds);
       }
       
-      console.log("Deleting HR event documents...");
       const { data: hrEvents } = await supabase
         .from('hr_events')
         .select('id')
@@ -363,56 +352,41 @@ export const EmployeesList = () => {
           .in('event_id', hrEventIds);
       }
       
-      console.log("Deleting employee documents...");
       await supabase
         .from('documents')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 2. Delete time records
-      console.log("Deleting time records...");
       await supabase
         .from('time_records')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 3. Delete leave requests
-      console.log("Deleting leave requests...");
       await supabase
         .from('leave_requests')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 4. Delete delays
-      console.log("Deleting delays...");
       await supabase
         .from('delays')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 5. Delete overtime requests
-      console.log("Deleting overtime requests...");
       await supabase
         .from('overtime_requests')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 6. Delete HR events
-      console.log("Deleting HR events...");
       await supabase
         .from('hr_events')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 7. Delete vacation history
-      console.log("Deleting vacation history...");
       await supabase
         .from('vacation_history')
         .delete()
         .eq('employee_id', employeeId);
       
-      // 8. Finally delete the employee record
-      console.log("Deleting employee record...");
       const { error: employeeDeleteError } = await supabase
         .from('employees')
         .delete()
@@ -426,8 +400,6 @@ export const EmployeesList = () => {
 
       toast.success("Employé supprimé avec succès");
       
-      // Data will be updated automatically via real-time subscription,
-      // but we'll also invalidate the cache just to be sure
       await queryClient.invalidateQueries({ queryKey: ['employees'] });
     } catch (error) {
       console.error('Error deleting employee:', error);
@@ -435,7 +407,6 @@ export const EmployeesList = () => {
     }
   };
 
-  // Filter the employees based on search query and contract filter
   const filteredEmployees = employees?.filter(employee => {
     const matchesSearch = !searchQuery || 
       `${employee.first_name} ${employee.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -447,7 +418,6 @@ export const EmployeesList = () => {
     return matchesSearch && matchesContract;
   });
 
-  // Get contract types counts
   const contractCounts = employees?.reduce((acc, employee) => {
     acc[employee.contract_type] = (acc[employee.contract_type] || 0) + 1;
     return acc;
@@ -551,7 +521,6 @@ export const EmployeesList = () => {
         </div>
       )}
 
-      {/* Dialog for adding a new employee */}
       <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
         <DialogContent className="fixed inset-0 flex items-center justify-center z-50 p-0 m-0 max-w-none bg-transparent">
           <div className="bg-white rounded-lg shadow-lg w-[95%] sm:w-[90%] md:w-[85%] max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6 mx-auto my-auto transform scale-100 animate-scale-up">
