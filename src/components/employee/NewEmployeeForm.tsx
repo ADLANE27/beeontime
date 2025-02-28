@@ -66,7 +66,7 @@ export const NewEmployeeForm = ({
   const previousYearBalance = formData.previousYearVacationDays - formData.previousYearUsedDays;
 
   return (
-    <div className="max-w-3xl mx-auto py-4">
+    <div className="p-6">
       <form 
         onSubmit={(e) => {
           e.preventDefault();

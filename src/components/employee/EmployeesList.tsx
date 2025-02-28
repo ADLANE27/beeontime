@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogContentFullScreen } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,49 +171,51 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
                 Modifier
               </Button>
             </DialogTrigger>
-            <DialogContent className="p-0 max-w-4xl">
-              <div className="px-6 py-4 border-b">
-                <DialogTitle className="text-xl font-bold">Modifier l'employé</DialogTitle>
-                <DialogDescription>
-                  Modifiez les informations de {employee.first_name} {employee.last_name}
-                </DialogDescription>
+            <DialogContentFullScreen className="p-0">
+              <div className="container max-w-4xl mx-auto p-6">
+                <div className="mb-6">
+                  <DialogTitle className="text-2xl font-bold mb-2">Modifier l'employé</DialogTitle>
+                  <DialogDescription>
+                    Modifiez les informations de {employee.first_name} {employee.last_name}
+                  </DialogDescription>
+                </div>
+                
+                <div className="bg-white rounded-lg border overflow-hidden">
+                  <NewEmployeeForm
+                    initialData={{
+                      firstName: employee.first_name,
+                      lastName: employee.last_name,
+                      email: employee.email,
+                      phone: employee.phone || '',
+                      birthDate: employee.birth_date || '',
+                      birthPlace: employee.birth_place || '',
+                      birthCountry: employee.birth_country || '',
+                      socialSecurityNumber: employee.social_security_number || '',
+                      contractType: (employee.contract_type as ContractType) || 'CDI',
+                      startDate: employee.start_date || '',
+                      position: (employee.position as Position) || 'Traducteur',
+                      workSchedule: employee.work_schedule as WorkSchedule || {
+                        startTime: '09:00',
+                        endTime: '17:00',
+                        breakStartTime: '12:30',
+                        breakEndTime: '13:30'
+                      },
+                      currentYearVacationDays: employee.current_year_vacation_days || 0,
+                      currentYearUsedDays: employee.current_year_used_days || 0,
+                      previousYearVacationDays: employee.previous_year_vacation_days || 0,
+                      previousYearUsedDays: employee.previous_year_used_days || 0,
+                      initialPassword: '',
+                      streetAddress: employee.street_address || '',
+                      city: employee.city || '',
+                      postalCode: employee.postal_code || '',
+                      country: employee.country || ''
+                    }}
+                    onSuccess={() => setIsEditDialogOpen(false)}
+                    isEditing={true}
+                  />
+                </div>
               </div>
-              
-              <div className="px-0 py-0 max-h-[80vh] overflow-y-auto">
-                <NewEmployeeForm
-                  initialData={{
-                    firstName: employee.first_name,
-                    lastName: employee.last_name,
-                    email: employee.email,
-                    phone: employee.phone || '',
-                    birthDate: employee.birth_date || '',
-                    birthPlace: employee.birth_place || '',
-                    birthCountry: employee.birth_country || '',
-                    socialSecurityNumber: employee.social_security_number || '',
-                    contractType: (employee.contract_type as ContractType) || 'CDI',
-                    startDate: employee.start_date || '',
-                    position: (employee.position as Position) || 'Traducteur',
-                    workSchedule: employee.work_schedule as WorkSchedule || {
-                      startTime: '09:00',
-                      endTime: '17:00',
-                      breakStartTime: '12:30',
-                      breakEndTime: '13:30'
-                    },
-                    currentYearVacationDays: employee.current_year_vacation_days || 0,
-                    currentYearUsedDays: employee.current_year_used_days || 0,
-                    previousYearVacationDays: employee.previous_year_vacation_days || 0,
-                    previousYearUsedDays: employee.previous_year_used_days || 0,
-                    initialPassword: '',
-                    streetAddress: employee.street_address || '',
-                    city: employee.city || '',
-                    postalCode: employee.postal_code || '',
-                    country: employee.country || ''
-                  }}
-                  onSuccess={() => setIsEditDialogOpen(false)}
-                  isEditing={true}
-                />
-              </div>
-            </DialogContent>
+            </DialogContentFullScreen>
           </Dialog>
 
           <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -466,17 +468,20 @@ export const EmployeesList = () => {
         <DialogTrigger asChild>
           {/* This trigger is hidden, the main button is above */}
         </DialogTrigger>
-        <DialogContent className="max-w-4xl p-0">
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-xl font-bold">Ajouter un nouvel employé</DialogTitle>
-            <DialogDescription>
-              Remplissez le formulaire ci-dessous pour créer un nouvel employé.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-            <NewEmployeeForm onSuccess={handleCreateSuccess} />
+        <DialogContentFullScreen className="p-0">
+          <div className="container max-w-4xl mx-auto p-6">
+            <div className="mb-6">
+              <DialogTitle className="text-2xl font-bold mb-2">Ajouter un nouvel employé</DialogTitle>
+              <DialogDescription>
+                Remplissez le formulaire ci-dessous pour créer un nouvel employé.
+              </DialogDescription>
+            </div>
+            
+            <div className="bg-white rounded-lg border overflow-hidden">
+              <NewEmployeeForm onSuccess={handleCreateSuccess} />
+            </div>
           </div>
-        </DialogContent>
+        </DialogContentFullScreen>
       </Dialog>
     </div>
   );
