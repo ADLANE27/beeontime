@@ -5,8 +5,8 @@ import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, is
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight, ArrowDown, ArrowUp, ArrowLeft, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
 import { PlanningCell } from "./PlanningCell";
@@ -51,6 +51,8 @@ export const AdminPlanning = () => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [isLoading, setIsLoading] = useState(true);
   const [isChangingView, setIsChangingView] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   const firstDayOfPeriod = viewMode === 'month' 
     ? startOfMonth(currentDate)
@@ -118,6 +120,19 @@ export const AdminPlanning = () => {
 
     fetchData();
   }, [currentDate, viewMode]);
+
+  // Effect to scroll to today's date when data is loaded
+  useEffect(() => {
+    if (!isLoading && tableRef.current) {
+      // Find today's cell if it exists
+      const todayCell = tableRef.current.querySelector('[data-today="true"]');
+      if (todayCell) {
+        setTimeout(() => {
+          todayCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }, 300);
+      }
+    }
+  }, [isLoading]);
 
   const nextPeriod = () => {
     setIsChangingView(true);
@@ -262,6 +277,23 @@ export const AdminPlanning = () => {
     });
   };
 
+  // Navigation control for the table scroll
+  const scrollTable = (direction: 'left' | 'right' | 'up' | 'down') => {
+    if (!scrollAreaRef.current) return;
+    
+    const scrollAmount = direction === 'left' || direction === 'right' ? 300 : 200;
+    
+    if (direction === 'left') {
+      scrollAreaRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else if (direction === 'right') {
+      scrollAreaRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    } else if (direction === 'up') {
+      scrollAreaRef.current.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+    } else if (direction === 'down') {
+      scrollAreaRef.current.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   return (
     <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden backdrop-blur-sm">
       <div className="space-y-4 p-4">
@@ -339,81 +371,133 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" orientation="both">
-          <div className={cn(
-            "min-w-max transition-opacity duration-300",
-            isChangingView ? "opacity-50" : "opacity-100"
-          )}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
-                    <div className="font-medium">Employé</div>
-                  </TableHead>
-                  {getDaysToShow().map((date, i) => (
-                    <TableHead 
-                      key={i} 
-                      className={cn(
-                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
-                        isWeekend(date) ? "text-gray-500" : "",
-                        isToday(date) ? "text-blue-600 font-semibold" : ""
-                      )}
-                    >
-                      <div className="text-xs">
-                        <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
-                        <div className={cn(
-                          "text-sm mt-1 transition-all duration-200",
-                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
-                        )}>
-                          {format(date, 'dd')}
-                        </div>
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={getDaysToShow().length + 1} className="h-96">
-                      <div className="flex flex-col items-center justify-center h-full space-y-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                        <p className="text-gray-500">Chargement du planning...</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  employees.map((employee, index) => (
-                    <TableRow 
-                      key={employee.id} 
-                      className={cn(
-                        "hover:bg-gray-50/30 transition-all duration-150",
-                        index % 2 === 0 ? "bg-gray-50/10" : ""
-                      )}
-                    >
-                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
-                        <div className="truncate font-medium">
-                          {`${employee.first_name} ${employee.last_name}`}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">{employee.position}</div>
-                      </TableHead>
-                      {getDaysToShow().map((date, i) => (
-                        <PlanningCell
-                          key={i}
-                          date={date}
-                          leaveRequest={getLeaveRequestForDay(employee.id, date)}
-                          timeRecord={getTimeRecordForDay(employee.id, date)}
-                          isWeekend={isWeekend(date)}
-                          isToday={isToday(date)}
-                        />
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+        {/* Navigation controls for the table */}
+        <div className="flex justify-center items-center mb-2 gap-2">
+          <div className="flex flex-col items-center">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => scrollTable('up')} 
+              className="mb-1 shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => scrollTable('left')} 
+                className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => scrollTable('right')} 
+                className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => scrollTable('down')} 
+              className="mt-1 shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
           </div>
-        </ScrollArea>
+        </div>
+        
+        <div className="relative">
+          <ScrollArea 
+            className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" 
+            orientation="both"
+            ref={scrollAreaRef}
+          >
+            <div className={cn(
+              "min-w-max transition-opacity duration-300",
+              isChangingView ? "opacity-50" : "opacity-100"
+            )}>
+              <Table ref={tableRef}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
+                      <div className="font-medium">Employé</div>
+                    </TableHead>
+                    {getDaysToShow().map((date, i) => (
+                      <TableHead 
+                        key={i} 
+                        className={cn(
+                          "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
+                          isWeekend(date) ? "text-gray-500" : "",
+                          isToday(date) ? "text-blue-600 font-semibold" : ""
+                        )}
+                        data-today={isToday(date) ? "true" : "false"}
+                      >
+                        <div className="text-xs">
+                          <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
+                          <div className={cn(
+                            "text-sm mt-1 transition-all duration-200",
+                            isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
+                          )}>
+                            {format(date, 'dd')}
+                          </div>
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={getDaysToShow().length + 1} className="h-96">
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                          <p className="text-gray-500">Chargement du planning...</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    employees.map((employee, index) => (
+                      <TableRow 
+                        key={employee.id} 
+                        className={cn(
+                          "hover:bg-gray-50/30 transition-all duration-150",
+                          index % 2 === 0 ? "bg-gray-50/10" : ""
+                        )}
+                      >
+                        <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
+                          <div className="truncate font-medium">
+                            {`${employee.first_name} ${employee.last_name}`}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">{employee.position}</div>
+                        </TableHead>
+                        {getDaysToShow().map((date, i) => (
+                          <PlanningCell
+                            key={i}
+                            date={date}
+                            leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                            timeRecord={getTimeRecordForDay(employee.id, date)}
+                            isWeekend={isWeekend(date)}
+                            isToday={isToday(date)}
+                          />
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </ScrollArea>
+          
+          {/* Quick scroll indicators */}
+          <div className="absolute right-4 bottom-4 bg-white/90 rounded-full shadow-md p-1 backdrop-blur-sm border border-gray-100 z-20">
+            <div className="text-xs text-gray-500 p-1">Défilement rapide</div>
+          </div>
+        </div>
       </div>
     </Card>
   );
