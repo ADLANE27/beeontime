@@ -9,6 +9,49 @@ import { TimeoutError } from "@/components/auth/TimeoutError";
 import { ProfileError } from "@/components/auth/ProfileError";
 import { LoginForm } from "@/components/auth/LoginForm";
 
+// Create admin profile helper function
+async function ensureAdminProfile(userId: string, email: string) {
+  // Check if profile already exists
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+    
+  if (existingProfile) {
+    console.log("Admin profile already exists:", existingProfile);
+    // Update role to HR if it's not already
+    if (existingProfile.role !== "hr") {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: "hr" })
+        .eq("id", userId);
+        
+      if (error) {
+        console.error("Failed to update admin role:", error);
+      } else {
+        console.log("Updated admin role to HR");
+      }
+    }
+    return;
+  }
+  
+  // Create new admin profile if one doesn't exist
+  const { error } = await supabase
+    .from("profiles")
+    .insert({
+      id: userId,
+      email: email,
+      role: "hr"
+    });
+    
+  if (error) {
+    console.error("Failed to create admin profile:", error);
+  } else {
+    console.log("Successfully created admin profile");
+  }
+}
+
 const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading, profile, profileFetchAttempted, authError, authReady } = useAuth();
@@ -72,6 +115,23 @@ const HRPortal = () => {
       // User is authenticated and has a profile
       if (session && profile) {
         console.log("HR Portal: Session and profile found, checking role", profile.role);
+        
+        // If email matches known admin pattern, ensure they have an admin profile
+        if (session.user?.email && (
+            session.user.email === "a.debassi@aftraduction.fr" ||
+            session.user.email.startsWith("rh@") ||
+            session.user.email.startsWith("hr@")
+          )) {
+          ensureAdminProfile(session.user.id, session.user.email);
+          
+          // Force role to HR for known admin emails
+          if (profile.role !== "hr") {
+            console.log("Forcing HR role for admin email:", session.user.email);
+            navigate('/hr', { replace: true });
+            return;
+          }
+        }
+        
         // Immediate redirect without setTimeout
         if (profile.role === "hr") {
           navigate('/hr', { replace: true });
