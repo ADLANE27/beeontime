@@ -178,7 +178,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        // Fix: Use !== operator to check if event is not 'SIGNED_OUT'
         // Pour PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
         if (newSession) {
           setSession(newSession);
