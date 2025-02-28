@@ -17,11 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const NewEmployeeForm = ({ 
   onSuccess, 
   initialData,
-  isEditing = false 
+  isEditing = false,
+  employeeId
 }: { 
   onSuccess: () => void;
   initialData?: NewEmployee;
   isEditing?: boolean;
+  employeeId?: string;
 }) => {
   const [formData, setFormData] = useState<NewEmployee>({
     firstName: initialData?.firstName || '',
@@ -52,7 +54,7 @@ export const NewEmployeeForm = ({
     country: initialData?.country || 'France'
   });
 
-  const { handleSubmit, isSubmitting } = useEmployeeSubmit(onSuccess, isEditing);
+  const { handleSubmit, isSubmitting } = useEmployeeSubmit(onSuccess, isEditing, employeeId);
 
   const handleFieldChange = (field: keyof NewEmployee, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
