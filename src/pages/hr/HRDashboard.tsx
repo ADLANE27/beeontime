@@ -302,10 +302,7 @@ const HRDashboard = () => {
             </div>
           ) : (
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-xl border shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent px-2">
-                  Tableau de bord administrateur
-                </h2>
+              <div className="flex justify-end items-center mb-3">
                 <div className="flex items-center gap-2">
                   {(pendingLeaves > 0 || pendingOvertimes > 0 || pendingDelays > 0) && (
                     <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors">
