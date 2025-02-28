@@ -19,7 +19,7 @@ const Portal = () => {
       navigate('/employee', { replace: true });
     }
 
-    // Listen for auth errors
+    // Listen for auth events
     const handleAuthStateChange = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/employee', { replace: true });
