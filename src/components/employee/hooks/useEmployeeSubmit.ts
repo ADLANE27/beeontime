@@ -48,24 +48,33 @@ export const useEmployeeSubmit = (
           .update(employeeRecord)
           .eq('id', employeeId);
       } else {
-        // Create new employee and associated auth account
-        // This would typically involve creating a user in auth table too
-        // For now, we'll just create an employee record
+        // Create new employee and associated profile
         
-        // 1. Generate UUID if not provided
+        // 1. Generate UUID for the new user
         const id = crypto.randomUUID();
         
-        // 2. Create employee record
+        // 2. First create a profile record (because of foreign key constraint)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id,
+            email: employeeData.email,
+            first_name: employeeData.firstName,
+            last_name: employeeData.lastName,
+            role: 'employee'
+          });
+          
+        if (profileError) {
+          throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
+        }
+        
+        // 3. Create employee record
         result = await supabase
           .from('employees')
           .insert({
             id,
             ...employeeRecord
           });
-        
-        // 3. Create auth account and link it to employee
-        // This would typically be handled by a backend function
-        // For demo purposes, we're just creating the employee record
       }
       
       if (result.error) {
