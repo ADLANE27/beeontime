@@ -29,10 +29,11 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile } = useAuth();
+  const { session, isLoading, profile, refreshProfile } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,13 +41,22 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       isLoading, 
       hasSession: !!session, 
       profileRole: profile?.role,
-      requiredRole
+      requiredRole,
+      retryCount
     });
     
     let timeoutId: number;
     
     // Only process when we have a definitive auth state or timeout reached
     if (!isLoading) {
+      // Si la session existe mais pas le profil, essayer de récupérer le profil
+      if (session && !profile && retryCount < 2) {
+        console.log("Session exists but no profile, attempting to refresh profile");
+        setRetryCount(prev => prev + 1);
+        refreshProfile();
+        return;
+      }
+      
       setHasCheckedAuth(true);
 
       // Determine redirect path based on auth status and role
@@ -56,6 +66,12 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
       } else if (profile && requiredRole === "hr" && profile.role !== "hr") {
         console.log("User is not HR, redirecting to employee dashboard");
         setRedirectPath("/employee");
+      } else if (session && !profile) {
+        console.log("Session exists but no profile found, redirecting to portal");
+        toast.error("Erreur de profil utilisateur. Veuillez vous reconnecter.");
+        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+        // Force signout to clean state
+        supabase.auth.signOut();
       } else {
         console.log("Auth check passed, showing protected content");
         setRedirectPath(null); // No redirect needed
@@ -66,8 +82,10 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
         setShowLoading(false);
         console.log("Forcing auth check completion after timeout");
         if (isLoading) {
+          // Si toujours en chargement après le timeout, rediriger
           setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
           setHasCheckedAuth(true);
+          toast.error("Délai d'authentification dépassé. Veuillez réessayer.");
         }
       }, 3000);
     }
@@ -75,7 +93,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [isLoading, session, profile, requiredRole, navigate]);
+  }, [isLoading, session, profile, requiredRole, navigate, refreshProfile, retryCount]);
 
   // Show loading state only during initial auth check and before timeout
   if (isLoading && showLoading && !hasCheckedAuth) {
