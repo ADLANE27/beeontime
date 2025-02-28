@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!isMounted) return;
 
-        // Using string literal comparison to ensure type safety
+        // Fix: Use proper type comparison for AuthChangeEvent
         if (event === 'SIGNED_OUT') {
           console.log("Signed out, clearing all auth state");
           setSession(null);
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        // Pour PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
+        // For PASSWORD_RECOVERY, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED
         if (newSession) {
           setSession(newSession);
           setUser(newSession.user);
@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } else if (event !== 'SIGNED_OUT') {
-          // Si pas de session mais ce n'est pas SIGNED_OUT, c'est probablement une erreur
+          // If no session but not SIGNED_OUT, it's probably an error
           console.warn(`Auth event ${event} occurred but no session was provided`);
         }
       }
