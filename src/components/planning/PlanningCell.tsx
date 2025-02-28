@@ -50,34 +50,45 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
       boxShadow: `inset 0 0 0 1px ${color}50`
     };
     
-    // For half-day displays, we need to position text differently to prevent clipping
-    const labelStyle = isHalfDay ? {
-      width: period === 'morning' ? 'calc(100% - 5px)' : 'calc(100% - 5px)',
-      left: period === 'morning' ? '5px' : '50%',
-      transform: period === 'morning' ? 'none' : 'translateX(-5px)'
-    } : {};
+    // Different styling for morning and afternoon half-days
+    const getMorningLabel = () => (
+      <div 
+        className="absolute top-1/4 left-[15%] transform -rotate-45 bg-white/80 px-1.5 py-0.5 rounded shadow-sm
+                text-[10px] font-medium text-gray-800 whitespace-nowrap z-10"
+      >
+        Matin
+      </div>
+    );
+    
+    const getAfternoonLabel = () => (
+      <div 
+        className="absolute top-1/4 right-[15%] transform rotate-45 bg-white/80 px-1.5 py-0.5 rounded shadow-sm
+                text-[10px] font-medium text-gray-800 whitespace-nowrap z-10"
+      >
+        Après-midi
+      </div>
+    );
+    
+    const getFullDayLabel = () => (
+      <div 
+        className="absolute top-1/3 inset-x-0 bg-white/70 backdrop-blur-[1px] mx-auto w-fit px-1.5 py-0.5 rounded shadow-sm
+                text-[10px] font-medium text-gray-800 z-10 text-center"
+      >
+        Journée
+      </div>
+    );
     
     return (
       <div className={cn(
-        "absolute inset-0 flex items-center justify-center rounded-sm overflow-hidden transition-opacity duration-300",
+        "absolute inset-0 rounded-sm overflow-hidden transition-opacity duration-300",
         isHalfDay ? (period === 'morning' ? "clip-path-left" : "clip-path-right") : ""
       )}>
         <div className="w-full h-full opacity-80 group-hover:opacity-90 transition-opacity duration-300" style={gradientStyle} />
-        <div 
-          className="absolute flex items-center justify-center px-1 py-0.5 bg-white/70 backdrop-blur-[1px] rounded-sm 
-                    transform group-hover:scale-105 transition-transform duration-300 text-center"
-          style={labelStyle}
-        >
-          {isHalfDay ? (
-            <span className="text-[10px] font-medium text-gray-800 whitespace-nowrap">
-              {period === 'morning' ? 'Matin' : 'Après-midi'}
-            </span>
-          ) : (
-            <span className="text-[10px] font-medium text-gray-800">
-              Journée
-            </span>
-          )}
-        </div>
+        
+        {isHalfDay 
+          ? (period === 'morning' ? getMorningLabel() : getAfternoonLabel())
+          : getFullDayLabel()
+        }
       </div>
     );
   };
