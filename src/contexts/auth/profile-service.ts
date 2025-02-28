@@ -44,7 +44,7 @@ async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile |
     console.log("Attempting to fetch employee data for:", userId);
     const { data, error } = await supabase
       .from("employees")
-      .select("id, first_name, last_name, email, role")
+      .select("id, first_name, last_name, email")
       .eq("id", userId)
       .maybeSingle();
       
@@ -61,9 +61,10 @@ async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile |
     console.log("Employee record found:", data);
     
     // Create a profile from employee data
+    // The 'role' field doesn't exist in the employees table, so we set a default value
     return {
       id: data.id,
-      role: data.role || "employee", // Use role from employee table if available
+      role: "employee", // Default role for employees
       first_name: data.first_name,
       last_name: data.last_name,
       email: data.email
