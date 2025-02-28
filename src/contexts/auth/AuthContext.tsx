@@ -1,16 +1,36 @@
 
 import { createContext } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { Profile } from "./types";
 
-// Types for the context
-type AuthContextType = {
+export interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  authReady?: boolean;
+  signIn: (email: string, password: string) => Promise<{
+    error: Error | null;
+    data: {
+      user: User | null;
+      session: Session | null;
+    };
+  }>;
   signOut: () => Promise<void>;
-};
+}
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  profile: null,
+  isLoading: true,
+  authReady: false,
+  signIn: async () => ({
+    error: null,
+    data: {
+      user: null,
+      session: null,
+    },
+  }),
+  signOut: async () => {},
+});

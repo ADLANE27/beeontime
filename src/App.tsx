@@ -11,7 +11,6 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
-import { supabase } from "./integrations/supabase/client";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -29,56 +28,59 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile } = useAuth();
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const { session, isLoading, profile, authReady } = useAuth();
+  const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
-  const [showLoading, setShowLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("ProtectedRoute: Auth state changed", { 
+    console.log("ProtectedRoute: Auth state updated", { 
       isLoading, 
       hasSession: !!session, 
       profileRole: profile?.role,
-      requiredRole
+      requiredRole,
+      authReady
     });
     
-    let timeoutId: number;
-    
-    // Only process when we have a definitive auth state or timeout reached
-    if (!isLoading) {
-      setHasCheckedAuth(true);
-
-      // Determine redirect path based on auth status and role
-      if (!session) {
-        console.log("No session, redirecting to portal");
-        setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-      } else if (profile && requiredRole === "hr" && profile.role !== "hr") {
-        console.log("User is not HR, redirecting to employee dashboard");
-        setRedirectPath("/employee");
-      } else {
-        console.log("Auth check passed, showing protected content");
-        setRedirectPath(null); // No redirect needed
-      }
-    } else {
-      // Set a timeout to stop showing loading after a shorter time
-      timeoutId = window.setTimeout(() => {
-        setShowLoading(false);
-        console.log("Forcing auth check completion after timeout");
-        if (isLoading) {
-          setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
-          setHasCheckedAuth(true);
-        }
-      }, 1800); // Reduced from 2000ms to 1800ms for faster loading experience
+    // Only make decisions when auth is ready
+    if (!authReady && isLoading) {
+      return;
     }
     
-    return () => {
-      if (timeoutId) window.clearTimeout(timeoutId);
-    };
-  }, [isLoading, session, profile, requiredRole, navigate]);
+    // Handle authentication-based redirections
+    if (!session) {
+      console.log("No session, redirecting to portal");
+      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      setShouldRedirect(true);
+      return;
+    }
+    
+    // Handle role-based access
+    if (profile) {
+      if (requiredRole === "hr" && profile.role !== "hr") {
+        console.log("User is not HR, redirecting to employee dashboard");
+        setRedirectPath("/employee");
+        setShouldRedirect(true);
+        return;
+      }
+      
+      // User has correct role, allow access
+      console.log("Auth check passed, showing protected content");
+      setShouldRedirect(false);
+      return;
+    }
+    
+    // Edge case: session exists but no profile yet
+    if (session && !profile && !isLoading) {
+      // This might be a rare race condition, redirect to login
+      console.log("Session exists but no profile, redirecting to portal");
+      setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
+      setShouldRedirect(true);
+    }
+  }, [isLoading, session, profile, requiredRole, navigate, authReady]);
 
-  // Show loading state only during initial auth check and before timeout
-  if (isLoading && showLoading && !hasCheckedAuth) {
+  // Show loading state
+  if (isLoading || (!authReady && !shouldRedirect)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
@@ -86,8 +88,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
           <p className="text-muted-foreground">Chargement...</p>
           <button 
             onClick={() => {
-              setShowLoading(false);
-              setHasCheckedAuth(true);
+              setShouldRedirect(true);
               setRedirectPath(requiredRole === "hr" ? "/hr-portal" : "/portal");
             }} 
             className="text-sm text-primary hover:underline mt-4"
@@ -99,13 +100,13 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     );
   }
 
-  // If we need to redirect, do so
-  if (hasCheckedAuth && redirectPath) {
+  // Redirect if needed
+  if (shouldRedirect && redirectPath) {
     console.log(`Redirecting to ${redirectPath}`);
     return <Navigate to={redirectPath} replace />;
   }
 
-  // Otherwise, render children
+  // Render protected content
   return <>{children}</>;
 };
 

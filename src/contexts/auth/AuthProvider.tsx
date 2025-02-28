@@ -1,17 +1,19 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
 import { useAuthState } from "./useAuthState";
 import { useAuthMethods } from "./useAuthMethods";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingOverride, setIsLoadingOverride] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   
   const {
     session,
     user,
     profile,
     isLoading: stateLoading,
+    authInitialized,
     setProfile
   } = useAuthState();
   
@@ -20,6 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { signIn, signOut } = useAuthMethods(setProfile, setIsLoading);
 
+  // Set auth ready state when initialization is complete
+  useEffect(() => {
+    if (authInitialized) {
+      setAuthReady(true);
+    }
+  }, [authInitialized]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -27,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         profile,
         isLoading,
+        authReady,
         signIn,
         signOut,
       }}
