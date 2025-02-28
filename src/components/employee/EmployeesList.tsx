@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogContentFullScreen, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,13 +154,17 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
         </div>
 
         <div className="flex gap-2 pt-1">
+          <Button 
+            variant="outline" 
+            className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700" 
+            size="sm"
+            onClick={() => setIsEditDialogOpen(true)}
+          >
+            Modifier
+          </Button>
+
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700" size="sm">
-                Modifier
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-full max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Modifier l'employé</DialogTitle>
               </DialogHeader>
@@ -480,20 +484,13 @@ export const EmployeesList = () => {
               )}
             </div>
 
-            <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Ajouter un employé
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Nouvel employé</DialogTitle>
-                </DialogHeader>
-                <NewEmployeeForm onSuccess={() => setIsNewEmployeeDialogOpen(false)} />
-              </DialogContent>
-            </Dialog>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+              onClick={() => setIsNewEmployeeDialogOpen(true)}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Ajouter un employé
+            </Button>
           </div>
         </div>
 
@@ -538,6 +535,16 @@ export const EmployeesList = () => {
           ))}
         </div>
       )}
+
+      {/* Dialog for adding a new employee */}
+      <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
+        <DialogContent className="w-full max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Nouvel employé</DialogTitle>
+          </DialogHeader>
+          <NewEmployeeForm onSuccess={() => setIsNewEmployeeDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
