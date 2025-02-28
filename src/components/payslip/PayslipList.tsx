@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Calendar, Loader2, FileSearch, File, RefreshCw } from "lucide-react";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export const PayslipList = () => {
   const { session } = useAuth();
@@ -20,17 +20,14 @@ export const PayslipList = () => {
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Component mounted
     mountedRef.current = true;
     
-    // Set a timeout to show a manual refresh option if loading takes too long
     timeoutRef.current = window.setTimeout(() => {
       if (mountedRef.current) {
         setLoadTimeout(true);
       }
     }, 3000);
 
-    // Cleanup function
     return () => {
       mountedRef.current = false;
       if (timeoutRef.current) {
@@ -39,10 +36,8 @@ export const PayslipList = () => {
     };
   }, []);
 
-  // Verify authentication first before attempting to fetch data
   const isAuthenticated = !!session?.user?.id;
   
-  // Modified payslips query with better error handling, auth check, and retry logic
   const { 
     data: payslips = [], 
     isLoading: isLoadingPayslips, 
@@ -80,14 +75,13 @@ export const PayslipList = () => {
         throw err;
       }
     },
-    enabled: isAuthenticated, // Only run query if authenticated
+    enabled: isAuthenticated,
     retry: 1,
     retryDelay: 1000,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes (previously called cacheTime)
+    staleTime: 300000,
+    gcTime: 600000,
   });
 
-  // Modified important documents query with better error handling and retry logic
   const { 
     data: importantDocuments = [], 
     isLoading: isLoadingDocs, 
@@ -120,11 +114,10 @@ export const PayslipList = () => {
     },
     retry: 1,
     retryDelay: 1000,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes
+    staleTime: 300000,
+    gcTime: 600000,
   });
 
-  // Set error state on query failures
   useEffect(() => {
     if (isPayslipError || isDocsError) {
       const errorMessage = isPayslipError 
@@ -134,7 +127,6 @@ export const PayslipList = () => {
       console.error('Document loading error:', payslipError || docsError);
       setLoadError(errorMessage);
       
-      // Show a toast for error feedback
       if (mountedRef.current) {
         toast.error(errorMessage);
       }
@@ -154,7 +146,6 @@ export const PayslipList = () => {
         return;
       }
 
-      // Create a download link
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -173,7 +164,6 @@ export const PayslipList = () => {
     }
   };
 
-  // Manual refresh function with proper state reset
   const handleRefresh = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -184,7 +174,6 @@ export const PayslipList = () => {
     refetchPayslips();
     refetchDocs();
     
-    // Set a new timeout
     timeoutRef.current = window.setTimeout(() => {
       if (mountedRef.current) {
         setLoadTimeout(true);
@@ -192,7 +181,6 @@ export const PayslipList = () => {
     }, 3000);
   };
 
-  // Authentication check - show friendly message if not authenticated
   if (!isAuthenticated && !isLoadingPayslips) {
     return (
       <Card className="p-6">
@@ -211,7 +199,6 @@ export const PayslipList = () => {
     );
   }
 
-  // Show error state with refresh button
   if (loadError) {
     return (
       <Card className="p-6">
@@ -230,19 +217,20 @@ export const PayslipList = () => {
     );
   }
 
-  // Show loading state with timeout detection
   if (isLoadingPayslips || isLoadingDocs) {
     return (
       <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-gray-600">Chargement des documents...</p>
-          {loadTimeout && (
+        <LoadingScreen 
+          message="Chargement des documents..." 
+          size="md" 
+        />
+        {loadTimeout && (
+          <div className="text-center mt-4">
             <Button onClick={handleRefresh} variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700">
               Le chargement est long? Cliquez ici pour rafraîchir
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </Card>
     );
   }

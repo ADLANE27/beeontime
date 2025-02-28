@@ -13,6 +13,7 @@ import { EventFilters } from "./EventFilters";
 import { EventsTable } from "./EventsTable";
 import { EventsPagination } from "./EventsPagination";
 import { useSorting } from "./hooks/useSorting";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 type EventCategory = Database["public"]["Enums"]["event_category"];
 
@@ -101,7 +102,7 @@ export const HREventsList = () => {
       />
 
       {isLoading ? (
-        <div>Chargement...</div>
+        <LoadingScreen message="Chargement des événements..." />
       ) : (
         <>
           <EventsTable 

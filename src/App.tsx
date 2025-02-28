@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,7 @@ import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
 import { toast } from "sonner";
+import { LoadingScreen } from "./components/ui/loading-screen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,14 +31,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
   
   // Show loading state if auth is still initializing
   if (isLoading || !authReady) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Chargement...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen fullScreen message="Chargement de votre session..." />;
   }
 
   // Determine where to redirect if not authenticated
