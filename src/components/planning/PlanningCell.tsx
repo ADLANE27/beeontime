@@ -3,6 +3,7 @@ import { TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { leaveTypeColors } from "./LeaveTypeLegend";
 
@@ -65,10 +66,16 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
   const getTimeRecordContent = () => {
     if (!timeRecord) return null;
 
+    // Make sure at least one time value exists
+    const hasTimeRecords = timeRecord.morning_in || timeRecord.lunch_out || 
+                          timeRecord.lunch_in || timeRecord.evening_out;
+    
+    if (!hasTimeRecords) return null;
+
     return (
       <div className="absolute bottom-0 left-0 right-0 text-xs text-gray-600 font-medium overflow-hidden px-1 py-0.5 
                       bg-white/40 backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-all duration-300
-                      border-t border-gray-100/50 transform group-hover:translate-y-0 translate-y-6">
+                      border-t border-gray-100/50">
         {timeRecord.morning_in && (
           <span className="flex justify-center space-x-1">
             <span className="group-hover:rotate-12 transition-transform duration-300">⏱️</span>
@@ -99,7 +106,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
         </TooltipTrigger>
         <TooltipContent side="top" align="center" className="p-3 max-w-xs bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border border-gray-100 animate-in fade-in-50 duration-300">
           <div className="space-y-2">
-            <div className="font-medium text-sm text-blue-900">{format(date, 'EEEE dd MMMM yyyy')}</div>
+            <div className="font-medium text-sm text-blue-900">{format(date, 'EEEE dd MMMM yyyy', { locale: fr })}</div>
             {leaveRequest && (
               <div className="text-sm text-gray-600 border-t pt-1">
                 <span className="font-medium">Congé: </span>
