@@ -5,7 +5,8 @@ import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, is
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight, CalendarDays } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
@@ -15,6 +16,7 @@ import { generatePlanningPDF } from "@/utils/pdf";
 import { createEvents } from 'ics';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
@@ -45,12 +47,14 @@ const capitalizeFirstLetter = (str: string) => {
 
 export const AdminPlanning = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [isLoading, setIsLoading] = useState(true);
   const [isChangingView, setIsChangingView] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const firstDayOfPeriod = viewMode === 'month' 
@@ -177,9 +181,28 @@ export const AdminPlanning = () => {
     
     // Assurer que la période (mois ou semaine) affichée contient le jour actuel
     setCurrentDate(today);
+    setSelectedDate(today);
     
     // Notification pour l'utilisateur
     toast.success(`Affichage du ${format(today, 'dd MMMM yyyy', { locale: fr })}`);
+    
+    setTimeout(() => {
+      setIsChangingView(false);
+    }, 150);
+  };
+
+  const handleSelectDate = (date: Date | undefined) => {
+    if (!date) return;
+    
+    setCalendarOpen(false);
+    setIsChangingView(true);
+    
+    // Mettre à jour les dates sélectionnées
+    setSelectedDate(date);
+    setCurrentDate(date);
+    
+    // Notification pour l'utilisateur
+    toast.success(`Affichage du ${format(date, 'dd MMMM yyyy', { locale: fr })}`);
     
     setTimeout(() => {
       setIsChangingView(false);
@@ -330,14 +353,38 @@ export const AdminPlanning = () => {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={goToToday}
-              className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
-            >
-              Aujourd'hui
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={goToToday}
+                className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+              >
+                Aujourd'hui
+              </Button>
+              
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105 flex items-center gap-1.5"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    <span>Date précise</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleSelectDate}
+                    initialFocus
+                    locale={fr}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
