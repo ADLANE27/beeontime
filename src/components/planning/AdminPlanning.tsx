@@ -339,24 +339,36 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" orientation="both">
-          <div className={cn(
-            "min-w-max transition-opacity duration-300",
-            isChangingView ? "opacity-50" : "opacity-100"
-          )}>
-            <Table>
-              <TableHeader>
+        <div className="relative rounded-lg border border-gray-100 bg-white shadow-inner">
+          <div 
+            className={cn(
+              "overflow-auto max-h-[500px]",
+              isChangingView ? "opacity-50" : "opacity-100",
+              "transition-opacity duration-300"
+            )}
+            style={{ 
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#cbd5e1 #f8fafc'
+            }}
+          >
+            <Table className="min-w-max">
+              <TableHeader className="sticky top-0 z-20">
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
-                    <div className="font-medium">Employé</div>
+                  <TableHead 
+                    className="sticky left-0 z-30 bg-white shadow-md w-[200px] border-r border-gray-100"
+                  >
+                    <div className="font-semibold text-gray-900 flex items-center pl-2">
+                      Employé
+                      <div className="ml-auto w-[15px] h-full bg-gradient-to-r from-transparent to-gray-100/70"></div>
+                    </div>
                   </TableHead>
                   {getDaysToShow().map((date, i) => (
                     <TableHead 
                       key={i} 
                       className={cn(
-                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
+                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-white z-10 font-semibold",
                         isWeekend(date) ? "text-gray-500" : "",
-                        isToday(date) ? "text-blue-600 font-semibold" : ""
+                        isToday(date) ? "text-blue-600" : ""
                       )}
                     >
                       <div className="text-xs">
@@ -391,11 +403,16 @@ export const AdminPlanning = () => {
                         index % 2 === 0 ? "bg-gray-50/10" : ""
                       )}
                     >
-                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
-                        <div className="truncate font-medium">
-                          {`${employee.first_name} ${employee.last_name}`}
+                      <TableHead 
+                        className="sticky left-0 bg-white z-20 w-[200px] shadow-md border-r border-gray-100 hover:bg-gray-50 transition-all duration-100"
+                      >
+                        <div className="flex flex-col py-1 pl-2 relative group">
+                          <div className="truncate font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                            {`${employee.first_name} ${employee.last_name}`}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">{employee.position}</div>
+                          <div className="absolute right-0 top-0 bottom-0 w-[15px] bg-gradient-to-r from-transparent to-gray-100/70"></div>
                         </div>
-                        <div className="text-xs text-gray-500 truncate">{employee.position}</div>
                       </TableHead>
                       {getDaysToShow().map((date, i) => (
                         <PlanningCell
@@ -413,7 +430,7 @@ export const AdminPlanning = () => {
               </TableBody>
             </Table>
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </Card>
   );
