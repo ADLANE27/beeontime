@@ -609,7 +609,7 @@ export const LeaveRequestsList = () => {
 
       {/* Dialog de nouvelle demande - correction du positionnement */}
       <Dialog open={isNewLeaveOpen} onOpenChange={setIsNewLeaveOpen}>
-        <DialogContent className="w-full sm:max-w-xl md:max-w-2xl">
+        <DialogContent className="w-full max-w-2xl">
           <DialogHeader>
             <DialogTitle>Nouvelle demande de congés</DialogTitle>
           </DialogHeader>
