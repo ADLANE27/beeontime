@@ -1,10 +1,11 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, ArrowUpRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
@@ -47,6 +48,7 @@ export const AdminPlanning = () => {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [isLoading, setIsLoading] = useState(true);
 
   const firstDayOfPeriod = viewMode === 'month' 
     ? startOfMonth(currentDate)
@@ -54,6 +56,7 @@ export const AdminPlanning = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
@@ -61,6 +64,8 @@ export const AdminPlanning = () => {
 
       if (employeesError) {
         console.error('Error fetching employees:', employeesError);
+        toast.error("Erreur lors du chargement des employés");
+        setIsLoading(false);
         return;
       }
 
@@ -84,6 +89,8 @@ export const AdminPlanning = () => {
 
       if (leaveError) {
         console.error('Error fetching leave requests:', leaveError);
+        toast.error("Erreur lors du chargement des congés");
+        setIsLoading(false);
         return;
       }
 
@@ -98,10 +105,13 @@ export const AdminPlanning = () => {
 
       if (timeError) {
         console.error('Error fetching time records:', timeError);
+        toast.error("Erreur lors du chargement des pointages");
+        setIsLoading(false);
         return;
       }
 
       setTimeRecords(timeData || []);
+      setIsLoading(false);
     };
 
     fetchData();
@@ -121,6 +131,14 @@ export const AdminPlanning = () => {
     } else {
       setCurrentDate(subWeeks(currentDate, 1));
     }
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'month' ? 'week' : 'month');
   };
 
   const getDaysToShow = () => {
@@ -225,35 +243,69 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
+    <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden">
+      <div className="space-y-4 p-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon" onClick={previousPeriod}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-xl font-semibold">
-              {capitalizeFirstLetter(
-                format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
-              )}
-            </h2>
-            <Button variant="outline" size="icon" onClick={nextPeriod}>
-              <ChevronRight className="h-4 w-4" />
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center bg-white shadow-sm rounded-lg overflow-hidden border border-gray-100">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={previousPeriod}
+                className="rounded-none border-r border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-xl font-semibold px-4">
+                {capitalizeFirstLetter(
+                  format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
+                )}
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={nextPeriod}
+                className="rounded-none border-l border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={goToToday}
+              className="shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+            >
+              Aujourd'hui
             </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
+              onClick={toggleViewMode}
+              className="shadow-sm group transition-all duration-200 hover:shadow hover:scale-105"
             >
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {viewMode === 'month' ? 'Vue hebdomadaire' : 'Vue mensuelle'}
+              <CalendarIcon className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+              <span className="relative overflow-hidden">
+                <span className={cn(
+                  "inline-block transition-transform duration-300",
+                  viewMode === 'month' ? "transform-none" : "transform translate-y-full"
+                )}>
+                  Vue hebdomadaire
+                </span>
+                <span className={cn(
+                  "inline-block absolute top-0 left-0 transition-transform duration-300",
+                  viewMode === 'month' ? "transform -translate-y-full" : "transform-none"
+                )}>
+                  Vue mensuelle
+                </span>
+              </span>
             </Button>
-            <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2">
+            <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2 shadow-sm hover:shadow transition-all duration-200 hover:scale-105">
               <Download className="h-4 w-4" />
               PDF
             </Button>
-            <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2">
+            <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2 shadow-sm hover:shadow transition-all duration-200 hover:scale-105">
               <Download className="h-4 w-4" />
               iCal
             </Button>
@@ -262,42 +314,68 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <ScrollArea className="h-[500px] w-full" orientation="both">
-          <div className="min-w-max border rounded-lg">
+        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" orientation="both">
+          <div className="min-w-max">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-white z-10 w-[200px]">Employé</TableHead>
+                  <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
+                    <div className="font-medium">Employé</div>
+                  </TableHead>
                   {getDaysToShow().map((date, i) => (
                     <TableHead 
                       key={i} 
-                      className="text-center min-w-[100px] p-2 whitespace-pre-line"
+                      className={cn(
+                        "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
+                        isWeekend(date) ? "text-gray-500" : "",
+                        isToday(date) ? "text-blue-600 font-semibold" : ""
+                      )}
                     >
-                      <div className="text-xs font-medium">
-                        {format(date, 'EEEE dd', { locale: fr })}
+                      <div className="text-xs">
+                        <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
+                        <div className={cn(
+                          "text-sm mt-1",
+                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto" : ""
+                        )}>
+                          {format(date, 'dd')}
+                        </div>
                       </div>
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableHead className="sticky left-0 bg-white font-medium w-[200px]">
-                      {`${employee.first_name} ${employee.last_name}`}
-                    </TableHead>
-                    {getDaysToShow().map((date, i) => (
-                      <PlanningCell
-                        key={i}
-                        date={date}
-                        leaveRequest={getLeaveRequestForDay(employee.id, date)}
-                        timeRecord={getTimeRecordForDay(employee.id, date)}
-                        isWeekend={isWeekend(date)}
-                        isToday={isToday(date)}
-                      />
-                    ))}
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={getDaysToShow().length + 1} className="h-96">
+                      <div className="flex flex-col items-center justify-center h-full space-y-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                        <p className="text-gray-500">Chargement du planning...</p>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  employees.map((employee) => (
+                    <TableRow key={employee.id} className="hover:bg-gray-50/30">
+                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10">
+                        <div className="truncate">
+                          {`${employee.first_name} ${employee.last_name}`}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">{employee.position}</div>
+                      </TableHead>
+                      {getDaysToShow().map((date, i) => (
+                        <PlanningCell
+                          key={i}
+                          date={date}
+                          leaveRequest={getLeaveRequestForDay(employee.id, date)}
+                          timeRecord={getTimeRecordForDay(employee.id, date)}
+                          isWeekend={isWeekend(date)}
+                          isToday={isToday(date)}
+                        />
+                      ))}
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
