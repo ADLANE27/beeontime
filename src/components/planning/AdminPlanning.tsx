@@ -339,7 +339,7 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white" orientation="both">
+        <div className="h-[500px] w-full rounded-lg border border-gray-100 shadow-inner bg-white overflow-auto">
           <div className={cn(
             "min-w-max transition-opacity duration-300",
             isChangingView ? "opacity-50" : "opacity-100"
@@ -347,7 +347,7 @@ export const AdminPlanning = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-gradient-to-b from-gray-50 to-white z-10 w-[200px] shadow-sm">
+                  <TableHead className="sticky left-0 bg-white z-10 w-[200px] shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
                     <div className="font-medium">Employé</div>
                   </TableHead>
                   {getDaysToShow().map((date, i) => (
@@ -391,7 +391,9 @@ export const AdminPlanning = () => {
                         index % 2 === 0 ? "bg-gray-50/10" : ""
                       )}
                     >
-                      <TableHead className="sticky left-0 bg-white font-medium w-[200px] shadow-sm z-10 transition-all duration-200 hover:bg-gray-50">
+                      <TableHead 
+                        className="sticky left-0 bg-white font-medium w-[200px] shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)] z-10 transition-all duration-200 hover:bg-gray-50"
+                      >
                         <div className="truncate font-medium">
                           {`${employee.first_name} ${employee.last_name}`}
                         </div>
@@ -413,7 +415,7 @@ export const AdminPlanning = () => {
               </TableBody>
             </Table>
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </Card>
   );
