@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -7,16 +7,59 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Portal = () => {
   const navigate = useNavigate();
   const { session, isLoading } = useAuth();
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     if (session?.user) {
       navigate('/employee', { replace: true });
     }
+
+    // Listen for auth errors
+    const handleAuthStateChange = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/employee', { replace: true });
+      }
+    });
+
+    // Clean up listener
+    return () => {
+      handleAuthStateChange.data.subscription.unsubscribe();
+    };
   }, [session, navigate]);
+
+  // Custom auth handler to provide better error messages
+  const handleAuth = async (formData: any) => {
+    setLoginError("");
+    try {
+      // Check if we have the required fields
+      if (!formData.email || !formData.password) {
+        setLoginError("Veuillez saisir votre email et mot de passe.");
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        console.error("Login error:", error);
+        if (error.message.includes("Invalid login credentials")) {
+          setLoginError("Email ou mot de passe incorrect.");
+        } else {
+          setLoginError(`Erreur de connexion: ${error.message}`);
+        }
+      }
+    } catch (err) {
+      console.error("Authentication error:", err);
+      setLoginError("Une erreur s'est produite lors de la connexion.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -52,6 +95,12 @@ const Portal = () => {
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>
           </div>
+          
+          {loginError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
 
           <Auth
             supabaseClient={supabase}
@@ -104,6 +153,7 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
+            onSubmit={handleAuth}
           />
         </Card>
 

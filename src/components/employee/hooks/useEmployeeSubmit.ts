@@ -58,28 +58,66 @@ export const useEmployeeSubmit = (
         const newUserId = uuidv4();
         console.log("Generated new user ID:", newUserId);
         
-        // Step 1: Create the employee record
-        console.log("Creating employee record with ID:", newUserId);
+        // Step 1: Create Auth user first
+        console.log("Creating auth user for:", employeeData.email);
+        const { error: authError, data: authData } = await supabase.auth.admin.createUser({
+          email: employeeData.email,
+          password: employeeData.initialPassword,
+          email_confirm: true,
+          user_metadata: {
+            first_name: employeeData.firstName,
+            last_name: employeeData.lastName
+          },
+          id: newUserId
+        });
+        
+        if (authError) {
+          console.error("Error creating auth user:", authError);
+          
+          // Special handling for duplicate email error
+          if (authError.message.includes("duplicate")) {
+            throw new Error(`Un utilisateur avec l'email ${employeeData.email} existe déjà`);
+          }
+          
+          throw new Error(`Erreur lors de la création du compte: ${authError.message}`);
+        }
+        
+        console.log("Auth user created successfully:", authData?.user?.id);
+        
+        // Use the ID returned from auth
+        const userId = authData?.user?.id || newUserId;
+        
+        // Step 2: Create the employee record
+        console.log("Creating employee record with ID:", userId);
         const { error: employeeError } = await supabase
           .from('employees')
           .insert({
             ...employeeRecord,
-            id: newUserId
+            id: userId
           });
         
         if (employeeError) {
           console.error("Error creating employee:", employeeError);
+          
+          // Try to clean up the auth user if employee creation fails
+          try {
+            await supabase.auth.admin.deleteUser(userId);
+            console.log("Cleaned up auth user after employee creation failure");
+          } catch (cleanupError) {
+            console.error("Failed to clean up auth user:", cleanupError);
+          }
+          
           throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
         }
         
         console.log("Employee record created successfully");
         
-        // Step 2: Create the profile entry
-        console.log("Creating profile with ID:", newUserId);
+        // Step 3: Create the profile entry
+        console.log("Creating profile with ID:", userId);
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
-            id: newUserId,
+            id: userId,
             email: employeeData.email,
             first_name: employeeData.firstName,
             last_name: employeeData.lastName,
@@ -89,27 +127,30 @@ export const useEmployeeSubmit = (
         if (profileError) {
           console.error("Error creating profile:", profileError);
           
-          // Clean up the employee record if profile creation fails
-          console.log("Attempting to delete employee after profile creation failure");
-          await supabase
-            .from('employees')
-            .delete()
-            .eq('id', newUserId);
+          // Clean up the employee record and auth user if profile creation fails
+          try {
+            await supabase
+              .from('employees')
+              .delete()
+              .eq('id', userId);
+            
+            await supabase.auth.admin.deleteUser(userId);
+            console.log("Cleaned up after profile creation failure");
+          } catch (cleanupError) {
+            console.error("Failed to clean up after profile error:", cleanupError);
+          }
           
           throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
         }
         
         console.log("Profile created successfully");
-        
-        // Log information for manual account creation
         console.log(`
           Employee created successfully:
-          ID: ${newUserId}
+          ID: ${userId}
           Email: ${employeeData.email}
           Password: ${employeeData.initialPassword}
           
-          An administrator needs to manually create this user in Supabase Auth
-          or send them an invitation link.
+          User has been created in Supabase Auth and can log in immediately.
         `);
         
         toast.success("Nouvel employé créé avec succès");
