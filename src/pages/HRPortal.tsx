@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -7,95 +7,23 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading } = useAuth();
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
-    // If user is already authenticated, redirect to HR dashboard
     if (session?.user) {
-      console.log("User is authenticated, redirecting to HR dashboard");
       navigate('/hr', { replace: true });
     }
   }, [session, navigate]);
 
-  // Debug loading state
-  useEffect(() => {
-    console.log("Auth loading state:", isLoading);
-    console.log("Session state:", session ? "Authenticated" : "Not authenticated");
-  }, [isLoading, session]);
-
-  // Clean URL from error parameters and set error message
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
-      const errorParam = url.searchParams.get('error');
-      const errorDescription = url.searchParams.get('error_description');
-      
-      if (errorDescription?.includes("Invalid login credentials")) {
-        setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
-      } else if (errorDescription?.includes("Email not confirmed")) {
-        setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-      } else if (errorParam) {
-        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
-      }
-      
-      // Remove error params from URL to avoid showing error again on refresh
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
-  // Listen for auth events
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event:", event);
-      
-      if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-        if (session) {
-          setLocalLoading(true);
-          navigate('/hr', { replace: true });
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  // Force timeout to prevent infinite loading
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (localLoading) {
-        console.log("Local loading timeout reached, resetting state");
-        setLocalLoading(false);
-      }
-    }, 5000);
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [localLoading]);
-
-  if (isLoading || localLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="text-sm text-primary hover:underline mt-2"
-          >
-            Cliquez ici si le chargement persiste
-          </button>
         </div>
       </div>
     );
@@ -124,12 +52,6 @@ const HRPortal = () => {
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>
           </div>
-
-          {loginError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
 
           <Auth
             supabaseClient={supabase}
@@ -162,7 +84,6 @@ const HRPortal = () => {
                 button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
                 input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
                 label: 'text-sm font-medium text-gray-700',
-                message: 'text-sm text-red-600'
               }
             }}
             localization={{

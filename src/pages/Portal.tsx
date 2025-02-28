@@ -19,41 +19,49 @@ const Portal = () => {
       navigate('/employee', { replace: true });
     }
 
-    // Clean URL from error parameters
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('error') || url.searchParams.has('error_description')) {
-      const errorParam = url.searchParams.get('error');
-      const errorDescription = url.searchParams.get('error_description');
-      
-      if (errorDescription?.includes("Invalid login credentials")) {
-        setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
-      } else if (errorDescription?.includes("Email not confirmed")) {
-        setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
-      } else if (errorParam) {
-        setLoginError(`Erreur de connexion: ${errorDescription || errorParam}`);
-      }
-      
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    // Listen for auth events
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state event:", event);
-      
+    // Listen for auth errors
+    const handleAuthStateChange = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/employee', { replace: true });
-      } else if (event === 'SIGNED_OUT') {
+      }
+    });
+
+    // Clean up listener
+    return () => {
+      handleAuthStateChange.data.subscription.unsubscribe();
+    };
+  }, [session, navigate]);
+
+  useEffect(() => {
+    // Set up a listener for auth errors
+    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+      console.log("Auth state event:", event);
+      
+      if (event === 'SIGNED_OUT') {
         setLoginError("Vous avez été déconnecté. Veuillez vous reconnecter.");
       } else if (event === 'USER_UPDATED') {
         setLoginError("");
       }
     });
 
-    // Clean up listener
     return () => {
-      authListener.subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
-  }, [session, navigate]);
+  }, []);
+
+  // Handler for login attempts
+  const handleAuthError = async (e: any) => {
+    console.log("Auth error:", e);
+    const errorMessage = e?.error?.message || "";
+    
+    if (errorMessage.includes("Invalid login credentials")) {
+      setLoginError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+    } else if (errorMessage.includes("Email not confirmed")) {
+      setLoginError("Votre email n'a pas été confirmé. Veuillez vérifier votre boîte mail.");
+    } else {
+      setLoginError("Erreur lors de la connexion. Veuillez réessayer.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -61,12 +69,6 @@ const Portal = () => {
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Chargement...</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="text-sm text-primary hover:underline mt-2"
-          >
-            Cliquez ici si le chargement persiste
-          </button>
         </div>
       </div>
     );
@@ -133,7 +135,6 @@ const Portal = () => {
                 button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
                 input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
                 label: 'text-sm font-medium text-gray-700',
-                message: 'text-sm text-red-600'
               }
             }}
             localization={{
@@ -144,7 +145,9 @@ const Portal = () => {
                   button_label: 'Se connecter',
                   loading_button_label: 'Vérification...',
                   email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe'
+                  password_input_placeholder: 'Votre mot de passe',
+                  email_input_error: 'Email invalide',
+                  password_input_error: 'Mot de passe invalide'
                 }
               }
             }}
@@ -154,6 +157,7 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
+            onError={handleAuthError}
           />
         </Card>
 

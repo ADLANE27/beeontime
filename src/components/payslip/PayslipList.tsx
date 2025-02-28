@@ -4,108 +4,58 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, Calendar, Loader2, FileSearch, File } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const PayslipList = () => {
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadTimeout, setLoadTimeout] = useState(false);
 
-  // Set a timeout to show a manual refresh option if loading takes too long
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setLoadTimeout(true);
-    }, 5000);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Modified query with better error handling and retry logic
-  const { data: payslips = [], isLoading: isLoadingPayslips, error: payslipError, refetch: refetchPayslips } = useQuery({
+  const { data: payslips = [], isLoading: isLoadingPayslips } = useQuery({
     queryKey: ['payslips'],
     queryFn: async () => {
       console.log('Fetching payslips...');
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.error('No active session found when fetching payslips');
-          throw new Error("Non authentifié");
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-        console.log('Payslips fetch - User ID:', session.user.id);
-        
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('employee_id', session.user.id)
-          .eq('type', 'payslip');
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('employee_id', session.user.id)
+        .eq('type', 'payslip');
 
-        if (error) {
-          console.error('Error fetching payslips:', error);
-          throw error;
-        }
-
-        console.log('Payslips fetched successfully:', data?.length || 0, 'items');
-        return data || [];
-      } catch (err) {
-        console.error('Exception in payslip fetch:', err);
-        setLoadError(err instanceof Error ? err.message : 'Impossible de charger les bulletins de paie');
-        // Re-throw to let React Query handle retry
-        throw err;
+      if (error) {
+        console.error('Error fetching payslips:', error);
+        throw error;
       }
-    },
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 300000, // 5 minutes
+
+      console.log('Payslips fetched:', data);
+      return data || [];
+    }
   });
 
-  // Modified query with better error handling and retry logic
-  const { data: importantDocuments = [], isLoading: isLoadingDocs, error: docsError, refetch: refetchDocs } = useQuery({
+  const { data: importantDocuments = [], isLoading: isLoadingDocs } = useQuery({
     queryKey: ['important_documents'],
     queryFn: async () => {
       console.log('Fetching important documents...');
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .is('employee_id', null)
-          .eq('type', 'important_document');
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .is('employee_id', null)
+        .eq('type', 'important_document');
 
-        if (error) {
-          console.error('Error fetching important documents:', error);
-          throw error;
-        }
-
-        console.log('Important documents fetched successfully:', data?.length || 0, 'items');
-        return data || [];
-      } catch (err) {
-        console.error('Exception in documents fetch:', err);
-        setLoadError(err instanceof Error ? err.message : 'Impossible de charger les documents');
-        // Re-throw to let React Query handle retry
-        throw err;
+      if (error) {
+        console.error('Error fetching important documents:', error);
+        throw error;
       }
-    },
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 300000, // 5 minutes
-  });
 
-  // Handle errors with useEffect to provide a better UX
-  useEffect(() => {
-    if (payslipError || docsError) {
-      const errorMessage = payslipError 
-        ? 'Erreur de chargement des bulletins de paie: ' + (payslipError instanceof Error ? payslipError.message : 'Erreur inconnue') 
-        : 'Erreur de chargement des documents: ' + (docsError instanceof Error ? docsError.message : 'Erreur inconnue');
-      
-      toast.error(errorMessage);
-      console.error('Document loading error:', payslipError || docsError);
-      setLoadError(errorMessage);
+      console.log('Important documents fetched:', data);
+      return data || [];
     }
-  }, [payslipError, docsError]);
+  });
 
   const handleDownload = async (fileUrl: string, title: string) => {
     try {
@@ -139,50 +89,12 @@ export const PayslipList = () => {
     }
   };
 
-  // Add a manual refresh button function
-  const handleRefresh = () => {
-    setLoadError(null);
-    setLoadTimeout(false);
-    refetchPayslips();
-    refetchDocs();
-    
-    // Set a new timeout
-    setTimeout(() => {
-      setLoadTimeout(true);
-    }, 5000);
-  };
-
-  // Show error state with refresh button
-  if (loadError) {
-    return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-red-500">
-            <FileSearch className="h-12 w-12 mx-auto" />
-          </div>
-          <p className="text-gray-700 text-center">Une erreur s'est produite lors du chargement des documents</p>
-          <p className="text-sm text-gray-500 text-center">{loadError}</p>
-          <Button onClick={handleRefresh} variant="outline" className="mt-4">
-            <Loader2 className="mr-2 h-4 w-4" />
-            Réessayer
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
-  // Show loading state with timeout detection
   if (isLoadingPayslips || isLoadingDocs) {
     return (
       <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+        <div className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-gray-600">Chargement des documents...</p>
-          {loadTimeout && (
-            <Button onClick={handleRefresh} variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700">
-              Le chargement est long? Cliquez ici pour rafraîchir
-            </Button>
-          )}
+          <p className="ml-2 text-gray-600">Chargement des documents...</p>
         </div>
       </Card>
     );

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,28 +14,22 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth(); // Use signOut from auth context
-  const isAdmin = location.pathname.startsWith("/hr");
+  const isAdmin = location.pathname === "/hr";
   const [userName, setUserName] = useState<string | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const getUserData = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          const { data: userData, error } = await supabase
-            .from('employees')
-            .select('first_name, last_name')
-            .eq('id', data.session.user.id)
-            .single();
-          
-          if (!error && userData) {
-            setUserName(`${userData.first_name} ${userData.last_name}`);
-          }
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        const { data: userData, error } = await supabase
+          .from('employees')
+          .select('first_name, last_name')
+          .eq('id', data.session.user.id)
+          .single();
+        
+        if (!error && userData) {
+          setUserName(`${userData.first_name} ${userData.last_name}`);
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
       }
     };
     
@@ -44,36 +37,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, []);
 
   const handleLogout = async () => {
-    if (isLoggingOut) return; // Prevent multiple clicks
-    
-    setIsLoggingOut(true);
-    try {
-      console.log("Logout initiated");
-      
-      // First, call the signOut method from AuthContext
-      await signOut();
-      
-      // Force navigation to portal regardless of any errors
-      navigate("/portal", { replace: true });
-      
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      console.error('Error during logout:', error);
-      
-      // As a fallback, try direct logout with Supabase
-      try {
-        await supabase.auth.signOut();
-        navigate("/portal", { replace: true });
-        toast.success("Déconnexion effectuée");
-      } catch (e) {
-        console.error("Direct logout failed:", e);
-        toast.error("Erreur lors de la déconnexion. Rechargement de la page...");
-        // Force navigation to portal as last resort
-        window.location.href = "/portal";
-      }
-    } finally {
-      setIsLoggingOut(false);
-    }
+    await supabase.auth.signOut();
+    navigate("/portal", { replace: true }); // Redirect to main portal instead of HR portal
+    toast.success("Vous avez été déconnecté avec succès");
   };
 
   return (
@@ -97,12 +63,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               )}
               <Button 
                 variant="outline" 
-                onClick={handleLogout}
-                disabled={isLoggingOut}
+                onClick={handleLogout} 
                 className="gap-2 border-gray-200 hover:bg-gray-50 hover:text-red-600 hover:border-red-200 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">{isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
+                <span className="hidden sm:inline">Se déconnecter</span>
               </Button>
             </div>
           </div>
