@@ -74,13 +74,17 @@ export function useAuthMethods(
       
       if (error) {
         console.error("Error during sign out:", error);
-        throw error; // Re-throw to allow proper handling upstream
+        // No longer throwing the error, instead returning a resolved promise
       }
+      
+      // Always resolve the promise
+      return Promise.resolve();
     } catch (error) {
       console.error("Exception during sign out:", error);
       // Ensure we reset the profile even if there's an error
       setProfile(null);
-      throw error; // Re-throw the error to be handled by the caller
+      // Always resolve the promise instead of re-throwing
+      return Promise.resolve();
     } finally {
       setIsLoading(false);
     }
