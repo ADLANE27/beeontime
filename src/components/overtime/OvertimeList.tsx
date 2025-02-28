@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,19 +11,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, Check, X } from "lucide-react";
+import { Plus, Loader2, Trash2, Check, X, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
+  const [selectedOvertimeId, setSelectedOvertimeId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
@@ -120,6 +126,38 @@ export const OvertimeList = () => {
     }
   });
 
+  const updateOvertimeMutation = useMutation({
+    mutationFn: async (updatedRequest: {
+      id: string;
+      date: string;
+      start_time: string;
+      end_time: string;
+      reason: string;
+      hours: number;
+    }) => {
+      const { id, ...rest } = updatedRequest;
+      const { error } = await supabase
+        .from('overtime_requests')
+        .update(rest)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
+      toast.success("Demande d'heures supplémentaires mise à jour");
+      setOpenEdit(false);
+      setSelectedOvertimeId(null);
+      setDate("");
+      setStartTime("");
+      setEndTime("");
+      setReason("");
+    },
+    onError: (error) => {
+      console.error('Error updating overtime request:', error);
+      toast.error("Erreur lors de la mise à jour de la demande");
+    }
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'approved' | 'rejected' }) => {
       const { error } = await supabase
@@ -149,6 +187,8 @@ export const OvertimeList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
       toast.success("Demande supprimée avec succès");
+      setOpenDelete(false);
+      setSelectedOvertimeId(null);
     },
     onError: (error) => {
       console.error('Error deleting overtime request:', error);
@@ -189,9 +229,50 @@ export const OvertimeList = () => {
     });
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedOvertimeId || !date || !startTime || !endTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+    if (hours <= 0) {
+      toast.error("L'heure de fin doit être après l'heure de début");
+      return;
+    }
+
+    updateOvertimeMutation.mutate({
+      id: selectedOvertimeId,
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      reason,
+      hours
+    });
+  };
+
+  const handleEdit = (request: any) => {
+    setSelectedOvertimeId(request.id);
+    setDate(request.date);
+    setStartTime(request.start_time);
+    setEndTime(request.end_time);
+    setReason(request.reason || "");
+    setOpenEdit(true);
+  };
+
   const handleDelete = (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette demande ?")) {
-      deleteOvertimeMutation.mutate(id);
+    setSelectedOvertimeId(id);
+    setOpenDelete(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedOvertimeId) {
+      deleteOvertimeMutation.mutate(selectedOvertimeId);
     }
   };
 
@@ -281,7 +362,7 @@ export const OvertimeList = () => {
         {overtimeRequests?.map((request) => (
           <div
             key={request.id}
-            className="flex items-center justify-between p-4 border rounded-lg"
+            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
           >
             <div>
               {profile?.role === 'hr' && (
@@ -328,6 +409,7 @@ export const OvertimeList = () => {
                   </Button>
                 </>
               )}
+              {/* Pour l'employé, il peut supprimer sa propre demande en attente */}
               {profile?.role !== 'hr' && request.status === "pending" && (
                 <Button
                   variant="ghost"
@@ -338,10 +420,132 @@ export const OvertimeList = () => {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {/* Pour l'admin RH, il peut modifier et supprimer n'importe quelle demande */}
+              {profile?.role === 'hr' && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(request)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(request.id)}
+                    className="text-destructive hover:text-destructive/90"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Dialog pour la modification */}
+      <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Modifier des heures supplémentaires</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editDate">Date</Label>
+              <Input
+                id="editDate"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editStartTime">Heure de début</Label>
+                <Input
+                  id="editStartTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editEndTime">Heure de fin</Label>
+                <Input
+                  id="editEndTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editReason">Motif</Label>
+              <Textarea
+                id="editReason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenEdit(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateOvertimeMutation.isPending}
+              >
+                {updateOvertimeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Mettre à jour
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour la confirmation de suppression */}
+      <Dialog open={openDelete} onOpenChange={setOpenDelete}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette demande d'heures supplémentaires ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpenDelete(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteOvertimeMutation.isPending}
+            >
+              {deleteOvertimeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
