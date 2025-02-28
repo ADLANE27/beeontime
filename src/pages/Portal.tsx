@@ -33,31 +33,16 @@ const Portal = () => {
   }, [session, navigate]);
 
   // Custom auth handler to provide better error messages
-  const handleAuth = async (formData: any) => {
+  const handleLoginError = (error: any) => {
     setLoginError("");
-    try {
-      // Check if we have the required fields
-      if (!formData.email || !formData.password) {
-        setLoginError("Veuillez saisir votre email et mot de passe.");
-        return;
+    
+    if (error) {
+      console.error("Login error:", error);
+      if (error.message.includes("Invalid login credentials")) {
+        setLoginError("Email ou mot de passe incorrect.");
+      } else {
+        setLoginError(`Erreur de connexion: ${error.message}`);
       }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (error) {
-        console.error("Login error:", error);
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Email ou mot de passe incorrect.");
-        } else {
-          setLoginError(`Erreur de connexion: ${error.message}`);
-        }
-      }
-    } catch (err) {
-      console.error("Authentication error:", err);
-      setLoginError("Une erreur s'est produite lors de la connexion.");
     }
   };
 
@@ -153,7 +138,7 @@ const Portal = () => {
             showLinks={false}
             view="sign_in"
             magicLink={false}
-            onSubmit={handleAuth}
+            onError={handleLoginError}
           />
         </Card>
 
@@ -166,3 +151,4 @@ const Portal = () => {
 };
 
 export default Portal;
+
