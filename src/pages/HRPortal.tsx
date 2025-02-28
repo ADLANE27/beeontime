@@ -2,18 +2,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { Card } from "@/components/ui/card";
-import { Building2, Lock, Loader2, WifiOff, AlertCircle, RefreshCw } from "lucide-react";
-import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth";
+import { LoadingState } from "@/components/auth/LoadingState";
+import { TimeoutError } from "@/components/auth/TimeoutError";
+import { ProfileError } from "@/components/auth/ProfileError";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, authInitialized, profileFetchAttempted, authError } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted, authError } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
@@ -56,7 +54,7 @@ const HRPortal = () => {
     let redirectTimeout: NodeJS.Timeout | null = null;
 
     // Check if we can determine authentication state
-    const canDetermineAuthState = authInitialized || authError || loadingTimeout;
+    const canDetermineAuthState = authCheckComplete || authError || loadingTimeout;
     
     if (canDetermineAuthState) {
       // User is authenticated and has a profile
@@ -87,7 +85,7 @@ const HRPortal = () => {
     return () => {
       if (redirectTimeout) clearTimeout(redirectTimeout);
     };
-  }, [session, profile, navigate, authInitialized, profileFetchAttempted, authError, loadingTimeout]);
+  }, [session, profile, navigate, authCheckComplete, profileFetchAttempted, authError, loadingTimeout]);
 
   // Check for error parameters in URL
   useEffect(() => {
@@ -166,217 +164,54 @@ const HRPortal = () => {
     }
   };
 
+  // Handle network status check
+  const handleCheckNetwork = () => {
+    setNetworkStatus(navigator.onLine ? 'online' : 'offline');
+  };
+
   // Show clear loading state during authentication check
   if ((!authCheckComplete && isLoading && !loadingTimeout) || manualSignInAttempted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Vérification de votre session...</p>
-          <p className="text-xs text-muted-foreground/70">
-            {session ? "Récupération du profil..." : "Chargement de l'authentification..."}
-          </p>
-          <Button 
-            variant="link" 
-            className="text-sm text-muted-foreground"
-            onClick={handleManualRefresh}
-            disabled={manualSignInAttempted}
-          >
-            <RefreshCw className="h-3 w-3 mr-2" />
-            Rafraîchir
-          </Button>
-        </div>
-      </div>
+      <LoadingState 
+        message="Vérification de votre session..."
+        subMessage={session ? "Récupération du profil..." : "Chargement de l'authentification..."}
+        onRefresh={handleManualRefresh}
+        disableRefresh={manualSignInAttempted}
+      />
     );
   }
 
   // Loading timeout detected
   if (loadingTimeout && !authCheckComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-6 space-y-6">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
-            <h1 className="text-2xl font-bold">Délai de connexion dépassé</h1>
-            <p className="text-gray-600">
-              La vérification de votre session prend plus de temps que prévu. Veuillez rafraîchir la page.
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <Button 
-              className="w-full" 
-              onClick={handleManualRefresh}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Rafraîchir la page
-            </Button>
-            
-            {session && (
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={handleSignOut}
-              >
-                Se déconnecter
-              </Button>
-            )}
-          </div>
-        </Card>
-      </div>
+      <TimeoutError 
+        onRefresh={handleManualRefresh}
+        onSignOut={handleSignOut}
+        hasSession={!!session}
+      />
     );
   }
 
   // If we have a session but profile fetch failed
   if (session && !profile && profileFetchAttempted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-6 space-y-6">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
-            <h1 className="text-2xl font-bold">Profil non disponible</h1>
-            <p className="text-gray-600">
-              Votre session est active, mais nous n'avons pas pu récupérer votre profil utilisateur.
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <Button 
-              className="w-full" 
-              onClick={handleManualRefresh}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Rafraîchir la page
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleSignOut}
-            >
-              Se déconnecter
-            </Button>
-          </div>
-        </Card>
-      </div>
+      <ProfileError 
+        onRefresh={handleManualRefresh}
+        onSignOut={handleSignOut}
+      />
     );
   }
 
   // Main login form
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="bg-white p-3 rounded-full shadow-sm">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
-          <img 
-            src="/lovable-uploads/ebd70f88-aacb-40cd-b225-d94a0c0f1903.png" 
-            alt="AFTraduction Logo" 
-            className="h-16 w-auto"
-          />
-          <h1 className="text-2xl font-bold text-gray-900">Portail RH</h1>
-          <p className="text-sm text-gray-600 text-center">
-            Connectez-vous pour accéder à l'espace RH
-          </p>
-        </div>
-
-        <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          {networkStatus === 'offline' && (
-            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
-              <WifiOff className="h-4 w-4 text-amber-500" />
-              <AlertTitle>Connexion limitée</AlertTitle>
-              <AlertDescription>
-                Vous semblez être hors ligne. La connexion pourrait échouer.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex items-center gap-2 mb-6 p-3 bg-primary/5 rounded-lg">
-            <Lock className="h-4 w-4 text-primary" />
-            <span className="text-sm text-primary">Connexion sécurisée</span>
-          </div>
-
-          {loginError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
-
-          {authError && !loginError && (
-            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <AlertTitle>Problème d'authentification</AlertTitle>
-              <AlertDescription>
-                {authError.message || "Une erreur s'est produite lors de l'authentification."}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Manual sign-in form instead of Supabase Auth UI */}
-          <form onSubmit={handleManualSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Adresse email
-              </label>
-              <input 
-                id="email"
-                name="email"
-                type="email" 
-                className="bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full p-2.5 border"
-                placeholder="Votre adresse email"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Mot de passe
-              </label>
-              <input 
-                id="password"
-                name="password"
-                type="password" 
-                className="bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full p-2.5 border"
-                placeholder="Votre mot de passe"
-                required
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg transition-colors"
-              disabled={manualSignInAttempted}
-            >
-              {manualSignInAttempted ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Vérification...
-                </>
-              ) : (
-                "Se connecter"
-              )}
-            </Button>
-          </form>
-
-          {networkStatus === 'offline' && (
-            <div className="mt-4 text-center">
-              <Button 
-                variant="outline" 
-                className="text-sm"
-                onClick={() => setNetworkStatus(navigator.onLine ? 'online' : 'offline')}
-              >
-                Vérifier la connexion
-              </Button>
-            </div>
-          )}
-        </Card>
-
-        <p className="text-center text-sm text-gray-600 mt-8">
-          © {new Date().getFullYear()} AFTraduction. Tous droits réservés.
-        </p>
-      </div>
-    </div>
+    <LoginForm
+      onSubmit={handleManualSignIn}
+      loginError={loginError}
+      authError={authError}
+      isLoading={manualSignInAttempted}
+      networkStatus={networkStatus}
+      onCheckNetwork={handleCheckNetwork}
+    />
   );
 };
 
