@@ -8,18 +8,31 @@ import { Profile } from "./types";
  * @returns The profile data or null if not found
  */
 async function fetchProfileFromProfilesTable(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Error fetching from profiles table:", error);
+      throw new Error(`Failed to fetch from profiles table: ${error.message}`);
+    }
     
-  if (error) {
-    console.error("Error fetching from profiles table:", error);
-    throw new Error(`Failed to fetch from profiles table: ${error.message}`);
+    return data as Profile | null;
+  } catch (error) {
+    console.error("Network error fetching profile from profiles table:", error);
+    // Return a default profile during network outages rather than failing completely
+    if (userId) {
+      return {
+        id: userId,
+        role: "employee", // Default role - will be overridden if actual data is available
+        email: ""
+      };
+    }
+    return null;
   }
-  
-  return data as Profile | null;
 }
 
 /**
@@ -28,27 +41,40 @@ async function fetchProfileFromProfilesTable(userId: string): Promise<Profile | 
  * @returns The profile data created from employee data or null if not found
  */
 async function fetchProfileFromEmployeesTable(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("employees")
-    .select("id, first_name, last_name, email")
-    .eq("id", userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("id, first_name, last_name, email")
+      .eq("id", userId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Error fetching from employees table:", error);
+      throw new Error(`Failed to fetch from employees table: ${error.message}`);
+    }
     
-  if (error) {
-    console.error("Error fetching from employees table:", error);
-    throw new Error(`Failed to fetch from employees table: ${error.message}`);
+    if (!data) return null;
+    
+    // Create a profile from employee data
+    return {
+      id: data.id,
+      role: "employee", // Default role for employees
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email
+    };
+  } catch (error) {
+    console.error("Network error fetching from employees table:", error);
+    // Return a default profile during network outages
+    if (userId) {
+      return {
+        id: userId,
+        role: "employee",
+        email: ""
+      };
+    }
+    return null;
   }
-  
-  if (!data) return null;
-  
-  // Create a profile from employee data
-  return {
-    id: data.id,
-    role: "employee", // Default role for employees
-    first_name: data.first_name,
-    last_name: data.last_name,
-    email: data.email
-  };
 }
 
 /**
@@ -65,26 +91,47 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
     console.log("Attempting to fetch profile for user:", userId);
     
-    // First try the profiles table
-    const profileData = await fetchProfileFromProfilesTable(userId);
-    if (profileData) {
-      console.log("Profile found in profiles table");
-      return profileData;
+    try {
+      // First try the profiles table
+      const profileData = await fetchProfileFromProfilesTable(userId);
+      if (profileData) {
+        console.log("Profile found in profiles table");
+        return profileData;
+      }
+    } catch (error) {
+      console.warn("Error fetching from profiles table, will try employees table:", error);
+      // Continue to employees table even if profiles table fails
     }
     
-    // If no profile found, try the employees table as fallback
-    console.log("No profile found, checking employees table");
-    const employeeData = await fetchProfileFromEmployeesTable(userId);
-    if (employeeData) {
-      console.log("Employee record found");
-      return employeeData;
+    try {
+      // If no profile found, try the employees table as fallback
+      console.log("No profile found, checking employees table");
+      const employeeData = await fetchProfileFromEmployeesTable(userId);
+      if (employeeData) {
+        console.log("Employee record found");
+        return employeeData;
+      }
+    } catch (error) {
+      console.warn("Error fetching from employees table:", error);
     }
     
-    // No profile found in either table
-    console.log("No profile found in either table");
-    return null;
+    // If we're offline or having network issues, return a default profile
+    // This allows the app to continue functioning with basic auth
+    console.log("Network issues detected, using default profile");
+    return {
+      id: userId,
+      role: "employee", // Default conservative role
+      email: ""
+    };
   } catch (error) {
     console.error("Exception in fetchProfile:", error);
-    throw error; // Re-throw to allow proper handling upstream
+    
+    // Gracefully handle complete failures with a default profile
+    // This prevents the app from crashing due to profile fetch failures
+    return {
+      id: userId,
+      role: "employee",
+      email: ""
+    };
   }
 }

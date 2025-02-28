@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +16,7 @@ import { LoadingScreen } from "./components/ui/loading-screen";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2, // Increase retries for network issues
       refetchOnWindowFocus: false,
     },
   },
@@ -44,9 +45,10 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
   }
   
   if (!profile) {
-    // Logged in but no profile - show error and redirect
-    toast.error("Session invalide. Veuillez vous reconnecter.");
-    return <Navigate to={redirectPath} replace />;
+    // Network issues might cause profile to be null even when authenticated
+    // Wait a bit more with a more detailed loading message
+    toast.error("Problème de récupération du profil. Tentative de reconnexion...");
+    return <LoadingScreen fullScreen message="Tentative de récupération de votre profil..." />;
   }
   
   if (requiredRole === "hr" && profile.role !== "hr") {

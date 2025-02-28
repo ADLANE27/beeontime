@@ -5,16 +5,36 @@ import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
-import { Building2, Lock, Loader2 } from "lucide-react";
+import { Building2, Lock, Loader2, WifiOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading, profile, authReady } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+
+  // Check network status
+  useEffect(() => {
+    const checkNetwork = () => {
+      setNetworkStatus(navigator.onLine ? 'online' : 'offline');
+    };
+
+    // Initial check
+    checkNetwork();
+
+    // Add event listeners for online/offline status
+    window.addEventListener('online', checkNetwork);
+    window.addEventListener('offline', checkNetwork);
+
+    return () => {
+      window.removeEventListener('online', checkNetwork);
+      window.removeEventListener('offline', checkNetwork);
+    };
+  }, []);
 
   // Handle authentication redirects
   useEffect(() => {
@@ -80,6 +100,16 @@ const HRPortal = () => {
         </div>
 
         <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          {networkStatus === 'offline' && (
+            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
+              <WifiOff className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Connexion limitée</AlertTitle>
+              <AlertDescription>
+                Vous semblez être hors ligne. La connexion pourrait échouer.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="flex items-center gap-2 mb-6 p-3 bg-primary/5 rounded-lg">
             <Lock className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary">Connexion sécurisée</span>
@@ -144,6 +174,18 @@ const HRPortal = () => {
             view="sign_in"
             magicLink={false}
           />
+
+          {networkStatus === 'offline' && (
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline" 
+                className="text-sm"
+                onClick={() => setNetworkStatus(navigator.onLine ? 'online' : 'offline')}
+              >
+                Vérifier la connexion
+              </Button>
+            </div>
+          )}
         </Card>
 
         <p className="text-center text-sm text-gray-600 mt-8">
