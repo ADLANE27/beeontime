@@ -171,15 +171,15 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
                 Modifier
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl p-0">
-              <DialogHeader className="p-6 pb-2">
+            <DialogContent className="p-0 max-w-4xl">
+              <div className="px-6 py-4 border-b">
                 <DialogTitle className="text-xl font-bold">Modifier l'employé</DialogTitle>
                 <DialogDescription>
                   Modifiez les informations de {employee.first_name} {employee.last_name}
                 </DialogDescription>
-              </DialogHeader>
+              </div>
               
-              <div className="px-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="px-0 py-0 max-h-[80vh] overflow-y-auto">
                 <NewEmployeeForm
                   initialData={{
                     firstName: employee.first_name,

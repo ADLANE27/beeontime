@@ -6,13 +6,13 @@ import { AddressInfoForm } from "./AddressInfoForm";
 import { WorkInfoForm } from "./WorkInfoForm";
 import { ScheduleInfoForm } from "./ScheduleInfoForm";
 import { VacationInfoForm } from "./VacationInfoForm";
-import { PasswordField } from "./PasswordField";
 import { useEmployeeSubmit } from "./hooks/useEmployeeSubmit";
 import { NewEmployee, WorkSchedule } from "@/types/hr";
-import { Loader2, User, MapPin, Briefcase, Clock, Calendar, KeyRound } from "lucide-react";
+import { Loader2, User, MapPin, Briefcase, Clock, Calendar } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const NewEmployeeForm = ({ 
   onSuccess, 
@@ -66,7 +66,7 @@ export const NewEmployeeForm = ({
   const previousYearBalance = formData.previousYearVacationDays - formData.previousYearUsedDays;
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="max-w-3xl mx-auto py-4">
       <form 
         onSubmit={(e) => {
           e.preventDefault();
@@ -74,163 +74,371 @@ export const NewEmployeeForm = ({
         }}
         className="space-y-6"
       >
-        {/* Horaires de travail */}
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
-          <div className="flex items-center bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <Clock className="h-5 w-5 text-gray-700 mr-2" />
-            <h2 className="font-medium">Horaires de travail</h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-2 gap-6 mb-4">
-              <div>
-                <Label htmlFor="startTime" className="block mb-2">Début journée</Label>
-                <div className="relative">
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={formData.workSchedule.startTime}
-                    onChange={(e) => handleScheduleChange({...formData.workSchedule, startTime: e.target.value})}
-                    className="pl-3 pr-9"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="endTime" className="block mb-2">Fin journée</Label>
-                <div className="relative">
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={formData.workSchedule.endTime}
-                    onChange={(e) => handleScheduleChange({...formData.workSchedule, endTime: e.target.value})}
-                    className="pl-3 pr-9"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
-              </div>
-            </div>
+        <Tabs defaultValue="personal" className="w-full">
+          <TabsList className="grid grid-cols-4 mb-6">
+            <TabsTrigger value="personal" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>Personnel</span>
+            </TabsTrigger>
+            <TabsTrigger value="address" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span>Adresse</span>
+            </TabsTrigger>
+            <TabsTrigger value="work" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              <span>Travail</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>Horaires</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="personal" className="space-y-4 bg-white p-6 rounded-lg border">
+            <h2 className="text-xl font-medium mb-4">Informations personnelles</h2>
             <div className="grid grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="breakStartTime" className="block mb-2">Début pause déjeuner</Label>
-                <div className="relative">
-                  <Input
-                    id="breakStartTime"
-                    type="time"
-                    value={formData.workSchedule.breakStartTime}
-                    onChange={(e) => handleScheduleChange({...formData.workSchedule, breakStartTime: e.target.value})}
-                    className="pl-3 pr-9"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
+              <div className="space-y-3">
+                <Label htmlFor="firstName">Prénom</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleFieldChange("firstName", e.target.value)}
+                  className="h-12"
+                  required
+                />
               </div>
-              <div>
-                <Label htmlFor="breakEndTime" className="block mb-2">Fin pause déjeuner</Label>
-                <div className="relative">
-                  <Input
-                    id="breakEndTime"
-                    type="time"
-                    value={formData.workSchedule.breakEndTime}
-                    onChange={(e) => handleScheduleChange({...formData.workSchedule, breakEndTime: e.target.value})}
-                    className="pl-3 pr-9"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="lastName">Nom</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleFieldChange("lastName", e.target.value)}
+                  className="h-12"
+                  required
+                />
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Congés */}
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
-          <div className="flex items-center bg-purple-50 px-4 py-3 border-b border-gray-200">
-            <Calendar className="h-5 w-5 text-purple-600 mr-2" />
-            <h2 className="font-medium text-purple-900">Congés</h2>
-          </div>
-          <div className="p-6">
-            <div className="flex items-center mb-4">
-              <Calendar className="h-5 w-5 text-gray-700 mr-2" />
-              <h3 className="font-medium">Congés</h3>
             </div>
             
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleFieldChange("email", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleFieldChange("phone", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="initialPassword">Mot de passe initial</Label>
+              <Input
+                id="initialPassword"
+                type="text"
+                value={formData.initialPassword}
+                onChange={(e) => handleFieldChange("initialPassword", e.target.value)}
+                className="h-12"
+                required={!isEditing}
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="birthDate">Date de naissance</Label>
+              <Input
+                id="birthDate"
+                type="date"
+                value={formData.birthDate}
+                onChange={(e) => handleFieldChange("birthDate", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="birthPlace">Lieu de naissance</Label>
+              <Input
+                id="birthPlace"
+                value={formData.birthPlace}
+                onChange={(e) => handleFieldChange("birthPlace", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="birthCountry">Pays de naissance</Label>
+              <Input
+                id="birthCountry"
+                value={formData.birthCountry}
+                onChange={(e) => handleFieldChange("birthCountry", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="socialSecurityNumber">Numéro de sécurité sociale</Label>
+              <Input
+                id="socialSecurityNumber"
+                value={formData.socialSecurityNumber}
+                onChange={(e) => handleFieldChange("socialSecurityNumber", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="address" className="space-y-4 bg-white p-6 rounded-lg border">
+            <h2 className="text-xl font-medium mb-4">Adresse</h2>
+            <div className="space-y-3">
+              <Label htmlFor="streetAddress">Rue</Label>
+              <Input
+                id="streetAddress"
+                value={formData.streetAddress}
+                onChange={(e) => handleFieldChange("streetAddress", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="space-y-3">
+                <Label htmlFor="city">Ville</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => handleFieldChange("city", e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="postalCode">Code postal</Label>
+                <Input
+                  id="postalCode"
+                  value={formData.postalCode}
+                  onChange={(e) => handleFieldChange("postalCode", e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="country">Pays</Label>
+              <Input
+                id="country"
+                value={formData.country}
+                onChange={(e) => handleFieldChange("country", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="work" className="space-y-4 bg-white p-6 rounded-lg border">
+            <h2 className="text-xl font-medium mb-4">Informations professionnelles</h2>
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h4 className="font-medium">Année en cours</h4>
-                
-                <div>
-                  <Label htmlFor="currentYearVacationDays" className="block mb-2">Congés acquis</Label>
+              <div className="space-y-3">
+                <Label htmlFor="position">Poste</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={(e) => handleFieldChange("position", e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="contractType">Type de contrat</Label>
+                <Input
+                  id="contractType"
+                  value={formData.contractType}
+                  onChange={(e) => handleFieldChange("contractType", e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="startDate">Date de début</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleFieldChange("startDate", e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            
+            <div className="space-y-4 mt-6">
+              <h3 className="text-lg font-medium">Congés</h3>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="currentYearVacationDays">Congés année en cours (acquis)</Label>
                   <Input
                     id="currentYearVacationDays"
                     type="number"
                     step="0.5"
                     value={formData.currentYearVacationDays}
                     onChange={(e) => handleFieldChange("currentYearVacationDays", parseFloat(e.target.value))}
+                    className="h-12"
+                    required
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="currentYearUsedDays" className="block mb-2">Congés pris</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="currentYearUsedDays">Congés année en cours (pris)</Label>
                   <Input
                     id="currentYearUsedDays"
                     type="number"
                     step="0.5"
                     value={formData.currentYearUsedDays}
                     onChange={(e) => handleFieldChange("currentYearUsedDays", parseFloat(e.target.value))}
+                    className="h-12"
+                    required
                   />
-                </div>
-                
-                <div className="text-sm text-gray-600">
-                  Solde: {currentYearBalance.toFixed(1)} jours
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <h4 className="font-medium">Année précédente (N-1)</h4>
-                
-                <div>
-                  <Label htmlFor="previousYearVacationDays" className="block mb-2">Congés acquis</Label>
+              <div className="grid grid-cols-2 gap-6 mt-4">
+                <div className="space-y-3">
+                  <Label htmlFor="previousYearVacationDays">Congés année précédente (acquis)</Label>
                   <Input
                     id="previousYearVacationDays"
                     type="number"
                     step="0.5"
                     value={formData.previousYearVacationDays}
                     onChange={(e) => handleFieldChange("previousYearVacationDays", parseFloat(e.target.value))}
+                    className="h-12"
+                    required
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="previousYearUsedDays" className="block mb-2">Congés pris</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="previousYearUsedDays">Congés année précédente (pris)</Label>
                   <Input
                     id="previousYearUsedDays"
                     type="number"
                     step="0.5"
                     value={formData.previousYearUsedDays}
                     onChange={(e) => handleFieldChange("previousYearUsedDays", parseFloat(e.target.value))}
+                    className="h-12"
+                    required
                   />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6 mt-4">
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <span className="text-sm text-blue-700">Solde année en cours: </span>
+                  <span className="font-bold text-blue-800">{currentYearBalance.toFixed(1)} jours</span>
+                </div>
                 
-                <div className="text-sm text-gray-600">
-                  Solde: {previousYearBalance.toFixed(1)} jours
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <span className="text-sm text-blue-700">Solde année précédente: </span>
+                  <span className="font-bold text-blue-800">{previousYearBalance.toFixed(1)} jours</span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="schedule" className="space-y-4 bg-white p-6 rounded-lg border">
+            <h2 className="text-xl font-medium mb-4">Horaires de travail</h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="startTime">Début journée</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={formData.workSchedule.startTime}
+                  onChange={(e) => handleScheduleChange({...formData.workSchedule, startTime: e.target.value})}
+                  className="h-12"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="endTime">Fin journée</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={formData.workSchedule.endTime}
+                  onChange={(e) => handleScheduleChange({...formData.workSchedule, endTime: e.target.value})}
+                  className="h-12"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="space-y-3">
+                <Label htmlFor="breakStartTime">Début pause déjeuner</Label>
+                <Input
+                  id="breakStartTime"
+                  type="time"
+                  value={formData.workSchedule.breakStartTime}
+                  onChange={(e) => handleScheduleChange({...formData.workSchedule, breakStartTime: e.target.value})}
+                  className="h-12"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="breakEndTime">Fin pause déjeuner</Label>
+                <Input
+                  id="breakEndTime"
+                  type="time"
+                  value={formData.workSchedule.breakEndTime}
+                  onChange={(e) => handleScheduleChange({...formData.workSchedule, breakEndTime: e.target.value})}
+                  className="h-12"
+                  required
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
         
-        {/* Bouton d'action */}
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end gap-4 pt-4">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => window.history.back()}
+            className="px-6 h-12"
+          >
+            Annuler
+          </Button>
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="px-6"
-            size="lg"
+            className="px-6 h-12 bg-indigo-600 hover:bg-indigo-700"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 {isEditing ? "Modification en cours..." : "Création en cours..."}
               </>
             ) : (
-              isEditing ? "Mettre à jour l'employé" : "Créer l'employé"
+              isEditing ? "Mettre à jour" : "Créer l'employé"
             )}
           </Button>
         </div>
