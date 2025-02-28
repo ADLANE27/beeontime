@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,21 +13,23 @@ import { fr } from "date-fns/locale";
 import { ContractType, Position, WorkSchedule } from "@/types/hr";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { useEmployeesList } from "./hooks/useEmployeesList";
 
+// Modifié pour correspondre aux données retournées par Supabase
 interface Employee {
   id: string;
   first_name: string;
   last_name: string;
   email: string;
   phone: string | null;
-  position: string;
-  contract_type: ContractType;
+  position: string | null;
+  contract_type: string | null;  // Changé de ContractType à string | null
   start_date: string | null;
-  current_year_vacation_days: number;
-  current_year_used_days: number;
-  previous_year_vacation_days: number;
-  previous_year_used_days: number;
-  work_schedule: WorkSchedule;
+  current_year_vacation_days: number | null;
+  current_year_used_days: number | null;
+  previous_year_vacation_days: number | null;
+  previous_year_used_days: number | null;
+  work_schedule: any;  // Changé de WorkSchedule à any pour être compatible avec Json
   birth_date: string | null;
   birth_place: string | null;
   birth_country: string | null;
@@ -35,9 +38,13 @@ interface Employee {
   city: string | null;
   postal_code: string | null;
   country: string | null;
+  created_at?: string;
+  updated_at?: string;
+  last_vacation_credit_date?: string | null;
+  initial_password?: string;
 }
 
-const getContractColor = (contractType: ContractType) => {
+const getContractColor = (contractType: string | null) => {
   switch (contractType) {
     case 'CDI':
       return 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200';
@@ -183,10 +190,15 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
                     birthPlace: employee.birth_place || '',
                     birthCountry: employee.birth_country || '',
                     socialSecurityNumber: employee.social_security_number || '',
-                    contractType: employee.contract_type as ContractType,
+                    contractType: (employee.contract_type as ContractType) || 'CDI',
                     startDate: employee.start_date || '',
-                    position: employee.position as Position,
-                    workSchedule: employee.work_schedule as WorkSchedule,
+                    position: (employee.position as Position) || 'Traducteur',
+                    workSchedule: employee.work_schedule as WorkSchedule || {
+                      startTime: '09:00',
+                      endTime: '17:00',
+                      breakStartTime: '12:30',
+                      breakEndTime: '13:30'
+                    },
                     currentYearVacationDays: employee.current_year_vacation_days || 0,
                     currentYearUsedDays: employee.current_year_used_days || 0,
                     previousYearVacationDays: employee.previous_year_vacation_days || 0,
@@ -252,7 +264,7 @@ export const EmployeesList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedContractTypes, setSelectedContractTypes] = useState<ContractType[]>([]);
+  const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   const fetchEmployees = async () => {
@@ -290,7 +302,9 @@ export const EmployeesList = () => {
     }
 
     if (selectedContractTypes.length > 0) {
-      results = results.filter(employee => selectedContractTypes.includes(employee.contract_type));
+      results = results.filter(employee => 
+        employee.contract_type && selectedContractTypes.includes(employee.contract_type)
+      );
     }
 
     setFilteredEmployees(results);
@@ -322,7 +336,7 @@ export const EmployeesList = () => {
     }
   };
 
-  const handleContractTypeChange = (contractType: ContractType) => {
+  const handleContractTypeChange = (contractType: string) => {
     setSelectedContractTypes(prev =>
       prev.includes(contractType)
         ? prev.filter(item => item !== contractType)
