@@ -29,7 +29,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
   const { session, isLoading, profile, authReady } = useAuth();
   
-  // Still initializing authentication
+  // Show loading state if auth is still initializing
   if (isLoading || !authReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -41,24 +41,28 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     );
   }
 
-  // No session -> redirect to login
+  // Determine where to redirect if not authenticated
+  const redirectPath = requiredRole === "hr" ? "/hr-portal" : "/portal";
+  
+  // Handle authentication and authorization cases
   if (!session) {
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+    // Not logged in - redirect to login
+    return <Navigate to={redirectPath} replace />;
   }
   
-  // Session but no profile -> error message and redirect
   if (!profile) {
+    // Logged in but no profile - show error and redirect
     toast.error("Session invalide. Veuillez vous reconnecter.");
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+    return <Navigate to={redirectPath} replace />;
   }
   
-  // Wrong role for HR section
   if (requiredRole === "hr" && profile.role !== "hr") {
+    // Wrong role for HR section
     toast.error("Vous n'avez pas les droits pour accéder à cette page.");
     return <Navigate to="/employee" replace />;
   }
   
-  // All checks passed -> render content
+  // All checks passed - render children
   return <>{children}</>;
 };
 
