@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 // Types pour le contexte
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!isMounted) return;
 
-        // Pour les événements SIGNED_OUT, réinitialiser complètement l'état
+        // Using string literal comparison to ensure type safety
         if (event === 'SIGNED_OUT') {
           console.log("Signed out, clearing all auth state");
           setSession(null);
