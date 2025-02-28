@@ -54,65 +54,51 @@ export const useEmployeeSubmit = (
         toast.success("Employé mis à jour avec succès");
         onSuccess();
       } else {
-        // For new employee creation, we need a transaction-like approach
+        // For new employee creation, we'll first try to sign up a new user through auth
         
-        // Generate UUID for the new user
-        const newUserId = uuidv4();
-        console.log("Generated new user ID:", newUserId);
-        
-        // First create a profile entry
-        console.log("Creating profile with ID:", newUserId);
-        const { data: profileResult, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newUserId,
-            email: employeeData.email,
+        // First, try to create a user in auth
+        console.log("Creating a new user for:", employeeData.email);
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: employeeData.email,
+          password: employeeData.initialPassword,
+          email_confirm: true,
+          user_metadata: {
             first_name: employeeData.firstName,
-            last_name: employeeData.lastName,
-            role: 'employee'
-          })
-          .select();
+            last_name: employeeData.lastName
+          }
+        });
         
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-          throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
+        if (authError) {
+          console.error("Error creating user in auth:", authError);
+          throw new Error(`Erreur lors de la création de l'utilisateur: ${authError.message}`);
         }
         
-        console.log("Profile created successfully:", profileResult);
-        
-        // Verify profile was created
-        const { data: verifyProfile, error: verifyError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', newUserId)
-          .single();
-        
-        if (verifyError || !verifyProfile) {
-          console.error("Profile verification failed:", verifyError);
-          throw new Error(`Erreur de vérification du profil: ${verifyError?.message || "Profil non trouvé"}`);
+        if (!authData.user) {
+          throw new Error("Échec de la création du compte utilisateur");
         }
         
-        console.log("Profile verified, creating employee with ID:", newUserId);
+        console.log("Auth user created successfully:", authData.user.id);
         
-        // Then create the employee record with the same ID
+        // Now we can create the employee record with the user's ID
+        const userId = authData.user.id;
+        
+        console.log("Creating employee with ID:", userId);
         const { data: employeeResult, error: employeeError } = await supabase
           .from('employees')
           .insert({
             ...employeeRecord,
-            id: newUserId
+            id: userId
           })
           .select();
         
         if (employeeError) {
           console.error("Error creating employee:", employeeError);
-          // Try to clean up the profile we just created to avoid orphaned records
-          const { error: cleanupError } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', newUserId);
-            
-          if (cleanupError) {
-            console.error("Error cleaning up profile:", cleanupError);
+          // We should try to clean up the auth user we just created to avoid orphaned records
+          console.log("Attempting to delete auth user after employee creation failure");
+          const { error: deleteUserError } = await supabase.auth.admin.deleteUser(userId);
+          
+          if (deleteUserError) {
+            console.error("Error cleaning up auth user:", deleteUserError);
           }
           
           throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
