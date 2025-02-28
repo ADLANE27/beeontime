@@ -311,7 +311,7 @@ const HRDashboard = () => {
                   )}
                 </div>
               </div>
-              <TabsList className="grid grid-cols-9 gap-3 p-2 bg-white rounded-lg border shadow-sm">
+              <TabsList>
                 {menuItems.map((item) => {
                   const isActive = selectedTab === item.value;
                   return (
