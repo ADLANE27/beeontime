@@ -84,13 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      async (event: AuthChangeEvent, newSession) => {
         console.log("Auth state event:", event, newSession ? "With session" : "No session");
         
         if (!isMounted) return;
 
-        // Fix: Use proper type comparison for AuthChangeEvent
-        if (event === 'SIGNED_OUT') {
+        // Fix: Use proper type comparison for AuthChangeEvent with appropriate type casting
+        if (event === 'SIGNED_OUT' as AuthChangeEvent) {
           console.log("Signed out, clearing all auth state");
           setSession(null);
           setUser(null);
@@ -107,13 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const profile = await fetchProfile(newSession.user.id);
             if (isMounted) {
               setProfile(profile);
-              if (!profile && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+              if (!profile && (event === 'SIGNED_IN' as AuthChangeEvent || event === 'USER_UPDATED' as AuthChangeEvent)) {
                 console.warn("No profile found after auth event, attempting to create one");
                 await refreshProfile();
               }
             }
           }
-        } else if (event !== 'SIGNED_OUT') {
+        } else if (event !== 'SIGNED_OUT' as AuthChangeEvent) {
           // If no session but not SIGNED_OUT, it's probably an error
           console.warn(`Auth event ${event} occurred but no session was provided`);
         }
