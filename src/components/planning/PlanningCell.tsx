@@ -16,6 +16,7 @@ interface PlanningCellProps {
   timeRecord?: TimeRecord;
   isWeekend?: boolean;
   isToday?: boolean;
+  isHighlighted?: boolean;
 }
 
 const getTimeRecordDisplay = (timeRecord: TimeRecord) => {
@@ -27,13 +28,16 @@ const getTimeRecordDisplay = (timeRecord: TimeRecord) => {
   return times.join('\n');
 };
 
-export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToday }: PlanningCellProps) => {
+export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToday, isHighlighted }: PlanningCellProps) => {
   const baseClasses = "text-center p-2 h-16 relative transition-all duration-300 group cursor-pointer";
   const todayClasses = isToday 
     ? "bg-gradient-to-br from-blue-50/90 to-blue-100/30 ring-2 ring-blue-200/50 ring-inset" 
     : "";
   const weekendClasses = isWeekend 
     ? "bg-gradient-to-br from-gray-50/80 to-gray-100/50 border-gray-100" 
+    : "";
+  const highlightedClasses = isHighlighted
+    ? "bg-gradient-to-br from-blue-100/90 to-blue-50/50 ring-2 ring-blue-300/70 ring-inset z-10"
     : "";
   const hoverClasses = "hover:shadow-md hover:z-10 hover:scale-[1.02] hover:shadow-blue-100";
   
@@ -157,7 +161,7 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
   };
 
   return (
-    <TableCell className={cn(baseClasses, todayClasses, weekendClasses, hoverClasses)}>
+    <TableCell className={cn(baseClasses, todayClasses, weekendClasses, highlightedClasses, hoverClasses)}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="w-full h-full">

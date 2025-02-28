@@ -1,7 +1,7 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export const AdminPlanning = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isChangingView, setIsChangingView] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [highlightedDate, setHighlightedDate] = useState<Date | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const firstDayOfPeriod = viewMode === 'month' 
@@ -124,18 +125,21 @@ export const AdminPlanning = () => {
     fetchData();
   }, [currentDate, viewMode]);
 
-  // Effet pour faire défiler jusqu'à la colonne du jour actuel
+  // Effet pour faire défiler jusqu'à la colonne de la date sélectionnée/aujourd'hui
   useEffect(() => {
     // Attendre que les données soient chargées
     if (!isLoading && tableContainerRef.current) {
-      // Trouver l'index du jour actuel (si présent dans la vue actuelle)
-      const days = getDaysToShow();
-      const todayIndex = days.findIndex(date => isToday(date));
+      // Déterminer la date à mettre en évidence (aujourd'hui ou date sélectionnée)
+      const dateToHighlight = highlightedDate || new Date();
       
-      if (todayIndex !== -1) {
+      // Trouver l'index du jour à mettre en évidence (si présent dans la vue actuelle)
+      const days = getDaysToShow();
+      const highlightIndex = days.findIndex(date => isSameDay(date, dateToHighlight));
+      
+      if (highlightIndex !== -1) {
         // Calculer la position de défilement approximative
         const cellWidth = 100; // Largeur approximative d'une cellule en pixels
-        const scrollPosition = todayIndex * cellWidth;
+        const scrollPosition = highlightIndex * cellWidth;
         
         // Faire défiler jusqu'à cette position, avec un décalage pour centrer la cellule
         setTimeout(() => {
@@ -147,10 +151,11 @@ export const AdminPlanning = () => {
         }, 100);
       }
     }
-  }, [isLoading, currentDate, viewMode]);
+  }, [isLoading, highlightedDate]);
 
   const nextPeriod = () => {
     setIsChangingView(true);
+    setHighlightedDate(null);
     setTimeout(() => {
       if (viewMode === 'month') {
         setCurrentDate(addMonths(currentDate, 1));
@@ -163,6 +168,7 @@ export const AdminPlanning = () => {
 
   const previousPeriod = () => {
     setIsChangingView(true);
+    setHighlightedDate(null);
     setTimeout(() => {
       if (viewMode === 'month') {
         setCurrentDate(subMonths(currentDate, 1));
@@ -182,6 +188,7 @@ export const AdminPlanning = () => {
     // Assurer que la période (mois ou semaine) affichée contient le jour actuel
     setCurrentDate(today);
     setSelectedDate(today);
+    setHighlightedDate(today);
     
     // Notification pour l'utilisateur
     toast.success(`Affichage du ${format(today, 'dd MMMM yyyy', { locale: fr })}`);
@@ -200,6 +207,7 @@ export const AdminPlanning = () => {
     // Mettre à jour les dates sélectionnées
     setSelectedDate(date);
     setCurrentDate(date);
+    setHighlightedDate(date);
     
     // Notification pour l'utilisateur
     toast.success(`Affichage du ${format(date, 'dd MMMM yyyy', { locale: fr })}`);
@@ -211,6 +219,7 @@ export const AdminPlanning = () => {
 
   const toggleViewMode = () => {
     setIsChangingView(true);
+    setHighlightedDate(null);
     setTimeout(() => {
       setViewMode(viewMode === 'month' ? 'week' : 'month');
       setIsChangingView(false);
@@ -353,6 +362,7 @@ export const AdminPlanning = () => {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+            
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -441,14 +451,16 @@ export const AdminPlanning = () => {
                       className={cn(
                         "text-center min-w-[100px] p-2 whitespace-pre-line bg-gradient-to-b from-gray-50 to-white font-medium",
                         isWeekend(date) ? "text-gray-500" : "",
-                        isToday(date) ? "text-blue-600 font-semibold" : ""
+                        isToday(date) ? "text-blue-600 font-semibold" : "",
+                        highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-50" : ""
                       )}
                     >
                       <div className="text-xs">
                         <div className="uppercase">{format(date, 'EEE', { locale: fr })}</div>
                         <div className={cn(
                           "text-sm mt-1 transition-all duration-200",
-                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
+                          isToday(date) ? "bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : "",
+                          highlightedDate && isSameDay(date, highlightedDate) ? "bg-blue-200 rounded-full w-6 h-6 flex items-center justify-center mx-auto shadow-inner" : ""
                         )}>
                           {format(date, 'dd')}
                         </div>
@@ -492,6 +504,7 @@ export const AdminPlanning = () => {
                           timeRecord={getTimeRecordForDay(employee.id, date)}
                           isWeekend={isWeekend(date)}
                           isToday={isToday(date)}
+                          isHighlighted={highlightedDate ? isSameDay(date, highlightedDate) : false}
                         />
                       ))}
                     </TableRow>
