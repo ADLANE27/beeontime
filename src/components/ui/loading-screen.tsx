@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface LoadingScreenProps {
@@ -21,9 +22,9 @@ export const LoadingScreen = ({
   };
 
   // Show timeout message if loading takes too long
-  const [showTimeout, setShowTimeout] = React.useState(false);
+  const [showTimeout, setShowTimeout] = useState(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setShowTimeout(true);
     }, timeout);
