@@ -26,17 +26,18 @@ const HRPortal = () => {
     };
   }, []);
 
+  // Check for existing session and redirect based on role
   useEffect(() => {
-    // Skip if auth is in progress or no session exists
-    if (authInProgress || !session?.user) return;
+    // Skip if auth check is already in progress
+    if (authInProgress) return;
+    
+    // Skip if no session exists or auth context is still loading
+    if (!session?.user || isLoading) return;
 
     console.log("Session exists, checking profile for role", session.user.email);
     
-    // If we have profile from context, use it directly
-    if (profile) {
-      console.log("Profile found in context with role:", profile.role);
-      
-      if (profile.role === "hr") {
+    const redirectBasedOnRole = (role: string | undefined) => {
+      if (role === "hr") {
         console.log("HR role detected, redirecting to HR dashboard");
         navigate('/hr', { replace: true });
       } else {
@@ -44,48 +45,53 @@ const HRPortal = () => {
         toast.error("Vous n'avez pas les droits pour accéder à cette page.");
         navigate('/employee', { replace: true });
       }
-    } else {
-      // If no profile in context, check database directly
-      const checkProfileInDB = async () => {
-        try {
-          console.log("Checking database for profile");
-          
-          const { data: profileData, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error("Error fetching profile:", error);
-            toast.error("Erreur lors de la récupération du profil.");
-            return;
-          }
-          
-          if (profileData) {
-            console.log("Profile found in database:", profileData);
-            if (profileData.role === "hr") {
-              navigate('/hr', { replace: true });
-            } else {
-              toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-              navigate('/employee', { replace: true });
-            }
-          } else {
-            console.log("No profile found, redirecting to employee dashboard");
-            toast.error("Profil non trouvé. Contactez l'administrateur.");
-            navigate('/employee', { replace: true });
-          }
-        } catch (err) {
-          console.error("Exception during profile check:", err);
-          toast.error("Une erreur est survenue lors de la vérification du profil.");
-        } finally {
-          setAuthInProgress(false);
-        }
-      };
-      
-      checkProfileInDB();
+    };
+    
+    // If we have profile from context, use it directly
+    if (profile) {
+      console.log("Profile found in context with role:", profile.role);
+      redirectBasedOnRole(profile.role);
+      return;
     }
-  }, [session, profile, navigate, authInProgress]);
+    
+    // If no profile in context, check database directly
+    const checkProfileInDB = async () => {
+      try {
+        setAuthInProgress(true);
+        console.log("Checking database for profile");
+        
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast.error("Erreur lors de la récupération du profil.");
+          setAuthInProgress(false);
+          return;
+        }
+        
+        if (profileData) {
+          console.log("Profile found in database:", profileData);
+          redirectBasedOnRole(profileData.role);
+        } else {
+          console.log("No profile found, redirecting to employee dashboard");
+          toast.error("Profil non trouvé. Contactez l'administrateur.");
+          navigate('/employee', { replace: true });
+        }
+      } catch (err) {
+        console.error("Exception during profile check:", err);
+        toast.error("Une erreur est survenue lors de la vérification du profil.");
+      } finally {
+        setAuthInProgress(false);
+      }
+    };
+    
+    checkProfileInDB();
+    
+  }, [session, profile, navigate, authInProgress, isLoading]);
 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -114,7 +120,8 @@ const HRPortal = () => {
         }
         setAuthInProgress(false);
       }
-      // Don't reset authInProgress on success - let the profile check complete first
+      // We intentionally don't reset authInProgress on success
+      // The session change will trigger the useEffect which will handle redirection
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
@@ -141,6 +148,18 @@ const HRPortal = () => {
     return (
       <LoadingState 
         message="Vérification de l'authentification..."
+        disableRefresh={true}
+      />
+    );
+  }
+
+  // If we have a session but haven't triggered a redirect yet,
+  // show a loading state while we check the profile
+  if (session?.user && !authInProgress && !isLoading) {
+    setAuthInProgress(true);
+    return (
+      <LoadingState 
+        message="Redirection vers votre espace..."
         disableRefresh={true}
       />
     );
