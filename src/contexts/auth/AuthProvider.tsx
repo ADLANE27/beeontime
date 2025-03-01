@@ -15,7 +15,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authReady,
     profileFetchAttempted,
     authError,
-    setProfile
+    setProfile,
+    refreshSession
   } = useAuthState();
   
   // Combine loading states with a preference for not showing loading
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authError,
         signIn,
         signOut,
+        refreshSession
       }}
     >
       {children}

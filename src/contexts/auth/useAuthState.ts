@@ -32,6 +32,7 @@ export function useAuthState() {
   const profileRetryCount = useRef(0);
   const MAX_PROFILE_RETRIES = 0; // Reduced to 0 - no retries, faster processing
   const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionChecked = useRef(false);
 
   // Create a safe state update function to prevent race conditions
   const safeUpdateState = useCallback((updates: Partial<AuthState>) => {
@@ -53,6 +54,34 @@ export function useAuthState() {
     }
   }, []);
 
+  // Improved session persistence check
+  const checkPersistedSession = useCallback(async () => {
+    if (sessionChecked.current) return;
+    
+    try {
+      console.log("Checking for persisted session...");
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Error retrieving persisted session:", error);
+        return null;
+      }
+      
+      if (data?.session) {
+        console.log("Found persisted session for user:", data.session.user.id);
+        return data.session;
+      } else {
+        console.log("No persisted session found");
+        return null;
+      }
+    } catch (err) {
+      console.error("Exception checking persisted session:", err);
+      return null;
+    } finally {
+      sessionChecked.current = true;
+    }
+  }, []);
+
   // Define fetchUserProfile here BEFORE it's used in handleAuthStateChange to avoid the hook error
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!userId || !isMountedRef.current) return;
@@ -70,6 +99,8 @@ export function useAuthState() {
           authError: null,
           authReady: true
         });
+        
+        console.log("Profile fetched successfully:", profileData?.role);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -102,6 +133,13 @@ export function useAuthState() {
       
       if (newSession?.user?.id) {
         try {
+          // Store session in localStorage for persistence backup
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('supabase.auth.token', JSON.stringify({
+              currentSession: newSession
+            }));
+          }
+          
           await fetchUserProfile(newSession.user.id);
         } catch (error) {
           console.error("Error fetching user profile:", error);
@@ -118,6 +156,12 @@ export function useAuthState() {
       console.log("User signed out");
       // Clear any pending timeouts
       clearPendingTimeouts();
+      
+      // Clear any backup session storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token');
+      }
+      
       safeUpdateState({
         session: null,
         user: null,
@@ -127,6 +171,8 @@ export function useAuthState() {
         authReady: true,
         authError: null
       });
+      
+      sessionChecked.current = false;
     } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
       console.log("User or token updated");
       if (newSession) {
@@ -137,8 +183,24 @@ export function useAuthState() {
         });
       }
     } else if (event === 'INITIAL_SESSION') {
-      console.log("Initial session event");
-      safeUpdateState({ authReady: true });
+      console.log("Initial session event:", newSession?.user?.id || "No user");
+      
+      if (newSession?.user) {
+        console.log("Initial session has user:", newSession.user.id);
+        safeUpdateState({
+          session: newSession,
+          user: newSession.user,
+          authReady: true
+        });
+        
+        await fetchUserProfile(newSession.user.id);
+      } else {
+        console.log("No user in initial session");
+        safeUpdateState({ 
+          authReady: true,
+          isLoading: false
+        });
+      }
     } else {
       // Handle any other events by ensuring we're not stuck in loading
       console.log("Other auth event:", event);
@@ -179,11 +241,29 @@ export function useAuthState() {
             await fetchUserProfile(data.session.user.id);
           }
         } else {
-          console.log("No initial session found");
-          safeUpdateState({ 
-            isLoading: false,
-            authReady: true
-          });
+          console.log("No initial session found, checking for persisted session...");
+          
+          // Check for persisted session in localStorage as a backup
+          const persistedSession = await checkPersistedSession();
+          
+          if (persistedSession) {
+            console.log("Using persisted session for user:", persistedSession.user.id);
+            safeUpdateState({
+              session: persistedSession,
+              user: persistedSession.user,
+              authReady: true
+            });
+            
+            if (persistedSession.user?.id) {
+              await fetchUserProfile(persistedSession.user.id);
+            }
+          } else {
+            console.log("No persisted session found either");
+            safeUpdateState({ 
+              isLoading: false,
+              authReady: true
+            });
+          }
         }
       } catch (error) {
         console.error("Error in auth initialization:", error);
@@ -205,7 +285,7 @@ export function useAuthState() {
           authError: null // Removed error to allow flow to continue
         });
       }
-    }, 1000); // Reduced to 1 second timeout
+    }, 3000); // Increased to 3 seconds to allow more time for session retrieval
     
     initialize();
     
@@ -220,7 +300,7 @@ export function useAuthState() {
       clearTimeout(loadingTimeout);
       clearPendingTimeouts();
     };
-  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, clearPendingTimeouts, authState.isLoading]);
+  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, clearPendingTimeouts, authState.isLoading, checkPersistedSession]);
 
   // Destructure the state for API consistency
   const { session, user, profile, isLoading, authReady, profileFetchAttempted, authError } = authState;
@@ -233,6 +313,7 @@ export function useAuthState() {
     authReady,
     profileFetchAttempted,
     authError,
-    setProfile
+    setProfile,
+    refreshSession: checkPersistedSession // Expose the session refresh function
   };
 }

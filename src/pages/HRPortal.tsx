@@ -11,7 +11,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 // Create admin profile helper function - moved outside component for clarity
 async function ensureAdminProfile(userId: string, email: string) {
-  console.log("Ensuring admin profile in HR Portal for:", email);
+  console.log("Ensuring admin profile in HR Portal for:", email, "with ID:", userId);
   
   // Check if profile already exists
   const { data: existingProfile } = await supabase
@@ -60,13 +60,14 @@ async function ensureAdminProfile(userId: string, email: string) {
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, profileFetchAttempted, authError, authReady } = useAuth();
+  const { session, isLoading, profile, profileFetchAttempted, authError, authReady, refreshSession } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [manualSignInAttempted, setManualSignInAttempted] = useState(false);
   const [isProcessingAdminProfile, setIsProcessingAdminProfile] = useState(false);
+  const [sessionRefreshAttempted, setSessionRefreshAttempted] = useState(false);
 
   // Check network status
   useEffect(() => {
@@ -82,6 +83,23 @@ const HRPortal = () => {
     };
   }, []);
 
+  // Force session refresh on initial load
+  useEffect(() => {
+    if (!sessionRefreshAttempted && refreshSession) {
+      console.log("Attempting to refresh session on HR Portal load");
+      refreshSession().then(session => {
+        if (session) {
+          console.log("Session refreshed successfully:", session.user.id);
+          // Force reload to ensure everything is in sync
+          window.location.reload();
+        } else {
+          console.log("No session found during refresh");
+          setSessionRefreshAttempted(true);
+        }
+      });
+    }
+  }, [refreshSession, sessionRefreshAttempted]);
+
   // Add a very short timeout to prevent infinite loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -90,7 +108,7 @@ const HRPortal = () => {
         setLoadingTimeout(true);
         setAuthCheckComplete(true); // Force completion after timeout
       }
-    }, 2000); // Reduced to 2 seconds timeout
+    }, 3000); // Increased to 3 seconds to allow more time for session checks
 
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
@@ -102,6 +120,25 @@ const HRPortal = () => {
       setAuthCheckComplete(true);
     }
   }, [authReady, authCheckComplete]);
+
+  // Check specifically for admin user by ID
+  useEffect(() => {
+    if (session?.user?.id === "1b5ca1ab-4bf0-4fff-a15e-00ac039143a5") {
+      console.log("Found admin user by ID:", session.user.id);
+      setIsProcessingAdminProfile(true);
+      
+      // Force create/update admin profile
+      ensureAdminProfile(session.user.id, session.user.email || "")
+        .then(() => {
+          console.log("Admin profile ensured, redirecting to HR dashboard");
+          navigate('/hr', { replace: true });
+        })
+        .catch(err => {
+          console.error("Error ensuring admin profile:", err);
+          setIsProcessingAdminProfile(false);
+        });
+    }
+  }, [session, navigate]);
 
   // Handle authentication redirects - more aggressive
   useEffect(() => {
@@ -116,10 +153,28 @@ const HRPortal = () => {
       hasProfile: !!profile,
       profileFetchAttempted,
       loadingTimeout,
-      email: session?.user?.email
+      email: session?.user?.email,
+      userId: session?.user?.id
     });
     
     if (canDetermineAuthState) {
+      // Special admin handling for specific user ID
+      if (session?.user?.id === "1b5ca1ab-4bf0-4fff-a15e-00ac039143a5") {
+        console.log("Special admin user detected by ID:", session.user.id);
+        if (!isProcessingAdminProfile) {
+          setIsProcessingAdminProfile(true);
+          ensureAdminProfile(session.user.id, session.user.email || "")
+            .then(() => {
+              navigate('/hr', { replace: true });
+            })
+            .catch(err => {
+              console.error("Error ensuring admin profile:", err);
+              setIsProcessingAdminProfile(false);
+            });
+        }
+        return;
+      }
+      
       // Special handling for a.debassi@aftraduction.fr - always ensure they have HR role
       if (session?.user?.email === "a.debassi@aftraduction.fr" && !isProcessingAdminProfile) {
         console.log("Admin user detected in HRPortal, ensuring admin profile");
@@ -214,6 +269,12 @@ const HRPortal = () => {
           setLoginError(`Erreur de connexion: ${error.message}`);
         }
         setManualSignInAttempted(false);
+      } else {
+        // Special case for known admin - force refresh
+        if (email === "a.debassi@aftraduction.fr") {
+          console.log("Admin login successful, reloading page");
+          window.location.reload();
+        }
       }
     } catch (err) {
       console.error("Exception during sign in:", err);
