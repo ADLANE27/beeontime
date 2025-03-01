@@ -10,7 +10,10 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
   const handleSubmit = async (formData: NewEmployee) => {
     setIsSubmitting(true);
     try {
-      console.log('Creating/Updating employee with data:', formData);
+      console.log('Creating/Updating employee with data:', { 
+        ...formData,
+        initialPassword: formData.initialPassword ? `[Password provided, length: ${formData.initialPassword.length}]` : 'None'
+      });
       
       // First check if profile exists
       const { data: existingProfile } = await supabase
@@ -71,7 +74,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           return;
         }
         
-        console.log('Creating auth user with password:', formData.initialPassword);
+        console.log('Creating auth user with password length:', formData.initialPassword.length);
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
@@ -136,7 +139,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           return;
         }
         
-        console.log('Creating new auth user with password:', formData.initialPassword);
+        console.log('Creating new auth user with password length:', formData.initialPassword.length);
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
@@ -178,7 +181,6 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           current_year_used_days: formData.currentYearUsedDays || 0,
           previous_year_vacation_days: formData.previousYearVacationDays || 0,
           previous_year_used_days: formData.previousYearUsedDays || 0,
-          initial_password: formData.initialPassword,
           street_address: formData.streetAddress || null,
           city: formData.city || null,
           postal_code: formData.postalCode || null,

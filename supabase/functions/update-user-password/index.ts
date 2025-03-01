@@ -81,7 +81,7 @@ serve(async (req) => {
 
       // If password is provided, update it
       if (password) {
-        console.log(`Updating password for user ${userId}`)
+        console.log(`Updating password for user ${userId} with length ${password.length}`)
         const { error } = await supabaseAdmin.auth.admin.updateUserById(
           userId,
           { password }
@@ -103,7 +103,7 @@ serve(async (req) => {
 
     // If createIfNotExists is true, create the user if they don't exist
     if (createIfNotExists && email && password) {
-      console.log(`Attempting to create user with email ${email}`)
+      console.log(`Attempting to create user with email ${email} and password of length ${password.length}`)
       
       // First check if user already exists
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
@@ -118,31 +118,38 @@ serve(async (req) => {
         
         // Update the password if provided
         if (password) {
-          console.log(`Updating password for existing user ${existingUser.id}`)
-          await supabaseAdmin.auth.admin.updateUserById(
+          console.log(`Updating password for existing user ${existingUser.id} with length ${password.length}`)
+          const updateResult = await supabaseAdmin.auth.admin.updateUserById(
             existingUser.id,
             { password }
           )
+          
+          if (updateResult.error) {
+            console.error('Error updating password:', updateResult.error)
+            throw updateResult.error
+          }
+          
+          console.log('Password updated successfully')
         }
         
         return new Response(
           JSON.stringify({ 
             id: existingUser.id, 
-            message: 'User already exists, potentially updated password' 
+            message: 'User already exists, password updated successfully' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
       }
       
       // User doesn't exist, so create them
-      console.log(`Creating new user with email ${email}`)
+      console.log(`Creating new user with email ${email} and password of length ${password.length}`)
       const userData = {
         email,
         password,
         email_confirm: true,
         user_metadata: {
-          first_name: firstName,
-          last_name: lastName
+          first_name: firstName || '',
+          last_name: lastName || ''
         }
       }
       
@@ -170,6 +177,8 @@ serve(async (req) => {
         throw createUserResult.error
       }
       
+      console.log(`User created successfully with ID: ${createUserResult.data.user.id}`)
+      
       return new Response(
         JSON.stringify({ 
           id: createUserResult.data.user.id, 
@@ -181,7 +190,7 @@ serve(async (req) => {
 
     // If userId is provided, update the password directly
     if (userId && password) {
-      console.log(`Updating password for user ${userId}`)
+      console.log(`Updating password for user ${userId} with length ${password.length}`)
       const { error } = await supabaseAdmin.auth.admin.updateUserById(
         userId,
         { password }
