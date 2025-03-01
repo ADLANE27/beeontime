@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 import { User } from '@supabase/supabase-js';
@@ -100,69 +99,31 @@ export const updateUserPassword = async (userId: string, password: string, email
  */
 export const createAuthUser = async (email: string, password: string, firstName: string, lastName: string) => {
   try {
-    // Always use direct Supabase auth API first, as it's more reliable
-    console.log('Creating new auth user with direct auth API:', { email, firstName, lastName });
+    // Use the improved edge function for user creation
+    console.log('Creating new auth user with edge function:', { email, firstName, lastName });
     
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: email.toLowerCase(),
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName
-        }
+    const { data, error } = await supabase.functions.invoke('manage-users', {
+      body: { 
+        email: email.toLowerCase(),
+        password,
+        firstName,
+        lastName,
+        action: 'create-user'
       }
     });
-    
-    if (!signUpError && signUpData?.user?.id) {
-      console.log('User created successfully with direct auth API, ID:', signUpData.user.id);
-      
-      // Verify user was created properly before returning
-      const { data: verifyData } = await supabase.auth.admin.listUsers();
-      
-      // After getting all users, filter by email manually
-      const verifiedUsers = verifyData?.users?.filter(
-        (user: User) => user.email?.toLowerCase() === email.toLowerCase()
-      ) || [];
-      
-      if (verifiedUsers.length > 0) {
-        console.log('User creation verified, user exists in auth table');
-      } else {
-        console.warn('User created but not found when verifying creation. This might be a timing issue.');
-      }
-      
-      return signUpData.user;
+
+    if (error) {
+      console.error('Edge function error:', error);
+      throw new Error("Erreur lors de la création du compte utilisateur: " + error.message);
     }
-    
-    if (signUpError) {
-      console.error('Direct auth signup error, trying edge function as fallback:', signUpError);
-      
-      // Fall back to edge function
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { 
-          email: email.toLowerCase(),
-          password,
-          firstName,
-          lastName,
-          action: 'create-user'
-        }
-      });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error("Erreur lors de la création du compte utilisateur: " + error.message);
-      }
-
-      if (!data || !data.id) {
-        console.error('No user ID returned from edge function:', data);
-        throw new Error("Erreur lors de la création du compte utilisateur: aucun ID retourné");
-      }
-
-      console.log('User created successfully through edge function with ID:', data.id);
-      return data;
+    if (!data || !data.id) {
+      console.error('No user ID returned from edge function:', data);
+      throw new Error("Erreur lors de la création du compte utilisateur: aucun ID retourné");
     }
-    
-    throw new Error("Création utilisateur échouée sans message d'erreur spécifique");
+
+    console.log('User created successfully through edge function with ID:', data.id);
+    return data;
   } catch (error) {
     console.error('Unexpected error in createAuthUser:', error);
     throw new Error("Erreur lors de la création du compte utilisateur: " + (error instanceof Error ? error.message : String(error)));
