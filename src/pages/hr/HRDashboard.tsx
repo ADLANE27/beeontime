@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -190,7 +191,7 @@ const HRDashboard = () => {
                       key={item.value}
                       variant={selectedTab === item.value ? "default" : "outline"}
                       size="sm"
-                      className={`flex items-center gap-1.5 whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 whitespace-nowrap h-9 ${
                         selectedTab === item.value ? 'bg-primary text-primary-foreground' : 'bg-background/80 text-foreground/80'
                       }`}
                       onClick={() => handleTabChange(item.value)}
