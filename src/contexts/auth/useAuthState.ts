@@ -29,9 +29,6 @@ export function useAuthState() {
   });
   
   const isMountedRef = useRef(true);
-  const profileRetryCount = useRef(0);
-  const MAX_PROFILE_RETRIES = 0; // Reduced to 0 - no retries, faster processing
-  const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sessionChecked = useRef(false);
 
   // Create a safe state update function to prevent race conditions
@@ -46,43 +43,37 @@ export function useAuthState() {
     safeUpdateState({ profile });
   }, [safeUpdateState]);
 
-  // Clear any pending timeouts
-  const clearPendingTimeouts = useCallback(() => {
-    if (profileFetchTimeoutRef.current) {
-      clearTimeout(profileFetchTimeoutRef.current);
-      profileFetchTimeoutRef.current = null;
-    }
-  }, []);
-
   // Improved session persistence check
-  const checkPersistedSession = useCallback(async () => {
-    if (sessionChecked.current) return;
-    
+  const refreshSession = useCallback(async () => {
     try {
-      console.log("Checking for persisted session...");
+      console.log("Refreshing session...");
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error("Error retrieving persisted session:", error);
+        console.error("Error retrieving session:", error);
         return null;
       }
       
       if (data?.session) {
-        console.log("Found persisted session for user:", data.session.user.id);
+        console.log("Session found for user:", data.session.user.id);
+        safeUpdateState({
+          session: data.session,
+          user: data.session.user
+        });
         return data.session;
       } else {
-        console.log("No persisted session found");
+        console.log("No session found during refresh");
         return null;
       }
     } catch (err) {
-      console.error("Exception checking persisted session:", err);
+      console.error("Exception refreshing session:", err);
       return null;
     } finally {
       sessionChecked.current = true;
     }
-  }, []);
+  }, [safeUpdateState]);
 
-  // Define fetchUserProfile here BEFORE it's used in handleAuthStateChange to avoid the hook error
+  // Define fetchUserProfile here to avoid hook errors
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!userId || !isMountedRef.current) return;
     
@@ -133,11 +124,9 @@ export function useAuthState() {
       
       if (newSession?.user?.id) {
         try {
-          // Store session in localStorage for persistence backup
+          // Save session to localStorage as backup
           if (typeof window !== 'undefined') {
-            localStorage.setItem('supabase.auth.token', JSON.stringify({
-              currentSession: newSession
-            }));
+            localStorage.setItem('supabaseSession', JSON.stringify(newSession));
           }
           
           await fetchUserProfile(newSession.user.id);
@@ -154,12 +143,10 @@ export function useAuthState() {
       }
     } else if (event === 'SIGNED_OUT') {
       console.log("User signed out");
-      // Clear any pending timeouts
-      clearPendingTimeouts();
       
-      // Clear any backup session storage
+      // Clear backup session storage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('supabaseSession');
       }
       
       safeUpdateState({
@@ -206,7 +193,7 @@ export function useAuthState() {
       console.log("Other auth event:", event);
       safeUpdateState({ isLoading: false, authReady: true });
     }
-  }, [safeUpdateState, fetchUserProfile, clearPendingTimeouts]);
+  }, [safeUpdateState, fetchUserProfile]);
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -214,11 +201,41 @@ export function useAuthState() {
     
     const initialize = async () => {
       try {
-        // Get initial session
+        // First try to load from localStorage as a backup
+        let savedSession = null;
+        if (typeof window !== 'undefined') {
+          try {
+            const savedSessionStr = localStorage.getItem('supabaseSession');
+            if (savedSessionStr) {
+              savedSession = JSON.parse(savedSessionStr);
+              console.log("Found saved session in localStorage:", savedSession?.user?.id);
+            }
+          } catch (e) {
+            console.error("Error parsing saved session:", e);
+          }
+        }
+        
+        // Get initial session from Supabase
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("Error getting initial session:", error);
+          // Try to use saved session if available
+          if (savedSession) {
+            console.log("Using saved session as fallback");
+            safeUpdateState({
+              session: savedSession,
+              user: savedSession.user,
+              authReady: true
+            });
+            
+            // Attempt to fetch profile using saved session
+            if (savedSession.user?.id) {
+              await fetchUserProfile(savedSession.user.id);
+            }
+            return;
+          }
+          
           safeUpdateState({
             isLoading: false,
             authReady: true,
@@ -231,6 +248,12 @@ export function useAuthState() {
         
         if (data.session) {
           console.log("Initial session found:", data.session.user?.id);
+          
+          // Save to localStorage as backup
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+          }
+          
           safeUpdateState({
             session: data.session,
             user: data.session.user,
@@ -241,29 +264,11 @@ export function useAuthState() {
             await fetchUserProfile(data.session.user.id);
           }
         } else {
-          console.log("No initial session found, checking for persisted session...");
-          
-          // Check for persisted session in localStorage as a backup
-          const persistedSession = await checkPersistedSession();
-          
-          if (persistedSession) {
-            console.log("Using persisted session for user:", persistedSession.user.id);
-            safeUpdateState({
-              session: persistedSession,
-              user: persistedSession.user,
-              authReady: true
-            });
-            
-            if (persistedSession.user?.id) {
-              await fetchUserProfile(persistedSession.user.id);
-            }
-          } else {
-            console.log("No persisted session found either");
-            safeUpdateState({ 
-              isLoading: false,
-              authReady: true
-            });
-          }
+          console.log("No session found");
+          safeUpdateState({ 
+            isLoading: false,
+            authReady: true
+          });
         }
       } catch (error) {
         console.error("Error in auth initialization:", error);
@@ -275,17 +280,16 @@ export function useAuthState() {
       }
     };
 
-    // Add a timeout to prevent indefinite loading - REDUCED SIGNIFICANTLY
+    // Add a timeout to prevent indefinite loading
     const loadingTimeout = setTimeout(() => {
       if (isMountedRef.current && authState.isLoading) {
         console.warn("Auth initialization timeout - forcing loading state to complete");
         safeUpdateState({
           isLoading: false,
-          authReady: true,
-          authError: null // Removed error to allow flow to continue
+          authReady: true
         });
       }
-    }, 3000); // Increased to 3 seconds to allow more time for session retrieval
+    }, 3000);
     
     initialize();
     
@@ -298,9 +302,8 @@ export function useAuthState() {
       isMountedRef.current = false;
       subscription.unsubscribe();
       clearTimeout(loadingTimeout);
-      clearPendingTimeouts();
     };
-  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, clearPendingTimeouts, authState.isLoading, checkPersistedSession]);
+  }, [safeUpdateState, fetchUserProfile, handleAuthStateChange, authState.isLoading]);
 
   // Destructure the state for API consistency
   const { session, user, profile, isLoading, authReady, profileFetchAttempted, authError } = authState;
@@ -314,6 +317,6 @@ export function useAuthState() {
     profileFetchAttempted,
     authError,
     setProfile,
-    refreshSession: checkPersistedSession // Expose the session refresh function
+    refreshSession
   };
 }
