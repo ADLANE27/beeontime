@@ -16,7 +16,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInHours, differenceInMonths } from "date-fns";
@@ -30,6 +30,16 @@ type LeaveType = Database["public"]["Enums"]["leave_type"];
 interface LeaveRequestFormProps {
   onSubmit?: (data: any) => Promise<void>;
   isSubmitting?: boolean;
+  initialValues?: {
+    employee_id: string;
+    start_date: string;
+    end_date: string;
+    type: LeaveType;
+    day_type: string;
+    period: string;
+    reason: string;
+  };
+  isEditing?: boolean;
 }
 
 // Mapping from database enum to French display labels
@@ -47,16 +57,29 @@ const leaveTypeLabels: Record<LeaveType, string> = {
   familyEvent: "Absences pour événements familiaux"
 };
 
-export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormProps) => {
-  const [leaveType, setLeaveType] = useState<LeaveType>();
-  const [dayType, setDayType] = useState("full");
-  const [period, setPeriod] = useState<string>();
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<string>();
+export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEditing }: LeaveRequestFormProps) => {
+  const [leaveType, setLeaveType] = useState<LeaveType | undefined>(initialValues?.type);
+  const [dayType, setDayType] = useState(initialValues?.day_type || "full");
+  const [period, setPeriod] = useState<string | undefined>(initialValues?.period);
+  const [startDate, setStartDate] = useState(initialValues?.start_date || "");
+  const [endDate, setEndDate] = useState(initialValues?.end_date || "");
+  const [reason, setReason] = useState(initialValues?.reason || "");
+  const [selectedEmployee, setSelectedEmployee] = useState<string | undefined>(initialValues?.employee_id);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
+
+  // If initialValues change (e.g. when editing different requests), update the form
+  useEffect(() => {
+    if (initialValues) {
+      setLeaveType(initialValues.type);
+      setDayType(initialValues.day_type);
+      setPeriod(initialValues.period);
+      setStartDate(initialValues.start_date);
+      setEndDate(initialValues.end_date);
+      setReason(initialValues.reason);
+      setSelectedEmployee(initialValues.employee_id);
+    }
+  }, [initialValues]);
 
   // Fetch all employees
   const { data: employees, isLoading: isLoadingEmployees } = useQuery({
@@ -215,7 +238,7 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="employee">Employé</Label>
-            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee} disabled={isEditing}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionnez un employé" />
               </SelectTrigger>
@@ -333,7 +356,7 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            Soumettre la demande
+            {isEditing ? "Mettre à jour" : "Soumettre la demande"}
           </Button>
         </form>
       </ScrollArea>
