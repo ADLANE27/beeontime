@@ -1,22 +1,48 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session, isLoading, profile, authReady } = useAuth();
+  const { signIn, session, isLoading, profile, authReady, authError } = useAuth();
+  const navigate = useNavigate();
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Portal component state:", {
+      hasSession: !!session,
+      isLoading,
+      hasProfile: !!profile,
+      authReady,
+      profileRole: profile?.role,
+      authError: authError?.message
+    });
+  }, [session, isLoading, profile, authReady, authError]);
+
+  // Handle redirection based on session and profile
+  useEffect(() => {
+    if (session && profile && authReady) {
+      console.log("Redirecting based on profile role:", profile.role);
+      
+      if (profile.role === "hr") {
+        navigate('/hr', { replace: true });
+      } else {
+        navigate('/employee', { replace: true });
+      }
+    }
+  }, [session, profile, authReady, navigate]);
 
   // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
-  if (!authReady) {
+  if (isLoading && !authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -27,15 +53,7 @@ const Portal = () => {
     );
   }
 
-  // Si déjà authentifié et que nous avons un profil, rediriger vers le tableau de bord approprié
-  if (session && profile) {
-    // Vérifier le rôle pour déterminer où rediriger
-    if (profile.role === "hr") {
-      return <Navigate to="/hr" replace />;
-    }
-    return <Navigate to="/employee" replace />;
-  }
-
+  // Handle login form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -46,16 +64,20 @@ const Portal = () => {
 
     try {
       setIsSubmitting(true);
+      console.log("Attempting to sign in with:", email);
       
-      const { error } = await signIn(email, password);
+      const { error, data } = await signIn(email, password);
       
       if (error) {
+        console.error("Login error:", error.message);
         toast.error("Identifiants invalides, veuillez réessayer");
-        console.error("Login error details:", error.message);
+      } else if (data.user) {
+        console.log("Sign in successful, waiting for redirection");
+        // Redirection will happen via the useEffect when profile is updated
       }
     } catch (error) {
-      toast.error("Une erreur est survenue lors de la connexion");
       console.error("Login exception:", error);
+      toast.error("Une erreur est survenue lors de la connexion");
     } finally {
       setIsSubmitting(false);
     }

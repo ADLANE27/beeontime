@@ -9,10 +9,21 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile } = useAuth();
+  const { session, isLoading, profile, authReady } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authInProgress, setAuthInProgress] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("HRPortal state:", { 
+      hasSession: !!session, 
+      isLoading, 
+      hasProfile: !!profile, 
+      authReady,
+      profileRole: profile?.role 
+    });
+  }, [session, isLoading, profile, authReady]);
 
   // Monitor network status
   useEffect(() => {
@@ -31,39 +42,42 @@ const HRPortal = () => {
     };
   }, []);
 
-  // Check for existing session and redirect
+  // Handle redirection based on auth state
   useEffect(() => {
-    if (isLoading) {
-      console.log("Auth is still loading, waiting...");
+    // Skip if still loading initial auth state
+    if (!authReady) {
+      console.log("Auth not ready yet, waiting...");
       return;
     }
     
-    if (!session?.user) {
+    // If no session, show login form
+    if (!session) {
       console.log("No active session, showing login form");
       setAuthInProgress(false);
       return;
     }
 
-    console.log("Session exists, checking profile for role", session.user.email);
+    console.log("Session exists, checking profile for HR role");
     
+    // If we already have a profile in context, use it for redirection
+    if (profile) {
+      console.log("Profile found in context with role:", profile.role);
+      if (profile.role === "hr") {
+        navigate('/hr', { replace: true });
+      } else {
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+        navigate('/employee', { replace: true });
+      }
+      return;
+    }
+    
+    // If no profile yet, fetch it from the database
     const checkAndRedirect = async () => {
       try {
         setAuthInProgress(true);
         
-        // If profile already exists in auth context, use it
-        if (profile) {
-          console.log("Profile found in context with role:", profile.role);
-          if (profile.role === "hr") {
-            navigate('/hr', { replace: true });
-          } else {
-            toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-            navigate('/employee', { replace: true });
-          }
-          return;
-        }
+        console.log("Fetching profile from database for user:", session.user.id);
         
-        // If no profile in context, check database
-        console.log("No profile in context, checking database");
         const { data: profileData, error } = await supabase
           .from("profiles")
           .select("*")
@@ -79,9 +93,12 @@ const HRPortal = () => {
         
         if (profileData) {
           console.log("Profile found in database:", profileData);
+          
           if (profileData.role === "hr") {
+            console.log("User has HR role, redirecting to HR dashboard");
             navigate('/hr', { replace: true });
           } else {
+            console.log("User does not have HR role, redirecting to employee dashboard");
             toast.error("Vous n'avez pas les droits pour accéder à cette page.");
             navigate('/employee', { replace: true });
           }
@@ -98,7 +115,7 @@ const HRPortal = () => {
     };
     
     checkAndRedirect();
-  }, [session, profile, navigate, isLoading]);
+  }, [session, profile, navigate, authReady]);
 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -127,7 +144,7 @@ const HRPortal = () => {
         }
         setAuthInProgress(false);
       }
-      // Don't reset authInProgress on success - session change will trigger the useEffect
+      // Redirection will happen via the useEffect
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
@@ -140,7 +157,7 @@ const HRPortal = () => {
   };
 
   // Show login form if not authenticated and not loading
-  if (!session && !isLoading && !authInProgress) {
+  if (!session && !isLoading && !authInProgress && authReady) {
     return (
       <LoginForm
         onSubmit={handleManualSignIn}

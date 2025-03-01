@@ -30,6 +30,7 @@ export function useAuthState() {
   
   const isMountedRef = useRef(true);
   const sessionChecked = useRef(false);
+  const profileCheckedRef = useRef(false);
 
   // Create a safe state update function to prevent race conditions
   const safeUpdateState = useCallback((updates: Partial<AuthState>) => {
@@ -40,7 +41,12 @@ export function useAuthState() {
 
   // Profile setter exposed to other components
   const setProfile = useCallback((profile: Profile | null) => {
-    safeUpdateState({ profile });
+    console.log("Setting profile manually:", profile?.role);
+    safeUpdateState({ 
+      profile,
+      profileFetchAttempted: true,
+      isLoading: false 
+    });
   }, [safeUpdateState]);
 
   // Improved session persistence check
@@ -51,6 +57,11 @@ export function useAuthState() {
       
       if (error) {
         console.error("Error retrieving session:", error);
+        safeUpdateState({
+          isLoading: false,
+          authReady: true,
+          authError: error
+        });
         return null;
       }
       
@@ -63,10 +74,19 @@ export function useAuthState() {
         return data.session;
       } else {
         console.log("No session found during refresh");
+        safeUpdateState({
+          isLoading: false,
+          authReady: true
+        });
         return null;
       }
     } catch (err) {
       console.error("Exception refreshing session:", err);
+      safeUpdateState({
+        isLoading: false,
+        authReady: true,
+        authError: err instanceof Error ? err : new Error("Session refresh failed")
+      });
       return null;
     } finally {
       sessionChecked.current = true;
@@ -76,6 +96,13 @@ export function useAuthState() {
   // Define fetchUserProfile here to avoid hook errors
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!userId || !isMountedRef.current) return;
+    
+    if (profileCheckedRef.current) {
+      console.log("Profile already checked, skipping fetch");
+      return;
+    }
+    
+    profileCheckedRef.current = true;
     
     try {
       console.log("Fetching profile for user:", userId);
@@ -160,6 +187,8 @@ export function useAuthState() {
       });
       
       sessionChecked.current = false;
+      profileCheckedRef.current = false;
+      
     } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
       console.log("User or token updated");
       if (newSession) {
@@ -280,7 +309,7 @@ export function useAuthState() {
       }
     };
 
-    // Add a timeout to prevent indefinite loading
+    // Add a timeout to prevent indefinite loading - shorter timeout
     const loadingTimeout = setTimeout(() => {
       if (isMountedRef.current && authState.isLoading) {
         console.warn("Auth initialization timeout - forcing loading state to complete");
@@ -289,7 +318,7 @@ export function useAuthState() {
           authReady: true
         });
       }
-    }, 3000);
+    }, 2000); // Reduced from 3000ms to 2000ms
     
     initialize();
     

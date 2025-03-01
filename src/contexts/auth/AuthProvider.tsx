@@ -1,12 +1,10 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { AuthContext } from "./AuthContext";
 import { useAuthState } from "./useAuthState";
 import { useAuthMethods } from "./useAuthMethods";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoadingOverride, setIsLoadingOverride] = useState(false);
-  
   const {
     session,
     user,
@@ -19,11 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshSession
   } = useAuthState();
   
-  // Combine loading states with a preference for not showing loading
-  const isLoading = isLoadingOverride;
-  
   // Get auth methods
-  const { signIn, signOut } = useAuthMethods(setProfile, setIsLoadingOverride);
+  const { signIn, signOut } = useAuthMethods(setProfile, (loading) => {
+    // This function is intentionally empty as we manage loading state in useAuthState
+    // This fixes the issue where isLoading was being overridden incorrectly
+  });
 
   return (
     <AuthContext.Provider
@@ -31,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         profile,
-        isLoading,
+        isLoading: stateLoading,
         authReady,
         profileFetchAttempted,
         authError,
