@@ -110,12 +110,13 @@ const HRPortal = () => {
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
                 
+                // Use a proper Promise chain to handle potential errors
                 supabase
                   .from("profiles")
                   .insert({
                     id: session.user.id,
                     email: session.user.email,
-                    role: "hr",
+                    role: "hr" as const,  // Ensure correct type
                     first_name: "",
                     last_name: ""
                   })
@@ -127,6 +128,10 @@ const HRPortal = () => {
                     }
                     
                     navigate('/hr', { replace: true });
+                  })
+                  .catch((err) => {
+                    console.error("Exception during profile creation:", err);
+                    setProcessingRedirect(false);
                   });
               } else {
                 // Pour tout autre utilisateur sans profil, rediriger vers le dashboard employé
