@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Loader2 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const HRPortal = () => {
   const navigate = useNavigate();
@@ -16,28 +17,33 @@ const HRPortal = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // For debugging
+  useEffect(() => {
+    console.log("HRPortal - Auth state:", { session, isLoading, profile });
+  }, [session, isLoading, profile]);
+
   // Handle redirection based on session and role
   useEffect(() => {
-    if (session && profile) {
-      if (profile.role === "hr") {
+    if (!isLoading && session) {
+      // If we have a session, try to redirect
+      if (profile?.role === "hr") {
         navigate('/hr', { replace: true });
-      } else {
+      } else if (profile?.role === "employee") {
         toast.error("Vous n'avez pas les droits pour accéder à cette page.");
         navigate('/employee', { replace: true });
       }
+      // If we have a session but no profile yet, let's wait
     }
-  }, [session, profile, navigate]);
+  }, [session, profile, navigate, isLoading]);
 
-  // Display loading indicator only during initialization
+  // Display shorter loading period only during initialization
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
-          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Chargement..." />;
+  }
+
+  // If we have a session but no navigation happened yet, show a temporary waiting screen
+  if (session && !isLoading) {
+    return <LoadingScreen message="Vérification des accès..." />;
   }
 
   // Handle login form submission

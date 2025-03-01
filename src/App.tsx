@@ -12,6 +12,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
 import { toast } from "sonner";
 import { LoadingScreen } from "./components/ui/loading-screen";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,16 +30,40 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, profile } = useAuth();
+  
+  // Add debugging logs
+  useEffect(() => {
+    console.log("ProtectedRoute - Auth state:", { 
+      session: !!session, 
+      isLoading, 
+      profile: profile?.role,
+      requiredRole 
+    });
+  }, [session, isLoading, profile, requiredRole]);
   
   // Only show loading while initial authentication check is happening
+  // Add a shorter timeout for the loading screen
   if (isLoading) {
-    return <LoadingScreen fullScreen message="Vérification de votre session..." />;
+    return <LoadingScreen message="Vérification de votre session..." timeout={10000} />;
   }
   
   // If no session, redirect to appropriate portal
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+  }
+  
+  // If we have a session but no profile yet, show loading but with shorter timeout
+  if (session && !profile) {
+    return <LoadingScreen message="Chargement de votre profil..." timeout={8000} />;
+  }
+  
+  // If we have a profile but wrong role, redirect to the appropriate dashboard
+  if (profile && profile.role !== requiredRole) {
+    // Show error toast
+    toast.error(`Vous n'avez pas les droits pour accéder à cette page.`);
+    // Redirect to the appropriate dashboard based on role
+    return <Navigate to={profile.role === "hr" ? "/hr" : "/employee"} replace />;
   }
   
   // Everything looks good, render the child components
