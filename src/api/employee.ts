@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 import { User } from '@supabase/supabase-js';
@@ -188,6 +189,24 @@ export const updateUserProfile = async (
  */
 export const upsertEmployee = async (employee: NewEmployee, userId: string) => {
   try {
+    // Check if an employee with this email already exists
+    const { data: existingEmployee, error: checkError } = await supabase
+      .from('employees')
+      .select('id, email')
+      .eq('email', employee.email.toLowerCase())
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking existing employee:', checkError);
+      throw new Error("Erreur lors de la vérification des données employé existantes");
+    }
+    
+    // If employee exists and it's not the same ID we're trying to update
+    if (existingEmployee && existingEmployee.id !== userId) {
+      console.error('Employee with this email already exists:', existingEmployee);
+      throw new Error(`Un employé avec l'email ${employee.email} existe déjà`);
+    }
+    
     const { error } = await supabase
       .from('employees')
       .upsert({

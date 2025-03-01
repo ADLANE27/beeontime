@@ -25,6 +25,8 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         toast.error("Problème avec la création du compte utilisateur. Veuillez vérifier les logs pour plus de détails.");
       } else if (errorMessage.includes("profile")) {
         toast.error("Note: Le profil n'a pas pu être mis à jour, mais la fiche employé a été créée.");
+      } else if (errorMessage.includes("existe déjà")) {
+        toast.error("Un employé avec cet email existe déjà. Veuillez utiliser un email différent.");
       }
     } finally {
       setIsSubmitting(false);

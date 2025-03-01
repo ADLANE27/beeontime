@@ -37,15 +37,15 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
       userId = matchingUser.id;
       console.log('Auth user exists, using existing ID:', userId);
       
-      // Only update password if it's provided and we're not in edit mode
-      if (!isEditing && formData.initialPassword) {
+      // Only update password if it's provided and we're in edit mode
+      if (formData.initialPassword && formData.initialPassword.trim() !== '') {
         console.log('Updating password for existing user:', userId);
         await updateUserPassword(userId, formData.initialPassword, email);
         console.log('Password updated successfully');
       }
     } else {
       // Create new auth user
-      if (!formData.initialPassword) {
+      if (!formData.initialPassword && !isEditing) {
         throw new Error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
       }
       
@@ -53,7 +53,7 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
       try {
         const authData = await createAuthUser(
           email, 
-          formData.initialPassword, 
+          formData.initialPassword || 'Welcome123!', // Utiliser un mot de passe par défaut si aucun n'est fourni
           formData.firstName, 
           formData.lastName
         );
