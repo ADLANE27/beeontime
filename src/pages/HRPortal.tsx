@@ -110,18 +110,19 @@ const HRPortal = () => {
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
                 
-                // Use Promise.resolve() to convert to a full Promise
-                Promise.resolve(
-                  supabase
-                    .from("profiles")
-                    .insert({
-                      id: session.user.id,
-                      email: session.user.email,
-                      role: "hr" as const,  // Ensure correct type
-                      first_name: "",
-                      last_name: ""
-                    })
-                )
+                // Create a properly typed Promise that supports .catch
+                const insertPromise = supabase
+                  .from("profiles")
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    role: "hr" as const,  // Ensure correct type
+                    first_name: "",
+                    last_name: ""
+                  });
+                
+                // Properly handle the Promise chain
+                Promise.resolve(insertPromise)
                   .then(() => {
                     navigate('/hr', { replace: true });
                   })

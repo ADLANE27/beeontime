@@ -153,6 +153,26 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       
     if (!employeeError && employee) {
       console.log("Employee record found, creating profile");
+      
+      // Create a profile for this employee if it doesn't exist
+      const { error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: employee.id,
+          role: "employee",
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email
+        })
+        .then(result => {
+          if (result.error) {
+            console.error("Error creating employee profile:", result.error);
+          } else {
+            console.log("Created employee profile for:", employee.email);
+          }
+          return result;
+        });
+      
       return {
         id: employee.id,
         role: "employee",
@@ -171,6 +191,31 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       // Check if HR email
       if (isHrEmail(user.email)) {
         return await ensureAdminProfile(userId, user.email);
+      }
+      
+      // Create a basic profile for this user
+      try {
+        const newProfile = {
+          id: userId,
+          email: user.email,
+          role: "employee" as "employee",
+          first_name: "",
+          last_name: ""
+        };
+        
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert(newProfile);
+          
+        if (insertError) {
+          console.error("Error creating basic profile:", insertError);
+        } else {
+          console.log("Created basic employee profile for:", user.email);
+        }
+        
+        return newProfile;
+      } catch (err) {
+        console.error("Error creating basic profile:", err);
       }
       
       // Return employee fallback for non-HR users
