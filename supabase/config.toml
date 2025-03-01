@@ -31,7 +31,6 @@ enabled = true
 site_url = "http://localhost:3000"
 
 [auth.email]
-# This is the correct format according to the error message
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
@@ -44,8 +43,6 @@ gcp_project_id = ""
 gcp_project_number = ""
 gcp_jwt_path = "supabase/gcloud.json"
 
-# Fix function configuration format
-# Instead of having 'max_retries' which is invalid, remove it
 [functions.update-user-password]
 verify_jwt = true
 
