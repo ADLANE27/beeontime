@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,30 +13,15 @@ const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session, isLoading, profile } = useAuth();
+  const { signIn, session } = useAuth();
   const navigate = useNavigate();
 
-  // Handle redirection based on session and role
-  useEffect(() => {
-    if (session && profile) {
-      if (profile.role === "hr") {
-        navigate('/hr', { replace: true });
-      } else {
-        navigate('/employee', { replace: true });
-      }
-    }
-  }, [session, profile, navigate]);
-
-  // Display loading indicator only during initialization
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
-          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
-        </div>
-      </div>
-    );
+  // Simple redirect if already logged in
+  if (session) {
+    // Determine if HR by email domain
+    const isHR = session.user.email?.endsWith('@aftraduction.fr');
+    navigate(isHR ? '/hr' : '/employee', { replace: true });
+    return null;
   }
 
   // Handle login form submission

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,8 +11,6 @@ import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
 import { toast } from "sonner";
-import { LoadingScreen } from "./components/ui/loading-screen";
-import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,45 +28,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile } = useAuth();
-  const [routeTimeout, setRouteTimeout] = useState(false);
+  const { session, user } = useAuth();
   
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setRouteTimeout(true);
-    }, 8000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  useEffect(() => {
-    console.log("ProtectedRoute - Auth state:", { 
-      session: !!session, 
-      isLoading, 
-      profile: profile?.role,
-      requiredRole,
-      routeTimeout
-    });
-  }, [session, isLoading, profile, requiredRole, routeTimeout]);
-  
-  if (isLoading) {
-    return <LoadingScreen message="Vérification de votre session..." timeout={5000} />;
-  }
-  
+  // Simple check - if we don't have a session, go to login
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  if (routeTimeout && session && !profile) {
-    console.log("ProtectedRoute - Proceeding with session-only access (profile load timeout)");
-    return <>{children}</>;
-  }
+  // Simple email-based role check
+  const emailDomain = user?.email?.split('@')[1];
+  const isHR = emailDomain === 'aftraduction.fr'; // Assuming HR emails have this domain
+  const userRole = isHR ? "hr" : "employee";
   
-  if (profile && profile.role !== requiredRole) {
+  // If user doesn't match required role, redirect to appropriate dashboard
+  if (userRole !== requiredRole) {
     toast.error(`Vous n'avez pas les droits pour accéder à cette page.`);
-    return <Navigate to={profile.role === "hr" ? "/hr" : "/employee"} replace />;
+    return <Navigate to={userRole === "hr" ? "/hr" : "/employee"} replace />;
   }
   
+  // User has session and matches role, allow access
   return <>{children}</>;
 };
 
