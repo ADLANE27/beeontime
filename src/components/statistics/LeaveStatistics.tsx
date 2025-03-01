@@ -112,14 +112,26 @@ export const LeaveStatistics = () => {
       </div>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          {leaveStats && Object.entries(leaveStats.statsByType).map(([type, count]) => (
-            <div key={type} className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-600">
-                {leaveTypeColors[type as keyof typeof leaveTypeColors]?.label || type}
-              </p>
-              <p className="text-2xl font-bold">{count}</p>
-            </div>
-          ))}
+          {leaveStats && Object.entries(leaveStats.statsByType).map(([type, count]) => {
+            const leaveType = type as keyof typeof leaveTypeColors;
+            const leaveColor = leaveTypeColors[leaveType]?.color || "#CCCCCC";
+            
+            return (
+              <div 
+                key={type} 
+                className="p-4 border rounded-lg" 
+                style={{ 
+                  backgroundColor: `${leaveColor}20`,
+                  borderColor: leaveColor 
+                }}
+              >
+                <p className="text-sm text-gray-600">
+                  {leaveTypeColors[leaveType]?.label || type}
+                </p>
+                <p className="text-2xl font-bold">{count}</p>
+              </div>
+            );
+          })}
         </div>
         <div className="p-4 border rounded-lg bg-gray-50">
           <p className="text-sm text-gray-600">Total tous types confondus</p>

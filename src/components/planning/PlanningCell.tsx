@@ -1,8 +1,10 @@
+
 import { TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { leaveTypeColors } from "./LeaveTypeLegend";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
@@ -34,13 +36,17 @@ export const PlanningCell = ({ date, leaveRequest, timeRecord, isWeekend, isToda
     
     const isHalfDay = leaveRequest.day_type === 'half';
     const period = leaveRequest.period;
+    const leaveColor = leaveTypeColors[leaveRequest.type as keyof typeof leaveTypeColors]?.color || "#CCCCCC";
     
     return (
       <div className={cn(
         "absolute inset-0 flex items-center justify-center",
         isHalfDay ? (period === 'morning' ? "top-0 h-1/2" : "bottom-0 h-1/2") : ""
       )}>
-        <div className="w-full h-full bg-green-200 opacity-50" />
+        <div 
+          className="w-full h-full opacity-80" 
+          style={{ backgroundColor: leaveColor }}
+        />
         <span className="absolute text-xs">
           {isHalfDay ? '½' : '✓'}
         </span>

@@ -4,47 +4,47 @@ import { Card } from "@/components/ui/card";
 const leaveTypeColors = {
   vacation: {
     label: "Congés payés",
-    color: "#D3E4FD"
+    color: "#9b87f5" // Purple
   },
   rtt: {
     label: "RTT",
-    color: "#F2FCE2"
+    color: "#4ADE80" // Green
   },
   paternity: {
     label: "Congé paternité",
-    color: "#FFDEE2"
+    color: "#3B82F6" // Blue
   },
   maternity: {
     label: "Congé maternité",
-    color: "#FFDEE2"
+    color: "#F472B6" // Pink
   },
   sickChild: {
     label: "Congé enfant malade",
-    color: "#FEC6A1"
+    color: "#F97316" // Orange
   },
   sickLeave: {
     label: "Arrêt maladie",
-    color: "#FFD6A5"
+    color: "#EF4444" // Red
   },
   unpaidUnexcused: {
     label: "Absence injustifiée non rémunérée",
-    color: "#FFB7B7"
+    color: "#8B5CF6" // Purple-violet
   },
   unpaidExcused: {
     label: "Absence justifiée non rémunérée",
-    color: "#FFCCCC"
+    color: "#EC4899" // Magenta
   },
   unpaid: {
     label: "Absence non rémunérée",
-    color: "#FFE0E0"
+    color: "#6366F1" // Indigo
   },
   annual: {
     label: "Congé annuel",
-    color: "#BFEFFF"
+    color: "#14B8A6" // Teal
   },
   familyEvent: {
     label: "Absences pour événements familiaux",
-    color: "#E5DEFF"
+    color: "#FACC15" // Yellow
   }
 } as const;
 
