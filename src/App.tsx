@@ -16,8 +16,8 @@ import { LoadingScreen } from "./components/ui/loading-screen";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 3, // Increased retries for network issues
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      retry: 3, 
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
     },
   },
@@ -29,38 +29,19 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, isLoading, profile, authReady, authError } = useAuth();
+  const { session, isLoading } = useAuth();
   
-  // Show loading state if auth is still initializing
-  if (isLoading || !authReady) {
-    return <LoadingScreen fullScreen message="Chargement de votre session..." />;
+  // Only show loading while initial authentication check is happening
+  if (isLoading) {
+    return <LoadingScreen fullScreen message="Vérification de votre session..." />;
   }
   
-  // Handle authentication errors
-  if (authError) {
-    toast.error("Problème d'authentification: " + authError.message);
+  // If no session, redirect to appropriate portal
+  if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
-
-  // Si pas de session, rediriger vers le portail de connexion approprié
-  if (!session) {
-    const redirectPath = requiredRole === "hr" ? "/hr-portal" : "/portal";
-    return <Navigate to={redirectPath} replace />;
-  }
   
-  // Si pas de profil, attendre un peu plus
-  if (!profile) {
-    // Tentez une dernière vérification directe en base de données
-    return <LoadingScreen fullScreen message="Récupération de votre profil..." />;
-  }
-  
-  // Vérifier le rôle pour l'accès à la section HR
-  if (requiredRole === "hr" && profile.role !== "hr") {
-    toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-    return <Navigate to="/employee" replace />;
-  }
-  
-  // Tous les contrôles sont passés, afficher le contenu protégé
+  // Everything looks good, render the child components
   return <>{children}</>;
 };
 

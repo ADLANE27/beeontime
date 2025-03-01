@@ -15,7 +15,6 @@ export interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  // Add the missing properties
   profile: Profile | null;
   authReady: boolean;
   authError: Error | null;
@@ -33,7 +32,6 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   isLoading: false,
-  // Add the missing properties to the default context value
   profile: null,
   authReady: false,
   authError: null,

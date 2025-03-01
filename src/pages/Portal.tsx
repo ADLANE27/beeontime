@@ -8,60 +8,26 @@ import { LogIn, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session, isLoading } = useAuth();
+  const { signIn, session, isLoading, profile } = useAuth();
   const navigate = useNavigate();
 
-  // Debug logging
+  // Handle redirection based on session and role
   useEffect(() => {
-    console.log("Portal component state:", {
-      hasSession: !!session,
-      isLoading
-    });
-  }, [session, isLoading]);
-
-  // Handle redirection based on session
-  useEffect(() => {
-    const checkUserRole = async () => {
-      if (!session) return;
-      
-      try {
-        console.log("Checking user role for:", session.user.id);
-        
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching role:", error);
-          toast.error("Erreur lors de la récupération de votre profil");
-          return;
-        }
-        
-        console.log("User role:", data.role);
-        
-        if (data.role === "hr") {
-          navigate('/hr', { replace: true });
-        } else {
-          navigate('/employee', { replace: true });
-        }
-      } catch (error) {
-        console.error("Exception during role check:", error);
-        toast.error("Une erreur est survenue lors de la vérification de votre profil");
+    if (session && profile) {
+      if (profile.role === "hr") {
+        navigate('/hr', { replace: true });
+      } else {
+        navigate('/employee', { replace: true });
       }
-    };
-    
-    checkUserRole();
-  }, [session, navigate]);
+    }
+  }, [session, profile, navigate]);
 
-  // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
+  // Display loading indicator only during initialization
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
@@ -84,7 +50,6 @@ const Portal = () => {
 
     try {
       setIsSubmitting(true);
-      console.log("Attempting to sign in with:", email);
       
       const { error } = await signIn(email, password);
       

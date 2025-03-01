@@ -23,23 +23,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(data.session);
           setUser(data.session.user);
           
-          // Fetch user profile if we have a session
+          // Fetch minimal profile data just for role-based navigation
           try {
             const { data: profileData, error } = await supabase
               .from('profiles')
-              .select('*')
+              .select('id, role')
               .eq('id', data.session.user.id)
               .single();
               
             if (error) {
-              console.error('Error fetching profile:', error);
-              setAuthError(new Error('Failed to fetch user profile'));
+              console.error('Error fetching basic profile:', error);
             } else if (profileData) {
-              setProfile(profileData);
+              setProfile({ 
+                id: profileData.id, 
+                role: profileData.role 
+              });
             }
-          } catch (profileError: any) {
-            console.error('Exception fetching profile:', profileError);
-            setAuthError(profileError);
+          } catch (error: any) {
+            console.error('Exception fetching profile:', error);
           }
         }
       } catch (error: any) {
@@ -58,23 +59,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user || null);
         
         if (session?.user) {
-          // Fetch user profile on auth state change
+          // Fetch minimal profile data just for role-based navigation
           try {
             const { data: profileData, error } = await supabase
               .from('profiles')
-              .select('*')
+              .select('id, role')
               .eq('id', session.user.id)
               .single();
               
             if (error) {
-              console.error('Error fetching profile on auth change:', error);
-              setAuthError(new Error('Failed to fetch user profile'));
+              console.error('Error fetching basic profile on auth change:', error);
             } else if (profileData) {
-              setProfile(profileData);
+              setProfile({ 
+                id: profileData.id, 
+                role: profileData.role 
+              });
             }
-          } catch (profileError: any) {
-            console.error('Exception fetching profile on auth change:', profileError);
-            setAuthError(profileError);
+          } catch (error: any) {
+            console.error('Exception fetching profile on auth change:', error);
           }
         } else {
           setProfile(null);
@@ -104,28 +106,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         setAuthError(error);
-      } else if (data.user) {
-        // Fetch profile after successful sign in
+        return { error, data: { user: null, session: null } };
+      }
+      
+      // Only fetch minimal profile data for role-based routing
+      if (data.user) {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, role')
             .eq('id', data.user.id)
             .single();
             
           if (profileError) {
-            console.error('Error fetching profile after login:', profileError);
-            setAuthError(new Error('Failed to fetch user profile after login'));
+            console.error('Error fetching basic profile after login:', profileError);
           } else if (profileData) {
-            setProfile(profileData);
+            setProfile({ 
+              id: profileData.id, 
+              role: profileData.role 
+            });
           }
         } catch (profileError: any) {
           console.error('Exception fetching profile after login:', profileError);
-          setAuthError(profileError);
         }
       }
 
-      return { error, data };
+      return { error: null, data };
     } catch (error: any) {
       setAuthError(error);
       return { 

@@ -14,14 +14,13 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { signOut, user, profile } = useAuth();
   const isAdmin = location.pathname.startsWith("/hr");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Use profile data directly if available
-  const userName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    null;
+  // Use a simplified display name that doesn't depend on profile 
+  // This prevents a dependency on profile data availability
+  const userName = user?.email?.split('@')[0] || 'User';
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -56,12 +55,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
             
             <div className="flex items-center gap-3">
-              {userName && (
-                <div className="hidden sm:flex items-center text-sm text-gray-600 mr-1 bg-gray-50 py-1.5 px-3 rounded-full border">
-                  <UserCircle className="h-4 w-4 text-purple-500 mr-1.5" />
-                  {userName}
-                </div>
-              )}
+              <div className="hidden sm:flex items-center text-sm text-gray-600 mr-1 bg-gray-50 py-1.5 px-3 rounded-full border">
+                <UserCircle className="h-4 w-4 text-purple-500 mr-1.5" />
+                {userName}
+              </div>
               <Button 
                 variant="outline" 
                 onClick={handleLogout}

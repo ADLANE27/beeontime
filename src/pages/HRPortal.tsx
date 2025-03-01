@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
@@ -12,55 +11,34 @@ import { LogIn, Loader2 } from "lucide-react";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, signIn } = useAuth();
+  const { session, isLoading, signIn, profile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("HRPortal state:", { 
-      hasSession: !!session, 
-      isLoading
-    });
-  }, [session, isLoading]);
-
   // Handle redirection based on session and role
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (!session) return;
-      
-      try {
-        console.log("Checking user role for:", session.user.id);
-        
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching role:", error);
-          toast.error("Erreur lors de la récupération de votre profil");
-          return;
-        }
-        
-        console.log("User role:", data.role);
-        
-        if (data.role === "hr") {
-          navigate('/hr', { replace: true });
-        } else {
-          toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-          navigate('/employee', { replace: true });
-        }
-      } catch (error) {
-        console.error("Exception during role check:", error);
-        toast.error("Une erreur est survenue lors de la vérification de votre profil");
+    if (session && profile) {
+      if (profile.role === "hr") {
+        navigate('/hr', { replace: true });
+      } else {
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+        navigate('/employee', { replace: true });
       }
-    };
-    
-    checkUserRole();
-  }, [session, navigate]);
+    }
+  }, [session, profile, navigate]);
+
+  // Display loading indicator only during initialization
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
+          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Handle login form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +51,6 @@ const HRPortal = () => {
 
     try {
       setIsSubmitting(true);
-      console.log("Attempting to sign in with:", email);
       
       const { error } = await signIn(email, password);
       
@@ -89,19 +66,6 @@ const HRPortal = () => {
     }
   };
 
-  // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
-          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show login form if not authenticated
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full">
