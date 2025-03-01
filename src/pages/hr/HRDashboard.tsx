@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -12,7 +11,7 @@ import {
   BarChart,
   ClipboardList,
   Menu,
-  Badge as BadgeIcon,
+  BadgeIcon,
 } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
@@ -180,16 +179,53 @@ const HRDashboard = () => {
       <div className="space-y-6">
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4">
           {isMobile ? (
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-                {menuItems.find(item => item.value === selectedTab)?.label}
-              </h1>
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                  {menuItems.find(item => item.value === selectedTab)?.label}
+                </h1>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="shadow-sm rounded-full"
+                  onClick={() => setIsDrawerOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="flex space-x-2 min-w-max">
+                  {menuItems.map((item) => (
+                    <Button
+                      key={item.value}
+                      variant={selectedTab === item.value ? "default" : "outline"}
+                      size="sm"
+                      className={`flex items-center gap-1.5 whitespace-nowrap ${
+                        selectedTab === item.value ? 'bg-primary text-primary-foreground' : 'bg-background/80 text-foreground/80'
+                      }`}
+                      onClick={() => handleTabChange(item.value)}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">{item.label.split(' ')[0]}</span>
+                      {item.badge && (
+                        <Badge 
+                          variant="secondary" 
+                          className={`ml-1 px-1 min-w-4 h-4 text-[10px] ${
+                            selectedTab === item.value 
+                              ? 'bg-primary-foreground/20 text-primary-foreground' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                <DrawerTrigger asChild>
-                  <Button variant="outline" size="icon" className="shadow-sm rounded-full">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </DrawerTrigger>
                 <DrawerContent className="w-[300px] p-4">
                   <DrawerHeader className="p-0 mb-2">
                     <DrawerTitle className="text-xl font-semibold text-primary">Menu</DrawerTitle>
