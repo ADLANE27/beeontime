@@ -86,10 +86,8 @@ const HRPortal = () => {
                 button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
                 input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
                 label: 'text-sm font-medium text-gray-700',
-                auth: {
-                  message: 'text-sm text-center text-gray-600 my-2',
-                  divider: 'my-4 border-t border-gray-200',
-                }
+                message: 'text-sm text-center text-gray-600 my-2',
+                divider: 'my-4 border-t border-gray-200',
               }
             }}
             localization={{
