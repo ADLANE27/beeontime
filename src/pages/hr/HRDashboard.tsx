@@ -73,7 +73,6 @@ const HRDashboard = () => {
 
     fetchPendingCounts();
 
-    // Subscribe to real-time updates
     const leaveChannel = supabase
       .channel('leave-changes')
       .on(
