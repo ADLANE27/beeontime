@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,7 +28,11 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         // Only update password if it's provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
           const { error: authError } = await supabase.functions.invoke('update-user-password', {
-            body: { userId, password: formData.initialPassword }
+            body: { 
+              userId, 
+              password: formData.initialPassword,
+              email: formData.email.toLowerCase()
+            }
           });
 
           if (authError) {
