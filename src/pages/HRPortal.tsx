@@ -14,52 +14,56 @@ const HRPortal = () => {
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [authInProgress, setAuthInProgress] = useState(false);
 
+  // Monitor network status
   useEffect(() => {
-    setNetworkStatus(navigator.onLine ? 'online' : 'offline');
+    const updateNetworkStatus = () => {
+      setNetworkStatus(navigator.onLine ? 'online' : 'offline');
+    };
     
-    window.addEventListener('online', () => setNetworkStatus('online'));
-    window.addEventListener('offline', () => setNetworkStatus('offline'));
+    updateNetworkStatus(); // Initial check
+    
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
 
     return () => {
-      window.removeEventListener('online', () => setNetworkStatus('online'));
-      window.removeEventListener('offline', () => setNetworkStatus('offline'));
+      window.removeEventListener('online', updateNetworkStatus);
+      window.removeEventListener('offline', updateNetworkStatus);
     };
   }, []);
 
-  // Check for existing session and redirect based on role
+  // Check for existing session and redirect
   useEffect(() => {
-    // Skip if auth check is already in progress
-    if (authInProgress) return;
-    
-    // Skip if no session exists or auth context is still loading
-    if (!session?.user || isLoading) return;
-
-    console.log("Session exists, checking profile for role", session.user.email);
-    
-    const redirectBasedOnRole = (role: string | undefined) => {
-      if (role === "hr") {
-        console.log("HR role detected, redirecting to HR dashboard");
-        navigate('/hr', { replace: true });
-      } else {
-        console.log("Non-HR role detected, redirecting to employee dashboard");
-        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-        navigate('/employee', { replace: true });
-      }
-    };
-    
-    // If we have profile from context, use it directly
-    if (profile) {
-      console.log("Profile found in context with role:", profile.role);
-      redirectBasedOnRole(profile.role);
+    if (isLoading) {
+      console.log("Auth is still loading, waiting...");
       return;
     }
     
-    // If no profile in context, check database directly
-    const checkProfileInDB = async () => {
+    if (!session?.user) {
+      console.log("No active session, showing login form");
+      setAuthInProgress(false);
+      return;
+    }
+
+    console.log("Session exists, checking profile for role", session.user.email);
+    
+    const checkAndRedirect = async () => {
       try {
         setAuthInProgress(true);
-        console.log("Checking database for profile");
         
+        // If profile already exists in auth context, use it
+        if (profile) {
+          console.log("Profile found in context with role:", profile.role);
+          if (profile.role === "hr") {
+            navigate('/hr', { replace: true });
+          } else {
+            toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+            navigate('/employee', { replace: true });
+          }
+          return;
+        }
+        
+        // If no profile in context, check database
+        console.log("No profile in context, checking database");
         const { data: profileData, error } = await supabase
           .from("profiles")
           .select("*")
@@ -75,7 +79,12 @@ const HRPortal = () => {
         
         if (profileData) {
           console.log("Profile found in database:", profileData);
-          redirectBasedOnRole(profileData.role);
+          if (profileData.role === "hr") {
+            navigate('/hr', { replace: true });
+          } else {
+            toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+            navigate('/employee', { replace: true });
+          }
         } else {
           console.log("No profile found, redirecting to employee dashboard");
           toast.error("Profil non trouvé. Contactez l'administrateur.");
@@ -84,14 +93,12 @@ const HRPortal = () => {
       } catch (err) {
         console.error("Exception during profile check:", err);
         toast.error("Une erreur est survenue lors de la vérification du profil.");
-      } finally {
         setAuthInProgress(false);
       }
     };
     
-    checkProfileInDB();
-    
-  }, [session, profile, navigate, authInProgress, isLoading]);
+    checkAndRedirect();
+  }, [session, profile, navigate, isLoading]);
 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -120,8 +127,7 @@ const HRPortal = () => {
         }
         setAuthInProgress(false);
       }
-      // We intentionally don't reset authInProgress on success
-      // The session change will trigger the useEffect which will handle redirection
+      // Don't reset authInProgress on success - session change will trigger the useEffect
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
@@ -133,46 +139,29 @@ const HRPortal = () => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
   };
 
-  // Show loading state when auth is in progress
-  if (authInProgress) {
+  // Show login form if not authenticated and not loading
+  if (!session && !isLoading && !authInProgress) {
     return (
-      <LoadingState 
-        message="Connexion en cours..."
-        disableRefresh={true}
+      <LoginForm
+        onSubmit={handleManualSignIn}
+        loginError={loginError}
+        authError={null}
+        isLoading={authInProgress}
+        networkStatus={networkStatus}
+        onCheckNetwork={handleCheckNetwork}
       />
     );
   }
 
-  // Show loading state when auth context is loading
-  if (isLoading) {
-    return (
-      <LoadingState 
-        message="Vérification de l'authentification..."
-        disableRefresh={true}
-      />
-    );
-  }
-
-  // If we have a session but haven't triggered a redirect yet,
-  // show a loading state while we check the profile
-  if (session?.user && !authInProgress && !isLoading) {
-    setAuthInProgress(true);
-    return (
-      <LoadingState 
-        message="Redirection vers votre espace..."
-        disableRefresh={true}
-      />
-    );
-  }
-
+  // Show loading state for any pending operation
   return (
-    <LoginForm
-      onSubmit={handleManualSignIn}
-      loginError={loginError}
-      authError={null}
-      isLoading={authInProgress}
-      networkStatus={networkStatus}
-      onCheckNetwork={handleCheckNetwork}
+    <LoadingState 
+      message={
+        authInProgress 
+          ? "Connexion en cours..." 
+          : (session ? "Redirection vers votre espace..." : "Vérification de l'authentification...")
+      }
+      disableRefresh={true}
     />
   );
 };
