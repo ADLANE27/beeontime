@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { NewEmployeeForm } from "./NewEmployeeForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Phone, Building, Calendar, Loader2, Trash } from "lucide-react";
+import { Mail, Phone, Building, Calendar, Loader2, Trash, UserPlus, Edit, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -59,67 +59,97 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
     }
   };
 
+  // Get initials for the avatar
+  const getInitials = () => {
+    return `${employee.first_name.charAt(0)}${employee.last_name.charAt(0)}`.toUpperCase();
+  };
+
+  // Get contract type style
+  const getContractTypeStyle = () => {
+    switch(employee.contract_type) {
+      case 'CDI':
+        return 'bg-green-100 text-green-800';
+      case 'CDD':
+        return 'bg-blue-100 text-blue-800';
+      case 'Apprentissage':
+        return 'bg-amber-100 text-amber-800';
+      case 'Interim':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="space-y-1">
-          <h3 className="text-xl font-semibold tracking-tight">
-            {employee.first_name} {employee.last_name}
-          </h3>
-          <p className="text-sm text-muted-foreground">{employee.position}</p>
+    <Card className="w-full hover:shadow-md transition-shadow duration-200 border border-gray-100 overflow-hidden group">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+        <div className="flex gap-3 items-center">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+            {getInitials()}
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
+              {employee.first_name} {employee.last_name}
+            </h3>
+            <p className="text-sm text-muted-foreground">{employee.position}</p>
+          </div>
         </div>
-        <Badge variant={employee.contract_type === 'CDI' ? 'default' : 'secondary'}>
+        <Badge className={`${getContractTypeStyle()} font-medium`}>
           {employee.contract_type}
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-2">
         <div className="space-y-2">
           <div className="flex items-center space-x-2 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground" />
+            <Mail className="h-4 w-4 text-primary/60" />
             <span>{employee.email}</span>
           </div>
           {employee.phone && (
             <div className="flex items-center space-x-2 text-sm">
-              <Phone className="h-4 w-4 text-muted-foreground" />
+              <Phone className="h-4 w-4 text-primary/60" />
               <span>{employee.phone}</span>
             </div>
           )}
           {employee.start_date && (
             <div className="flex items-center space-x-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-primary/60" />
               <span>Depuis le {format(new Date(employee.start_date), 'dd MMMM yyyy', { locale: fr })}</span>
             </div>
           )}
           {employee.position && (
             <div className="flex items-center space-x-2 text-sm">
-              <Building className="h-4 w-4 text-muted-foreground" />
+              <Building className="h-4 w-4 text-primary/60" />
               <span>{employee.position}</span>
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Solde congés</p>
-          <div className="flex gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Année en cours</p>
+        <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
+          <p className="text-sm font-medium flex items-center gap-1.5">
+            <Shield className="h-4 w-4 text-primary/70" />
+            Solde congés
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-muted-foreground">Année en cours</p>
               <p className="font-medium">{currentYearBalance.toFixed(1)} jours</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Année précédente</p>
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-muted-foreground">Année précédente</p>
               <p className="font-medium">{previousYearBalance.toFixed(1)} jours</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total</p>
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-muted-foreground">Total</p>
               <p className="font-medium">{totalBalance.toFixed(1)} jours</p>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1 gap-1.5">
+                <Edit className="h-4 w-4" />
                 Modifier
               </Button>
             </DialogTrigger>
@@ -298,7 +328,10 @@ export const EmployeesList = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary/70" />
+          <p className="mt-2 text-sm text-muted-foreground">Chargement des employés...</p>
+        </div>
       </div>
     );
   }
@@ -306,10 +339,13 @@ export const EmployeesList = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Liste des employés</h2>
+        <h2 className="text-2xl font-bold text-gradient">Liste des employés</h2>
         <Dialog open={isNewEmployeeDialogOpen} onOpenChange={setIsNewEmployeeDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Ajouter un employé</Button>
+            <Button className="shadow-sm gap-1.5">
+              <UserPlus className="h-4 w-4" />
+              Ajouter un employé
+            </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -328,6 +364,20 @@ export const EmployeesList = () => {
             onDelete={handleDeleteEmployee}
           />
         ))}
+        
+        {employees?.length === 0 && (
+          <div className="col-span-3 text-center py-12 bg-gray-50 rounded-lg">
+            <p className="text-muted-foreground">Aucun employé trouvé</p>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsNewEmployeeDialogOpen(true)}
+              className="mt-4"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Ajouter votre premier employé
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

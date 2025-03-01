@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -67,6 +68,14 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
+      },
+      scale: {
+        '102': '1.02',
+      },
+      boxShadow: {
+        'soft': '0 2px 10px rgba(0, 0, 0, 0.05)',
+        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+        'elevation': '0 4px 25px rgba(0, 0, 0, 0.1)',
       },
       keyframes: {
         "accordion-down": {
