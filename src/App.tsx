@@ -58,38 +58,40 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/portal" replace />} />
-            <Route path="/portal" element={<Portal />} />
-            <Route path="/hr-portal" element={<HRPortal />} />
-            <Route 
-              path="/employee/*" 
-              element={
-                <ProtectedRoute requiredRole="employee">
-                  <EmployeeDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/hr/*" 
-              element={
-                <ProtectedRoute requiredRole="hr">
-                  <HRDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="*" element={<Navigate to="/portal" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Navigate to="/portal" replace />} />
+              <Route path="/portal" element={<Portal />} />
+              <Route path="/hr-portal" element={<HRPortal />} />
+              <Route 
+                path="/employee/*" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <EmployeeDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hr/*" 
+                element={
+                  <ProtectedRoute requiredRole="hr">
+                    <HRDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="*" element={<Navigate to="/portal" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

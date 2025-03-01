@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,19 +8,26 @@ import { LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session } = useAuth();
+  const { signIn, session, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Auto-navigate if already logged in
-  if (session) {
-    const isHR = session.user.email?.endsWith('@aftraduction.fr');
-    navigate(isHR ? '/hr' : '/employee', { replace: true });
-    return null;
+  useEffect(() => {
+    // Auto-navigate if already logged in
+    if (session) {
+      const isHR = session.user.email?.endsWith('@aftraduction.fr');
+      navigate(isHR ? '/hr' : '/employee', { replace: true });
+    }
+  }, [session, navigate]);
+
+  // If still checking authentication, show loading
+  if (isLoading) {
+    return <LoadingScreen message="Vérification de l'authentification..." />;
   }
 
   // Handle login form submission
