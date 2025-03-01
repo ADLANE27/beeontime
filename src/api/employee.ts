@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
+import { User } from '@supabase/supabase-js';
 
 /**
  * Checks if an auth user exists with the given email
@@ -13,7 +14,7 @@ export const checkAuthUserExists = async (email: string) => {
     
     // After getting all users, filter by email manually
     const matchingUsers = userData?.users?.filter(
-      user => user.email?.toLowerCase() === email.toLowerCase()
+      (user: User) => user.email?.toLowerCase() === email.toLowerCase()
     ) || [];
     
     if (!userError && matchingUsers.length > 0) {
@@ -120,7 +121,7 @@ export const createAuthUser = async (email: string, password: string, firstName:
       
       // After getting all users, filter by email manually
       const verifiedUsers = verifyData?.users?.filter(
-        user => user.email?.toLowerCase() === email.toLowerCase()
+        (user: User) => user.email?.toLowerCase() === email.toLowerCase()
       ) || [];
       
       if (verifiedUsers.length > 0) {
