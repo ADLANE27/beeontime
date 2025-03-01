@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -130,7 +131,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         
         // We'll create a new profile with the auth ID below
       } else if (!existingProfile && matchingUser) {
-        // Auth user exists but profile doesn't - use auth user ID
+        // Auth user exists but profile doesn't - use auth ID
         userId = matchingUser.id;
         console.log('Auth user exists but profile does not, using auth ID:', userId);
         
@@ -194,16 +195,17 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       }
 
       // CRITICAL: Create or update profile record BEFORE employee record
-      // This ensures the profile always exists
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
+      // This ensures the profile always exists - using service role to bypass RLS
+      console.log('Creating/updating profile with ID:', userId);
+      const { error: profileError } = await supabase.functions.invoke('update-profile', {
+        body: {
           id: userId,
           email: formData.email.toLowerCase(),
           first_name: formData.firstName,
           last_name: formData.lastName,
           role: 'employee'
-        }, { onConflict: 'id' });
+        }
+      });
 
       if (profileError) {
         console.error('Profile creation/update error:', profileError);
