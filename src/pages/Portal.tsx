@@ -15,8 +15,7 @@ const Portal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session, isLoading, profile, authReady } = useAuth();
 
-  // Consolidated loading state handling - shows a loading indicator
-  // only when authentication is still initializing
+  // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
   if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
@@ -28,8 +27,12 @@ const Portal = () => {
     );
   }
 
-  // If already authenticated and we have a profile, redirect to dashboard
+  // Si déjà authentifié et que nous avons un profil, rediriger vers le tableau de bord approprié
   if (session && profile) {
+    // Vérifier le rôle pour déterminer où rediriger
+    if (profile.role === "hr") {
+      return <Navigate to="/hr" replace />;
+    }
     return <Navigate to="/employee" replace />;
   }
 

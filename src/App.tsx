@@ -42,29 +42,25 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
 
-  // Determine where to redirect if not authenticated
-  const redirectPath = requiredRole === "hr" ? "/hr-portal" : "/portal";
-  
-  // Handle authentication and authorization cases
+  // Si pas de session, rediriger vers le portail de connexion approprié
   if (!session) {
-    // Not logged in - redirect to login
+    const redirectPath = requiredRole === "hr" ? "/hr-portal" : "/portal";
     return <Navigate to={redirectPath} replace />;
   }
   
+  // Si pas de profil, attendre un peu plus
   if (!profile) {
-    // Network issues might cause profile to be null even when authenticated
-    // Wait a bit more with a more detailed loading message
-    toast.error("Problème de récupération du profil. Tentative de reconnexion...");
-    return <LoadingScreen fullScreen message="Tentative de récupération de votre profil..." />;
+    // Tentez une dernière vérification directe en base de données
+    return <LoadingScreen fullScreen message="Récupération de votre profil..." />;
   }
   
+  // Vérifier le rôle pour l'accès à la section HR
   if (requiredRole === "hr" && profile.role !== "hr") {
-    // Wrong role for HR section
     toast.error("Vous n'avez pas les droits pour accéder à cette page.");
     return <Navigate to="/employee" replace />;
   }
   
-  // All checks passed - render children
+  // Tous les contrôles sont passés, afficher le contenu protégé
   return <>{children}</>;
 };
 

@@ -87,11 +87,11 @@ async function ensureAdminProfile(userId: string, email: string): Promise<Profil
       return existingProfile as Profile;
     }
     
-    // Create new profile - fixing the type issue by ensuring correct type for role
+    // Create new profile with correct typing
     const newProfile = {
       id: userId,
-      email: email, // Email is always provided and required
-      role: "hr" as const, // Use const assertion to fix the type
+      email: email,
+      role: "hr" as "hr", // Explicitly typed as "hr" literal
       first_name: "",
       last_name: ""
     };

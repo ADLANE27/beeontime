@@ -7,61 +7,6 @@ import { useAuth } from "@/contexts/auth";
 import { LoadingState } from "@/components/auth/LoadingState";
 import { LoginForm } from "@/components/auth/LoginForm";
 
-// Simplified admin profile check to avoid infinite loops
-async function checkAdminProfile(userId: string, email: string) {
-  console.log("Quick check for admin profile:", email);
-  
-  // Check if profile exists
-  const { data: existingProfile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
-    
-  if (error) {
-    console.error("Error checking admin profile:", error);
-    return false;
-  }
-  
-  // If admin email, ensure HR role and redirect
-  if (email === "a.debassi@aftraduction.fr") {
-    if (!existingProfile) {
-      // Create profile if it doesn't exist
-      console.log("Creating HR profile for admin email");
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert({
-          id: userId,
-          email: email,
-          role: "hr",
-          first_name: "",
-          last_name: ""
-        });
-      
-      if (insertError) {
-        console.error("Failed to create HR profile:", insertError);
-        return false;
-      }
-    } else if (existingProfile.role !== "hr") {
-      // Update to HR role if needed
-      console.log("Updating profile to HR role");
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ role: "hr" })
-        .eq("id", userId);
-        
-      if (updateError) {
-        console.error("Failed to update profile to HR:", updateError);
-        return false;
-      }
-    }
-    
-    return true;
-  }
-  
-  return existingProfile?.role === "hr";
-}
-
 const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading, profile, profileFetchAttempted, authError, authReady } = useAuth();
@@ -110,61 +55,95 @@ const HRPortal = () => {
   useEffect(() => {
     if (processingRedirect) return;
     
+    // Si nous avons une session utilisateur
     if (session?.user) {
-      console.log("Session exists, checking admin access", session.user.email);
+      console.log("Session exists, checking for profile", session.user.email);
       
-      if (session.user.email === "a.debassi@aftraduction.fr") {
-        // Special direct handling for known admin
-        console.log("Admin user detected, redirecting immediately");
-        setProcessingRedirect(true);
-        
-        // Fast path for known admin
-        checkAdminProfile(session.user.id, session.user.email)
-          .then(() => {
-            navigate('/hr', { replace: true });
-          })
-          .catch(err => {
-            console.error("Error during redirect:", err);
-            setProcessingRedirect(false);
-          });
-          
-        return;
-      }
-      
-      // Normal flow for other users with profiles
+      // Si nous avons un profil
       if (profile) {
         console.log("Profile found with role:", profile.role);
+        
+        // Vérifier le rôle et rediriger en conséquence
         if (profile.role === "hr") {
+          console.log("HR role detected, redirecting to HR dashboard");
           navigate('/hr', { replace: true });
         } else {
+          // Si ce n'est pas un admin HR, afficher un message d'erreur et rediriger
+          console.log("Employee role detected, redirecting to employee dashboard");
           toast.error("Vous n'avez pas les droits pour accéder à cette page.");
           navigate('/employee', { replace: true });
         }
         return;
-      }
+      } 
       
-      // If we have a session but no profile, check admin status one last time
+      // Si nous avons une session mais pas de profil, vérifier dans la base de données
       if (authCheckComplete && !profile && !processingRedirect) {
-        console.log("Session exists but no profile, attempting admin check");
+        console.log("Session exists but no profile yet, checking database");
+        setProcessingRedirect(true);
         
-        // Quick check for admin profile
-        checkAdminProfile(session.user.id, session.user.email || "")
-          .then(isAdmin => {
-            if (isAdmin) {
-              navigate('/hr', { replace: true });
+        // Vérifier directement dans la base de données
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle()
+          .then(({ data: profileData, error }) => {
+            if (error) {
+              console.error("Error fetching profile:", error);
+              setProcessingRedirect(false);
+              return;
+            }
+            
+            if (profileData) {
+              console.log("Profile found in database:", profileData);
+              // Si le profil existe et a le rôle HR, rediriger vers le dashboard HR
+              if (profileData.role === "hr") {
+                navigate('/hr', { replace: true });
+              } else {
+                // Sinon, afficher un message d'erreur et rediriger vers le dashboard employé
+                toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+                navigate('/employee', { replace: true });
+              }
             } else {
-              navigate('/employee', { replace: true });
+              console.log("No profile found, checking if admin email");
+              // Si pas de profil mais email d'administrateur connu, créer un profil HR
+              if (session.user.email === "a.debassi@aftraduction.fr") {
+                console.log("Admin email detected, creating HR profile");
+                
+                supabase
+                  .from("profiles")
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    role: "hr",
+                    first_name: "",
+                    last_name: ""
+                  })
+                  .then(({ error: insertError }) => {
+                    if (insertError) {
+                      console.error("Error creating HR profile:", insertError);
+                      setProcessingRedirect(false);
+                      return;
+                    }
+                    
+                    navigate('/hr', { replace: true });
+                  });
+              } else {
+                // Pour tout autre utilisateur sans profil, rediriger vers le dashboard employé
+                console.log("No profile and not admin email, redirecting to employee dashboard");
+                navigate('/employee', { replace: true });
+              }
             }
           })
           .catch(error => {
-            console.error("Admin check failed:", error);
-            navigate('/employee', { replace: true });
+            console.error("Error during profile check:", error);
+            setProcessingRedirect(false);
           });
       }
     }
   }, [session, profile, navigate, authCheckComplete, processingRedirect]);
 
-  // Manual sign-in handler with faster processing
+  // Manual sign-in handler 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -191,13 +170,8 @@ const HRPortal = () => {
           setLoginError(`Erreur de connexion: ${error.message}`);
         }
         setManualSignInAttempted(false);
-      } else {
-        // Special case for admin - immediately redirect
-        if (email === "a.debassi@aftraduction.fr") {
-          console.log("Admin login successful, redirecting to HR dashboard");
-          window.location.href = '/hr';
-        }
-      }
+      } 
+      // La redirection est gérée par l'effet ci-dessus
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
@@ -214,7 +188,7 @@ const HRPortal = () => {
   if (manualSignInAttempted || processingRedirect) {
     return (
       <LoadingState 
-        message={processingRedirect ? "Redirection vers le portail RH..." : "Connexion en cours..."}
+        message={processingRedirect ? "Vérification de votre profil..." : "Connexion en cours..."}
         disableRefresh={true}
       />
     );
