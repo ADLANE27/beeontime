@@ -15,14 +15,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         initialPassword: formData.initialPassword ? `[Password provided, length: ${formData.initialPassword.length}]` : 'None'
       });
       
-      // First check if profile exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', formData.email.toLowerCase())
-        .single();
-
-      // Explicitly check if auth user exists using email
+      // Check if auth user exists using email
       const { data: { users }, error: getUserError } = await supabase.functions.invoke('update-user-password', {
         body: { 
           email: formData.email.toLowerCase(),
@@ -47,11 +40,10 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         users.find((user: any) => user.email.toLowerCase() === formData.email.toLowerCase()) : 
         null;
 
-      // Handle logic based on whether profile and auth user exist
-      if (existingProfile && matchingUser) {
-        // Both profile and auth user exist
-        console.log('User exists in both profile and auth, using existing ID:', existingProfile.id);
-        userId = existingProfile.id;
+      if (matchingUser) {
+        // Auth user exists - use the existing ID
+        userId = matchingUser.id;
+        console.log('Auth user exists, using existing ID:', userId);
         
         // Only update password if it's provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
@@ -73,99 +65,15 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           
           console.log('Password update result:', authData);
         }
-      } else if (existingProfile && !matchingUser) {
-        // Profile exists but auth user doesn't
-        console.log('Profile exists but auth user does not');
-        
-        if (!formData.initialPassword) {
-          toast.error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
-          setIsSubmitting(false);
-          return;
-        }
-        
-        console.log('Creating auth user with email:', formData.email.toLowerCase());
-        const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
-          body: { 
-            email: formData.email.toLowerCase(),
-            password: formData.initialPassword,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            createIfNotExists: true
-          }
-        });
-
-        if (authError) {
-          console.error('Error creating auth user:', authError);
-          toast.error("Erreur lors de la création du compte utilisateur");
-          setIsSubmitting(false);
-          return;
-        }
-
-        if (!authData || !authData.id) {
-          console.error('No user ID returned after creation');
-          toast.error("Erreur lors de la création du compte utilisateur: ID non retourné");
-          setIsSubmitting(false);
-          return;
-        }
-
-        userId = authData.id;
-        console.log('Auth user created with ID:', userId);
-        
-        // We need to handle two cases:
-        // 1. Delete the existing profile and create a new one with the auth ID
-        // 2. Or keep the existing profile structure but update references
-        
-        // Option 1: Delete and recreate - simpler and less error-prone
-        console.log('Deleting existing profile with ID:', existingProfile.id);
-        const { error: deleteProfileError } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', existingProfile.id);
-          
-        if (deleteProfileError) {
-          console.error('Error deleting old profile:', deleteProfileError);
-          toast.error("Erreur lors de la mise à jour du profil");
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // We'll create a new profile with the auth ID below
-      } else if (!existingProfile && matchingUser) {
-        // Auth user exists but profile doesn't - use auth ID
-        userId = matchingUser.id;
-        console.log('Auth user exists but profile does not, using auth ID:', userId);
-        
-        // Still update password if provided and we're not in edit mode
-        if (!isEditing && formData.initialPassword) {
-          console.log('Updating password for existing auth user:', userId);
-          const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
-            body: { 
-              userId, 
-              password: formData.initialPassword,
-              email: formData.email.toLowerCase()
-            }
-          });
-
-          if (authError) {
-            console.error('Error updating password:', authError);
-            toast.error("Erreur lors de la mise à jour du mot de passe");
-            setIsSubmitting(false);
-            return;
-          }
-          
-          console.log('Password update result:', authData);
-        }
       } else {
-        // Neither exists - create both
+        // Create new auth user
         if (!formData.initialPassword) {
           toast.error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
           setIsSubmitting(false);
           return;
         }
         
-        console.log('Creating new auth user with password length:', formData.initialPassword.length);
-        console.log('Email:', formData.email.toLowerCase());
-        
+        console.log('Creating new auth user with email:', formData.email.toLowerCase());
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
@@ -194,8 +102,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         console.log('New auth user created with ID:', userId);
       }
 
-      // CRITICAL: Create or update profile record BEFORE employee record
-      // This ensures the profile always exists - using service role to bypass RLS
+      // Create or update profile record using the auth user ID
       console.log('Creating/updating profile with ID:', userId);
       const { error: profileError } = await supabase.functions.invoke('update-profile', {
         body: {
