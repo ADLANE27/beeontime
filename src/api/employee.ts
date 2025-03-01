@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 
@@ -8,16 +9,17 @@ export const checkAuthUserExists = async (email: string) => {
   try {
     // First try direct auth API to check user existence
     console.log('Checking if user exists with email:', email);
-    const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
-      filter: {
-        email: email.toLowerCase(),
-      },
-    });
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
     
-    if (!userError && userData?.users?.length > 0) {
-      console.log('User found via direct auth API:', userData.users);
+    // After getting all users, filter by email manually
+    const matchingUsers = userData?.users?.filter(
+      user => user.email?.toLowerCase() === email.toLowerCase()
+    ) || [];
+    
+    if (!userError && matchingUsers.length > 0) {
+      console.log('User found via direct auth API:', matchingUsers);
       return { 
-        users: userData.users, 
+        users: matchingUsers, 
         authUserExists: true 
       };
     }
@@ -114,13 +116,14 @@ export const createAuthUser = async (email: string, password: string, firstName:
       console.log('User created successfully with direct auth API, ID:', signUpData.user.id);
       
       // Verify user was created properly before returning
-      const { data: verifyData } = await supabase.auth.admin.listUsers({
-        filter: {
-          email: email.toLowerCase(),
-        },
-      });
+      const { data: verifyData } = await supabase.auth.admin.listUsers();
       
-      if (verifyData?.users?.length > 0) {
+      // After getting all users, filter by email manually
+      const verifiedUsers = verifyData?.users?.filter(
+        user => user.email?.toLowerCase() === email.toLowerCase()
+      ) || [];
+      
+      if (verifiedUsers.length > 0) {
         console.log('User creation verified, user exists in auth table');
       } else {
         console.warn('User created but not found when verifying creation. This might be a timing issue.');
