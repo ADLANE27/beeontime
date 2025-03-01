@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Download, Loader2, Plus } from "lucide-react";
+import { Download, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
@@ -74,6 +74,8 @@ export const LeaveRequestsList = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [isNewLeaveOpen, setIsNewLeaveOpen] = useState(false);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: leaveRequests, isLoading } = useQuery({
@@ -192,6 +194,87 @@ export const LeaveRequestsList = () => {
     }
   };
 
+  const handleEdit = async (formData: any) => {
+    if (!selectedRequest) return;
+    
+    setLoadingRequestId(selectedRequest.id);
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ 
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          type: formData.type,
+          day_type: formData.day_type,
+          period: formData.period,
+          reason: formData.reason,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+      
+      toast.success("Demande modifiée avec succès");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      setEditDialogOpen(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error editing request:', error);
+      toast.error("Une erreur est survenue lors de la modification");
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRequest) return;
+    
+    setLoadingRequestId(selectedRequest.id);
+    try {
+      // Delete any associated documents first
+      if (selectedRequest.documents && selectedRequest.documents.length > 0) {
+        // Delete records from leave_request_documents table
+        for (const doc of selectedRequest.documents) {
+          const { error: docDeleteError } = await supabase
+            .from('leave_request_documents')
+            .delete()
+            .eq('id', doc.id);
+          
+          if (docDeleteError) throw docDeleteError;
+          
+          // Attempt to delete the actual file from storage
+          const { error: storageDeleteError } = await supabase
+            .storage
+            .from('leave-documents')
+            .remove([doc.file_path]);
+          
+          if (storageDeleteError) {
+            console.error('Error deleting file from storage:', storageDeleteError);
+            // Continue with deletion of the leave request even if storage deletion fails
+          }
+        }
+      }
+      
+      // Now delete the leave request
+      const { error } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+      
+      toast.success("Demande supprimée avec succès");
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      setDeleteDialogOpen(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error("Une erreur est survenue lors de la suppression");
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -281,37 +364,66 @@ export const LeaveRequestsList = () => {
                 <Badge className={getStatusColor(request.status)}>
                   {getStatusLabel(request.status)}
                 </Badge>
-                {request.status === "pending" && (
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                      onClick={() => handleApprove(request)}
-                      disabled={loadingRequestId === request.id}
-                    >
-                      {loadingRequestId === request.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Accepter
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        setRejectionDialogOpen(true);
-                      }}
-                      disabled={loadingRequestId === request.id}
-                    >
-                      {loadingRequestId === request.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Refuser
-                    </Button>
-                  </div>
-                )}
+                
+                <div className="flex gap-2 mt-2">
+                  {request.status === "pending" && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => handleApprove(request)}
+                        disabled={loadingRequestId === request.id}
+                      >
+                        {loadingRequestId === request.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Accepter
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setRejectionDialogOpen(true);
+                        }}
+                        disabled={loadingRequestId === request.id}
+                      >
+                        {loadingRequestId === request.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Refuser
+                      </Button>
+                    </>
+                  )}
+                  
+                  {/* Edit and Delete buttons (always shown) */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setEditDialogOpen(true);
+                    }}
+                    disabled={loadingRequestId === request.id}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Modifier
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setDeleteDialogOpen(true);
+                    }}
+                    disabled={loadingRequestId === request.id}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
@@ -350,6 +462,62 @@ export const LeaveRequestsList = () => {
               disabled={!rejectionReason.trim()}
             >
               Confirmer le refus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Modifier la demande de congés</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <LeaveRequestForm 
+              onSubmit={handleEdit}
+              isSubmitting={loadingRequestId === selectedRequest.id}
+              initialValues={{
+                employee_id: selectedRequest.employee_id,
+                start_date: selectedRequest.start_date,
+                end_date: selectedRequest.end_date,
+                type: selectedRequest.type,
+                day_type: selectedRequest.day_type,
+                period: selectedRequest.period || undefined,
+                reason: selectedRequest.reason || '',
+              }}
+              isEditing={true}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette demande de congés ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setSelectedRequest(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loadingRequestId === selectedRequest?.id}
+            >
+              {loadingRequestId === selectedRequest?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Confirmer la suppression
             </Button>
           </DialogFooter>
         </DialogContent>
