@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +72,7 @@ const HRPortal = () => {
         console.log("Session exists but no profile yet, checking database");
         setProcessingRedirect(true);
         
+        // Use Promise/then pattern instead of async/await
         supabase
           .from("profiles")
           .select("*")
@@ -95,6 +97,7 @@ const HRPortal = () => {
               console.log("No profile found, checking if admin email");
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
+                // Fix for line 120 - don't chain catch directly
                 supabase
                   .from("profiles")
                   .insert({
@@ -104,10 +107,16 @@ const HRPortal = () => {
                     first_name: "",
                     last_name: ""
                   })
-                  .then(() => {
+                  .then(({ error: insertError }) => {
+                    if (insertError) {
+                      console.error("Error during profile creation:", insertError);
+                      setProcessingRedirect(false);
+                      return;
+                    }
                     navigate('/hr', { replace: true });
                   })
-                  .catch((err) => {
+                  .catch(err => {
+                    // This is now a regular Promise catch
                     console.error("Exception during profile creation:", err);
                     setProcessingRedirect(false);
                   });
@@ -118,6 +127,7 @@ const HRPortal = () => {
             }
           })
           .catch(error => {
+            // This is now the same pattern as above
             console.error("Error during profile check:", error);
             setProcessingRedirect(false);
           });
