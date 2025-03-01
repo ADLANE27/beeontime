@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,7 +11,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
 import { toast } from "sonner";
 import { LoadingScreen } from "./components/ui/loading-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,42 +30,62 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
   const { session, isLoading, profile } = useAuth();
+  const [routeTimeout, setRouteTimeout] = useState(false);
   
-  // Add debugging logs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setRouteTimeout(true);
+    }, 8000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   useEffect(() => {
     console.log("ProtectedRoute - Auth state:", { 
       session: !!session, 
       isLoading, 
       profile: profile?.role,
-      requiredRole 
+      requiredRole,
+      routeTimeout
     });
-  }, [session, isLoading, profile, requiredRole]);
+  }, [session, isLoading, profile, requiredRole, routeTimeout]);
   
-  // Only show loading while initial authentication check is happening
-  // Add a shorter timeout for the loading screen
-  if (isLoading) {
-    return <LoadingScreen message="Vérification de votre session..." timeout={10000} />;
+  if (routeTimeout && (isLoading || (session && !profile))) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+        <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-medium text-gray-900 mb-4">Problème de chargement</h2>
+          <p className="text-gray-600 mb-6">
+            Le chargement de votre profil prend trop de temps. Veuillez rafraîchir la page.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Rafraîchir la page
+          </button>
+        </div>
+      </div>
+    );
   }
   
-  // If no session, redirect to appropriate portal
+  if (isLoading) {
+    return <LoadingScreen message="Vérification de votre session..." timeout={5000} />;
+  }
+  
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // If we have a session but no profile yet, show loading but with shorter timeout
   if (session && !profile) {
-    return <LoadingScreen message="Chargement de votre profil..." timeout={8000} />;
+    return <LoadingScreen message="Chargement de votre profil..." timeout={5000} />;
   }
   
-  // If we have a profile but wrong role, redirect to the appropriate dashboard
   if (profile && profile.role !== requiredRole) {
-    // Show error toast
     toast.error(`Vous n'avez pas les droits pour accéder à cette page.`);
-    // Redirect to the appropriate dashboard based on role
     return <Navigate to={profile.role === "hr" ? "/hr" : "/employee"} replace />;
   }
   
-  // Everything looks good, render the child components
   return <>{children}</>;
 };
 

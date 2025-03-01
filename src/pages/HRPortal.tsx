@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Loader2 } from "lucide-react";
+import { LogIn, Loader2, RefreshCcw } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const HRPortal = () => {
@@ -16,6 +16,7 @@ const HRPortal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   // For debugging
   useEffect(() => {
@@ -32,18 +33,64 @@ const HRPortal = () => {
         toast.error("Vous n'avez pas les droits pour accéder à cette page.");
         navigate('/employee', { replace: true });
       }
-      // If we have a session but no profile yet, let's wait
+      // If we have a session but no profile yet, let's wait but with a timeout
     }
   }, [session, profile, navigate, isLoading]);
 
+  // Add timeout for loading state to prevent infinite loading
+  useEffect(() => {
+    let timer;
+    if ((session && !profile) || isLoading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000); // 5 seconds timeout
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [session, profile, isLoading]);
+
+  // Handle forced refresh when loading takes too long
+  const handleForceRefresh = () => {
+    window.location.reload();
+  };
+
   // Display shorter loading period only during initialization
-  if (isLoading) {
-    return <LoadingScreen message="Chargement..." />;
+  if (isLoading && !loadingTimeout) {
+    return <LoadingScreen message="Chargement..." timeout={5000} />;
   }
 
-  // If we have a session but no navigation happened yet, show a temporary waiting screen
-  if (session && !isLoading) {
-    return <LoadingScreen message="Vérification des accès..." />;
+  // If loading timeout occurred, show a refresh button
+  if (loadingTimeout) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-medium text-gray-900">
+              Chargement trop long
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-gray-600">
+              Le chargement prend plus de temps que prévu. Veuillez réessayer.
+            </p>
+            <Button 
+              onClick={handleForceRefresh}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Rafraîchir la page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If we have a session but no navigation happened yet, show a temporary waiting screen with timeout
+  if (session && !isLoading && !profile) {
+    return <LoadingScreen message="Vérification des accès..." timeout={5000} />;
   }
 
   // Handle login form submission

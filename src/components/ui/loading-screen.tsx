@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCcw } from "lucide-react";
 
 interface LoadingScreenProps {
   message?: string;
@@ -13,7 +13,7 @@ export const LoadingScreen = ({
   message = "Chargement...",
   fullScreen = false,
   size = "md",
-  timeout = 15000 // Default timeout of 15 seconds
+  timeout = 8000 // Default timeout of 8 seconds
 }: LoadingScreenProps) => {
   const sizeClasses = {
     sm: "h-4 w-4",
@@ -34,18 +34,22 @@ export const LoadingScreen = ({
 
   return (
     <div className={`flex items-center justify-center ${fullScreen ? 'min-h-screen' : 'min-h-[200px]'} bg-background`}>
-      <div className="flex flex-col items-center gap-3 animate-fade-in">
-        <Loader2 className={`animate-spin text-primary ${sizeClasses[size]}`} />
-        {message && <p className="text-sm text-muted-foreground">{message}</p>}
-        
-        {showTimeout && (
-          <div className="mt-4 text-center max-w-[400px]">
-            <p className="text-sm text-amber-600">
-              Le chargement prend plus de temps que prévu. Si le problème persiste, essayez de rafraîchir la page.
+      <div className="flex flex-col items-center gap-3 animate-fade-in max-w-md px-4">
+        {!showTimeout ? (
+          <>
+            <Loader2 className={`animate-spin text-primary ${sizeClasses[size]}`} />
+            {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
+          </>
+        ) : (
+          <div className="text-center">
+            <RefreshCcw className="h-8 w-8 mx-auto mb-4 text-amber-500" />
+            <h3 className="text-lg font-medium mb-2">Le chargement prend plus de temps que prévu</h3>
+            <p className="text-sm text-amber-600 mb-4">
+              Nous rencontrons des difficultés à charger vos données. Veuillez essayer de rafraîchir la page.
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-blue-600 hover:underline"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
             >
               Rafraîchir la page
             </button>

@@ -12,6 +12,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
 
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching profile:', error);
+        // Even if we can't fetch the profile, we can still proceed with basic role
+        // This prevents blocking the app if the profiles table doesn't exist yet
+        return { id: userId, role: 'employee' };
+      } 
+      
+      return profileData;
+    } catch (error) {
+      console.error('Exception fetching profile:', error);
+      // Fallback to basic profile to prevent UI from freezing
+      return { id: userId, role: 'employee' };
+    }
+  };
+
   useEffect(() => {
     // Initialize auth state from supabase session
     const initializeAuth = async () => {
@@ -24,23 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.session.user);
           
           // Fetch minimal profile data just for role-based navigation
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('id, role')
-              .eq('id', data.session.user.id)
-              .single();
-              
-            if (error) {
-              console.error('Error fetching basic profile:', error);
-            } else if (profileData) {
-              setProfile({ 
-                id: profileData.id, 
-                role: profileData.role 
-              });
-            }
-          } catch (error: any) {
-            console.error('Exception fetching profile:', error);
+          const profileData = await fetchProfile(data.session.user.id);
+          if (profileData) {
+            setProfile({ 
+              id: profileData.id, 
+              role: profileData.role 
+            });
           }
         }
       } catch (error: any) {
@@ -60,23 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           // Fetch minimal profile data just for role-based navigation
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('id, role')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (error) {
-              console.error('Error fetching basic profile on auth change:', error);
-            } else if (profileData) {
-              setProfile({ 
-                id: profileData.id, 
-                role: profileData.role 
-              });
-            }
-          } catch (error: any) {
-            console.error('Exception fetching profile on auth change:', error);
+          const profileData = await fetchProfile(session.user.id);
+          if (profileData) {
+            setProfile({ 
+              id: profileData.id, 
+              role: profileData.role 
+            });
           }
         } else {
           setProfile(null);
@@ -111,23 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Only fetch minimal profile data for role-based routing
       if (data.user) {
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, role')
-            .eq('id', data.user.id)
-            .single();
-            
-          if (profileError) {
-            console.error('Error fetching basic profile after login:', profileError);
-          } else if (profileData) {
-            setProfile({ 
-              id: profileData.id, 
-              role: profileData.role 
-            });
-          }
-        } catch (profileError: any) {
-          console.error('Exception fetching profile after login:', profileError);
+        const profileData = await fetchProfile(data.user.id);
+        if (profileData) {
+          setProfile({ 
+            id: profileData.id, 
+            role: profileData.role 
+          });
         }
       }
 
