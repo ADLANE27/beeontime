@@ -1,6 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,150 +10,90 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return new Response(
-        JSON.stringify({ error: 'Missing environment variables' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Get the request body
+    const { employeeId } = await req.json()
 
-    // Parse request body
-    const { employeeId } = await req.json();
     if (!employeeId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing employee ID' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('employeeId is required')
     }
 
-    console.log(`Starting deletion process for employee ID: ${employeeId}`);
+    console.log(`Deleting employee with ID: ${employeeId}`)
 
-    // Get the employee to log what we're deleting
-    const { data: employee, error: fetchError } = await supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
+    // Create a Supabase client with the service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+
+    // First, check if the user exists in auth
+    console.log('Checking if user exists in auth...')
+    const { data: employee, error: employeeError } = await supabaseAdmin
       .from('employees')
-      .select('first_name, last_name, email')
+      .select('id, email')
       .eq('id', employeeId)
-      .single();
+      .single()
 
-    if (fetchError) {
-      console.error("Error fetching employee:", fetchError);
-      return new Response(
-        JSON.stringify({ error: 'Error fetching employee' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (employeeError) {
+      console.error('Error fetching employee:', employeeError)
+      throw new Error(`Employee not found: ${employeeError.message}`)
     }
 
-    console.log(`Deleting data for ${employee.first_name} ${employee.last_name} (${employee.email})`);
+    // Delete cascade will handle related records in other tables
+    // through database-level foreign key constraints
 
-    // Delete in cascading order to avoid foreign key constraints
-    
-    // 1. First delete related documents
-    console.log("Deleting documents...");
-    await supabase
-      .from('leave_request_documents')
-      .delete()
-      .in('leave_request_id', 
-        supabase.from('leave_requests').select('id').eq('employee_id', employeeId)
-      );
-    
-    await supabase
-      .from('hr_event_documents')
-      .delete()
-      .in('event_id', 
-        supabase.from('hr_events').select('id').eq('employee_id', employeeId)
-      );
-    
-    await supabase
-      .from('documents')
-      .delete()
-      .eq('employee_id', employeeId);
-
-    // 2. Delete time-related records
-    console.log("Deleting time records...");
-    await supabase
-      .from('time_records')
-      .delete()
-      .eq('employee_id', employeeId);
-    
-    // 3. Delete leave requests
-    console.log("Deleting leave requests...");
-    await supabase
-      .from('leave_requests')
-      .delete()
-      .eq('employee_id', employeeId);
-    
-    // 4. Delete delay records
-    console.log("Deleting delays...");
-    await supabase
-      .from('delays')
-      .delete()
-      .eq('employee_id', employeeId);
-    
-    // 5. Delete overtime requests
-    console.log("Deleting overtime requests...");
-    await supabase
-      .from('overtime_requests')
-      .delete()
-      .eq('employee_id', employeeId);
-    
-    // 6. Delete HR events
-    console.log("Deleting HR events...");
-    await supabase
-      .from('hr_events')
-      .delete()
-      .eq('employee_id', employeeId);
-
-    // 7. Delete vacation history
-    console.log("Deleting vacation history...");
-    await supabase
-      .from('vacation_history')
-      .delete()
-      .eq('employee_id', employeeId);
-    
-    // 8. Finally delete the employee record
-    console.log("Deleting employee record...");
-    const { error: employeeDeleteError } = await supabase
+    // Delete employee record first
+    console.log('Deleting employee record...')
+    const { error: deleteEmployeeError } = await supabaseAdmin
       .from('employees')
       .delete()
-      .eq('id', employeeId);
-    
-    if (employeeDeleteError) {
-      console.error("Error deleting employee record:", employeeDeleteError);
-      throw employeeDeleteError;
+      .eq('id', employeeId)
+
+    if (deleteEmployeeError) {
+      console.error('Error deleting employee:', deleteEmployeeError)
+      throw new Error(`Failed to delete employee: ${deleteEmployeeError.message}`)
     }
 
-    // 9. Delete the auth user if it exists
-    try {
-      console.log("Deleting user from auth...");
-      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(employeeId);
-      
-      if (authDeleteError) {
-        console.warn("Warning: Could not delete auth user. This might be expected if the user didn't have an auth account:", authDeleteError);
-      }
-    } catch (authError) {
-      console.warn("Warning: Error when deleting auth user. This might be expected if the user didn't have an auth account:", authError);
+    // Delete profile record
+    console.log('Deleting profile record...')
+    const { error: deleteProfileError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', employeeId)
+
+    if (deleteProfileError) {
+      console.error('Error deleting profile:', deleteProfileError)
+      // Continue even if profile delete fails
     }
 
-    console.log(`Successfully deleted employee: ${employee.first_name} ${employee.last_name}`);
-    
+    // Finally, delete the auth user
+    console.log('Deleting auth user...')
+    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(employeeId)
+
+    if (deleteAuthError) {
+      console.error('Error deleting auth user:', deleteAuthError)
+      // Continue even if auth delete fails
+    }
+
     return new Response(
-      JSON.stringify({ success: true, message: "Employee deleted successfully" }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ success: true, message: 'Employee deleted successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    )
   } catch (error) {
-    console.error("Error in delete-employee function:", error);
+    console.error('Error in delete-employee function:', error)
+    
     return new Response(
-      JSON.stringify({ error: `Failed to delete employee: ${error.message}` }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ 
+        error: error.message || 'Unknown error', 
+        details: error.details || null 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 400 
+      }
+    )
   }
-});
+})

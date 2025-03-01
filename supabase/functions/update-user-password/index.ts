@@ -1,6 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,170 +10,186 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-        auth: {
-          persistSession: false
-        }
-      }
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-    const { userId, email, password, checkOnly, createIfNotExists, preferredId, firstName, lastName } = await req.json()
-    console.log('Received request with params:', { userId, email, checkOnly, createIfNotExists, preferredId })
+    // Create a Supabase client with the service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-    // If checkOnly is true, just check if user exists and return result
-    if (checkOnly && email) {
-      console.log('Checking if user exists:', email)
-      const { data: users, error } = await supabaseClient.auth.admin.listUsers({
-        filters: {
-          email: email
-        }
+    // Parse the request body
+    const { userId, email, password, checkOnly, preferredId, firstName, lastName, createIfNotExists } = await req.json()
+
+    console.log('Request parameters:', {
+      userId: userId ? 'provided' : 'not provided',
+      email: email ? 'provided' : 'not provided',
+      password: password ? 'provided' : 'not provided',
+      checkOnly: checkOnly ? true : false,
+      createIfNotExists: createIfNotExists ? true : false,
+      preferredId: preferredId ? 'provided' : 'not provided',
+    })
+
+    // If checkOnly is true, check if the user exists
+    if (checkOnly) {
+      const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
+        email: email
       })
-      
-      if (error) {
-        console.error('Error checking user:', error)
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
-      }
+
+      console.log(`Checking if user with email ${email} exists:`, users?.users.length > 0)
       
       return new Response(
-        JSON.stringify({ users: users.users }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ users: users?.users }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
-    // If createIfNotExists and we have email + password, create the user
-    if (createIfNotExists && email && password) {
-      console.log('Creating user with email:', email)
-      
-      // Try to create with preferred ID if provided
-      let createOptions = {}
-      if (preferredId) {
-        console.log('Attempting to use preferred ID:', preferredId)
-        createOptions = {
-          data: {
-            first_name: firstName,
-            last_name: lastName
-          },
+    // If createIfNotExists is true and no users exist with this email, create one
+    if (createIfNotExists && email) {
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
+        email: email
+      })
+
+      if (!existingUsers?.users.length) {
+        console.log(`Creating new user with email ${email}`)
+        
+        const userData = {
+          email,
+          password,
           user_metadata: {
             first_name: firstName,
             last_name: lastName
           }
         }
-      }
-      
-      const { data: userData, error: createError } = await supabaseClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        ...createOptions
-      })
-      
-      if (createError) {
-        console.error('Error creating user:', createError)
+
+        // If preferredId is provided, try to use it
+        if (preferredId) {
+          try {
+            const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
+              ...userData,
+              id: preferredId
+            })
+
+            if (error) {
+              console.error('Error creating user with preferredId:', error)
+              // Fall back to auto-generated ID if specific ID fails
+              const { data: fallbackUser, error: fallbackError } = await supabaseAdmin.auth.admin.createUser(userData)
+              
+              if (fallbackError) {
+                throw fallbackError
+              }
+              
+              return new Response(
+                JSON.stringify({ id: fallbackUser?.user?.id, message: 'User created with auto-generated ID' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+              )
+            }
+            
+            console.log(`User created with preferred ID: ${user?.user?.id}`)
+            return new Response(
+              JSON.stringify({ id: user?.user?.id, message: 'User created with preferred ID' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            )
+          } catch (error) {
+            console.error('Error in user creation with preferredId:', error)
+            throw error
+          }
+        } else {
+          // Create user with auto-generated ID
+          const { data: user, error } = await supabaseAdmin.auth.admin.createUser(userData)
+          
+          if (error) {
+            throw error
+          }
+          
+          console.log(`User created with ID: ${user?.user?.id}`)
+          return new Response(
+            JSON.stringify({ id: user?.user?.id, message: 'User created with auto-generated ID' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          )
+        }
+      } else {
+        // User exists, return the existing user ID
+        const existingUserId = existingUsers.users[0].id
+        console.log(`User already exists with ID: ${existingUserId}`)
         return new Response(
-          JSON.stringify({ error: createError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          JSON.stringify({ id: existingUserId, message: 'User already exists' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
       }
-      
-      console.log('User created successfully with ID:', userData.user.id)
-      return new Response(
-        JSON.stringify({ id: userData.user.id, message: 'User created successfully' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
-    // Standard password update
-    if (userId && password) {
-      console.log('Updating password for user:', userId)
-      const { error } = await supabaseClient.auth.admin.updateUserById(
+    // Update user password either by userId or email
+    if (userId) {
+      console.log(`Updating password for user ID: ${userId}`)
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
         userId,
         { password }
       )
-      
+
       if (error) {
-        console.error('Error updating password:', error)
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
+        throw error
       }
-      
+
       return new Response(
         JSON.stringify({ message: 'Password updated successfully' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
-    }
-    
-    // If we have email but no userId, find user by email and update password
-    if (!userId && email && password) {
-      console.log('Finding user by email and updating password:', email)
-      
-      const { data: users, error: listError } = await supabaseClient.auth.admin.listUsers({
-        filters: {
-          email: email
-        }
+    } else if (email) {
+      console.log(`Looking up user by email: ${email}`)
+      // Find user by email
+      const { data: users, error: findError } = await supabaseAdmin.auth.admin.listUsers({
+        email: email
       })
-      
-      if (listError) {
-        console.error('Error finding user by email:', listError)
-        return new Response(
-          JSON.stringify({ error: listError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
+
+      if (findError) {
+        throw findError
       }
-      
-      if (users.users.length === 0) {
-        console.error('User not found with email:', email)
+
+      if (!users.users.length) {
         return new Response(
           JSON.stringify({ error: 'User not found' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
         )
       }
-      
-      const userToUpdate = users.users[0]
-      console.log('Found user to update:', userToUpdate.id)
-      
-      const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
-        userToUpdate.id,
+
+      const user = users.users[0]
+      console.log(`Found user with ID: ${user.id}, updating password`)
+
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        user.id,
         { password }
       )
-      
+
       if (updateError) {
-        console.error('Error updating password by email:', updateError)
-        return new Response(
-          JSON.stringify({ error: updateError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
+        throw updateError
       }
-      
+
       return new Response(
-        JSON.stringify({ message: 'Password updated successfully' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ message: 'Password updated successfully', userId: user.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Either userId or email is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Required parameters missing' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-    )
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Error in function:', error)
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message || 'Unknown error', 
+        details: error.details || null 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 400 
+      }
     )
   }
 })
