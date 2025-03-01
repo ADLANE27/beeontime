@@ -12,18 +12,37 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
     try {
       console.log('Creating/Updating employee with data:', formData);
       
-      // First check if user exists
-      const { data: existingUser } = await supabase
+      // First check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', formData.email.toLowerCase())
         .single();
 
-      let userId: string;
+      // Check if auth user exists
+      const { data: { users }, error: getUserError } = await supabase.functions.invoke('update-user-password', {
+        body: { 
+          email: formData.email.toLowerCase(),
+          checkOnly: true
+        }
+      });
+      
+      console.log('Auth user check result:', users);
+      
+      if (getUserError) {
+        console.error('Error checking user existence:', getUserError);
+        toast.error("Erreur lors de la vérification de l'utilisateur");
+        return;
+      }
 
-      if (existingUser) {
-        console.log('User already exists, using existing ID:', existingUser.id);
-        userId = existingUser.id;
+      let userId: string;
+      let authUserExists = users && users.length > 0;
+
+      // Handle logic based on whether profile and auth user exist
+      if (existingProfile && authUserExists) {
+        // Both profile and auth user exist
+        console.log('User exists in both profile and auth, using existing ID:', existingProfile.id);
+        userId = existingProfile.id;
         
         // Only update password if it's provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
@@ -41,8 +60,50 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
             return;
           }
         }
+      } else if (existingProfile && !authUserExists) {
+        // Profile exists but auth user doesn't - create auth user with the same ID if possible
+        console.log('Profile exists but auth user does not');
+        
+        const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
+          body: { 
+            email: formData.email.toLowerCase(),
+            password: formData.initialPassword,
+            preferredId: existingProfile.id,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            createIfNotExists: true
+          }
+        });
+
+        if (authError) {
+          console.error('Error creating auth user:', authError);
+          toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        userId = authData.id;
+        console.log('Auth user created with ID:', userId);
+        
+        // If IDs don't match, sync them
+        if (userId !== existingProfile.id) {
+          console.log('Syncing IDs from', existingProfile.id, 'to', userId);
+          const { error: syncError } = await supabase.rpc('sync_employee_ids', {
+            old_id: existingProfile.id,
+            new_id: userId
+          });
+          
+          if (syncError) {
+            console.error('Error syncing IDs:', syncError);
+            toast.error("Erreur lors de la synchronisation des identifiants");
+            return;
+          }
+        }
+      } else if (!existingProfile && authUserExists) {
+        // Auth user exists but profile doesn't - use auth user ID
+        userId = users[0].id;
+        console.log('Auth user exists but profile does not, using auth ID:', userId);
       } else {
-        // Create auth user if they don't exist
+        // Neither exists - create both
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email.toLowerCase(),
           password: formData.initialPassword,
@@ -61,7 +122,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         }
 
         userId = authData.user.id;
-        console.log('Auth user created:', userId);
+        console.log('New auth user created with ID:', userId);
       }
 
       // Create or update employee record

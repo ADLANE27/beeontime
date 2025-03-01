@@ -17,10 +17,33 @@ BEGIN
   WHERE id = old_id;
   
   -- Update any other tables that reference the employee ID
-  -- Example (uncomment and modify as needed):
-  -- UPDATE public.leave_requests
-  -- SET employee_id = new_id
-  -- WHERE employee_id = old_id;
+  UPDATE public.leave_requests
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.delays
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.time_records
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.hr_events
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.overtime_requests
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.documents
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
+  
+  UPDATE public.vacation_history
+  SET employee_id = new_id
+  WHERE employee_id = old_id;
   
   -- Return success
   RETURN;

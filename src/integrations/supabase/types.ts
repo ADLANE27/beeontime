@@ -589,6 +589,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      sync_employee_ids: {
+        Args: {
+          old_id: string
+          new_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       event_category: "disciplinary" | "evaluation" | "administrative" | "other"
