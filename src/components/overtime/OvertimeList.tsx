@@ -11,7 +11,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Loader2, Trash2, Check, X, Edit, Search } from "lucide-react";
@@ -21,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -153,6 +165,7 @@ export const OvertimeList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
       toast.success("Demande supprimée avec succès");
+      setDeleteDialogOpen(false);
     },
     onError: (error) => {
       console.error('Error deleting overtime request:', error);
@@ -221,9 +234,14 @@ export const OvertimeList = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette demande ?")) {
-      deleteOvertimeMutation.mutate(id);
+  const handleDeleteClick = (overtime: any) => {
+    setCurrentOvertime(overtime);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (currentOvertime) {
+      deleteOvertimeMutation.mutate(currentOvertime.id);
     }
   };
 
@@ -433,6 +451,26 @@ export const OvertimeList = () => {
                     </Button>
                   </>
                 )}
+                {profile?.role === 'hr' && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(request)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteClick(request)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </div>
+                )}
                 {profile?.role !== 'hr' && request.status === "pending" && (
                   <div className="flex gap-2">
                     <Button
@@ -446,7 +484,7 @@ export const OvertimeList = () => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDelete(request.id)}
+                      onClick={() => handleDeleteClick(request)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Supprimer
@@ -529,6 +567,29 @@ export const OvertimeList = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette demande ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible et supprimera définitivement la demande d'heures supplémentaires.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteOvertimeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
