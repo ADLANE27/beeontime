@@ -10,7 +10,6 @@ import {
   Users, 
   BarChart,
   ClipboardList,
-  Menu,
   BadgeIcon,
 } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
@@ -32,7 +31,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
 
 const HRDashboard = () => {
@@ -184,14 +182,6 @@ const HRDashboard = () => {
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
                   {menuItems.find(item => item.value === selectedTab)?.label}
                 </h1>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="shadow-sm rounded-full"
-                  onClick={() => setIsDrawerOpen(true)}
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
               </div>
               
               <div className="overflow-x-auto pb-2 -mx-4 px-4">
