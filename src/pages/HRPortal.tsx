@@ -4,182 +4,169 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
-import { LoadingState } from "@/components/auth/LoadingState";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LogIn, Loader2 } from "lucide-react";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, profile, authReady } = useAuth();
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
-  const [authInProgress, setAuthInProgress] = useState(false);
+  const { session, isLoading, signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Debug logging
   useEffect(() => {
     console.log("HRPortal state:", { 
       hasSession: !!session, 
-      isLoading, 
-      hasProfile: !!profile, 
-      authReady,
-      profileRole: profile?.role 
+      isLoading
     });
-  }, [session, isLoading, profile, authReady]);
+  }, [session, isLoading]);
 
-  // Monitor network status
+  // Handle redirection based on session and role
   useEffect(() => {
-    const updateNetworkStatus = () => {
-      setNetworkStatus(navigator.onLine ? 'online' : 'offline');
-    };
-    
-    updateNetworkStatus(); // Initial check
-    
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
-
-    return () => {
-      window.removeEventListener('online', updateNetworkStatus);
-      window.removeEventListener('offline', updateNetworkStatus);
-    };
-  }, []);
-
-  // Handle redirection based on auth state
-  useEffect(() => {
-    // Skip if still loading initial auth state
-    if (!authReady) {
-      console.log("Auth not ready yet, waiting...");
-      return;
-    }
-    
-    // If no session, show login form
-    if (!session) {
-      console.log("No active session, showing login form");
-      setAuthInProgress(false);
-      return;
-    }
-
-    console.log("Session exists, checking profile for HR role");
-    
-    // If we already have a profile in context, use it for redirection
-    if (profile) {
-      console.log("Profile found in context with role:", profile.role);
-      if (profile.role === "hr") {
-        navigate('/hr', { replace: true });
-      } else {
-        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-        navigate('/employee', { replace: true });
-      }
-      return;
-    }
-    
-    // If no profile yet, fetch it from the database
-    const checkAndRedirect = async () => {
+    const checkUserRole = async () => {
+      if (!session) return;
+      
       try {
-        setAuthInProgress(true);
+        console.log("Checking user role for:", session.user.id);
         
-        console.log("Fetching profile from database for user:", session.user.id);
-        
-        const { data: profileData, error } = await supabase
+        const { data, error } = await supabase
           .from("profiles")
-          .select("*")
+          .select("role")
           .eq("id", session.user.id)
-          .maybeSingle();
+          .single();
         
         if (error) {
-          console.error("Error fetching profile:", error);
-          toast.error("Erreur lors de la récupération du profil.");
-          setAuthInProgress(false);
+          console.error("Error fetching role:", error);
+          toast.error("Erreur lors de la récupération de votre profil");
           return;
         }
         
-        if (profileData) {
-          console.log("Profile found in database:", profileData);
-          
-          if (profileData.role === "hr") {
-            console.log("User has HR role, redirecting to HR dashboard");
-            navigate('/hr', { replace: true });
-          } else {
-            console.log("User does not have HR role, redirecting to employee dashboard");
-            toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-            navigate('/employee', { replace: true });
-          }
+        console.log("User role:", data.role);
+        
+        if (data.role === "hr") {
+          navigate('/hr', { replace: true });
         } else {
-          console.log("No profile found, redirecting to employee dashboard");
-          toast.error("Profil non trouvé. Contactez l'administrateur.");
+          toast.error("Vous n'avez pas les droits pour accéder à cette page.");
           navigate('/employee', { replace: true });
         }
-      } catch (err) {
-        console.error("Exception during profile check:", err);
-        toast.error("Une erreur est survenue lors de la vérification du profil.");
-        setAuthInProgress(false);
+      } catch (error) {
+        console.error("Exception during role check:", error);
+        toast.error("Une erreur est survenue lors de la vérification de votre profil");
       }
     };
     
-    checkAndRedirect();
-  }, [session, profile, navigate, authReady]);
+    checkUserRole();
+  }, [session, navigate]);
 
-  const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+  // Handle login form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     if (!email || !password) {
-      setLoginError("Veuillez remplir tous les champs.");
+      toast.error("Veuillez saisir votre email et votre mot de passe");
       return;
     }
-    
+
     try {
-      setAuthInProgress(true);
-      setLoginError(null);
+      setIsSubmitting(true);
+      console.log("Attempting to sign in with:", email);
       
-      console.log("Attempting manual sign in for:", email);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await signIn(email, password);
       
       if (error) {
-        console.error("Sign in error:", error.message);
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Email ou mot de passe incorrect.");
-        } else {
-          setLoginError(`Erreur de connexion: ${error.message}`);
-        }
-        setAuthInProgress(false);
+        console.error("Login error:", error.message);
+        toast.error("Identifiants invalides, veuillez réessayer");
       }
-      // Redirection will happen via the useEffect
-    } catch (err) {
-      console.error("Exception during sign in:", err);
-      setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
-      setAuthInProgress(false);
+    } catch (error) {
+      console.error("Login exception:", error);
+      toast.error("Une erreur est survenue lors de la connexion");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCheckNetwork = () => {
-    setNetworkStatus(navigator.onLine ? 'online' : 'offline');
-  };
-
-  // Show login form if not authenticated and not loading
-  if (!session && !isLoading && !authInProgress && authReady) {
+  // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
+  if (isLoading) {
     return (
-      <LoginForm
-        onSubmit={handleManualSignIn}
-        loginError={loginError}
-        authError={null}
-        isLoading={authInProgress}
-        networkStatus={networkStatus}
-        onCheckNetwork={handleCheckNetwork}
-      />
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto" />
+          <p className="mt-2 text-gray-500">Initialisation de l'application...</p>
+        </div>
+      </div>
     );
   }
 
-  // Show loading state for any pending operation
+  // Show login form if not authenticated
   return (
-    <LoadingState 
-      message={
-        authInProgress 
-          ? "Connexion en cours..." 
-          : (session ? "Redirection vers votre espace..." : "Vérification de l'authentification...")
-      }
-      disableRefresh={true}
-    />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center px-4">
+      <div className="max-w-md w-full">
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-1 text-center border-b pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Portail RH
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre.email@exemple.com"
+                  className="h-12"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="********"
+                  className="h-12"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion en cours...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Se connecter
+                  </>
+                )}
+              </Button>
+              
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-500">
+                  Si vous ne parvenez pas à vous connecter, contactez votre administrateur système.
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

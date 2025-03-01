@@ -6,43 +6,63 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Portal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, session, isLoading, profile, authReady, authError } = useAuth();
+  const { signIn, session, isLoading } = useAuth();
   const navigate = useNavigate();
 
   // Debug logging
   useEffect(() => {
     console.log("Portal component state:", {
       hasSession: !!session,
-      isLoading,
-      hasProfile: !!profile,
-      authReady,
-      profileRole: profile?.role,
-      authError: authError?.message
+      isLoading
     });
-  }, [session, isLoading, profile, authReady, authError]);
+  }, [session, isLoading]);
 
-  // Handle redirection based on session and profile
+  // Handle redirection based on session
   useEffect(() => {
-    if (session && profile && authReady) {
-      console.log("Redirecting based on profile role:", profile.role);
+    const checkUserRole = async () => {
+      if (!session) return;
       
-      if (profile.role === "hr") {
-        navigate('/hr', { replace: true });
-      } else {
-        navigate('/employee', { replace: true });
+      try {
+        console.log("Checking user role for:", session.user.id);
+        
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching role:", error);
+          toast.error("Erreur lors de la récupération de votre profil");
+          return;
+        }
+        
+        console.log("User role:", data.role);
+        
+        if (data.role === "hr") {
+          navigate('/hr', { replace: true });
+        } else {
+          navigate('/employee', { replace: true });
+        }
+      } catch (error) {
+        console.error("Exception during role check:", error);
+        toast.error("Une erreur est survenue lors de la vérification de votre profil");
       }
-    }
-  }, [session, profile, authReady, navigate]);
+    };
+    
+    checkUserRole();
+  }, [session, navigate]);
 
   // Afficher un indicateur de chargement uniquement lorsque l'authentification est en cours d'initialisation
-  if (isLoading && !authReady) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -66,14 +86,11 @@ const Portal = () => {
       setIsSubmitting(true);
       console.log("Attempting to sign in with:", email);
       
-      const { error, data } = await signIn(email, password);
+      const { error } = await signIn(email, password);
       
       if (error) {
         console.error("Login error:", error.message);
         toast.error("Identifiants invalides, veuillez réessayer");
-      } else if (data.user) {
-        console.log("Sign in successful, waiting for redirection");
-        // Redirection will happen via the useEffect when profile is updated
       }
     } catch (error) {
       console.error("Login exception:", error);
