@@ -12,7 +12,7 @@ const HRPortal = () => {
   const { session, isLoading, profile } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
-  const [manualSignInAttempted, setManualSignInAttempted] = useState(false);
+  const [authInProgress, setAuthInProgress] = useState(false);
 
   useEffect(() => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
@@ -27,25 +27,26 @@ const HRPortal = () => {
   }, []);
 
   useEffect(() => {
-    if (session?.user) {
-      console.log("Session exists, checking for profile", session.user.email);
+    // Skip if auth is in progress or no session exists
+    if (authInProgress || !session?.user) return;
+
+    console.log("Session exists, checking profile for role", session.user.email);
+    
+    // If we have profile from context, use it directly
+    if (profile) {
+      console.log("Profile found in context with role:", profile.role);
       
-      if (profile) {
-        console.log("Profile found with role:", profile.role);
-        
-        if (profile.role === "hr") {
-          console.log("HR role detected, redirecting to HR dashboard");
-          navigate('/hr', { replace: true });
-        } else {
-          console.log("Employee role detected, redirecting to employee dashboard");
-          toast.error("Vous n'avez pas les droits pour accéder à cette page.");
-          navigate('/employee', { replace: true });
-        }
-        return;
-      } 
-      
-      // If we have a session but no profile, do a simple database check
-      const checkProfile = async () => {
+      if (profile.role === "hr") {
+        console.log("HR role detected, redirecting to HR dashboard");
+        navigate('/hr', { replace: true });
+      } else {
+        console.log("Non-HR role detected, redirecting to employee dashboard");
+        toast.error("Vous n'avez pas les droits pour accéder à cette page.");
+        navigate('/employee', { replace: true });
+      }
+    } else {
+      // If no profile in context, check database directly
+      const checkProfileInDB = async () => {
         try {
           console.log("Checking database for profile");
           
@@ -57,6 +58,7 @@ const HRPortal = () => {
           
           if (error) {
             console.error("Error fetching profile:", error);
+            toast.error("Erreur lors de la récupération du profil.");
             return;
           }
           
@@ -75,12 +77,15 @@ const HRPortal = () => {
           }
         } catch (err) {
           console.error("Exception during profile check:", err);
+          toast.error("Une erreur est survenue lors de la vérification du profil.");
+        } finally {
+          setAuthInProgress(false);
         }
       };
       
-      checkProfile();
+      checkProfileInDB();
     }
-  }, [session, profile, navigate]);
+  }, [session, profile, navigate, authInProgress]);
 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,7 +99,7 @@ const HRPortal = () => {
     }
     
     try {
-      setManualSignInAttempted(true);
+      setAuthInProgress(true);
       setLoginError(null);
       
       console.log("Attempting manual sign in for:", email);
@@ -107,12 +112,13 @@ const HRPortal = () => {
         } else {
           setLoginError(`Erreur de connexion: ${error.message}`);
         }
-        setManualSignInAttempted(false);
-      } 
+        setAuthInProgress(false);
+      }
+      // Don't reset authInProgress on success - let the profile check complete first
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
-      setManualSignInAttempted(false);
+      setAuthInProgress(false);
     }
   };
 
@@ -120,10 +126,21 @@ const HRPortal = () => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
   };
 
-  if (manualSignInAttempted) {
+  // Show loading state when auth is in progress
+  if (authInProgress) {
     return (
       <LoadingState 
         message="Connexion en cours..."
+        disableRefresh={true}
+      />
+    );
+  }
+
+  // Show loading state when auth context is loading
+  if (isLoading) {
+    return (
+      <LoadingState 
+        message="Vérification de l'authentification..."
         disableRefresh={true}
       />
     );
@@ -134,7 +151,7 @@ const HRPortal = () => {
       onSubmit={handleManualSignIn}
       loginError={loginError}
       authError={null}
-      isLoading={manualSignInAttempted}
+      isLoading={authInProgress}
       networkStatus={networkStatus}
       onCheckNetwork={handleCheckNetwork}
     />
