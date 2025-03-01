@@ -114,7 +114,7 @@ const HRDashboard = () => {
     { value: "events", label: "Événements RH", icon: ClipboardList },
     { 
       value: "leave", 
-      label: "Demandes de congés", 
+      label: "Congés", 
       icon: Clock,
       badge: pendingLeaves > 0 ? pendingLeaves : null 
     },
