@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/auth/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ const HRPortal = () => {
         });
       }
     }
-  }, [session, authReady, profile, navigate, fetchProfile]);
+  }, [session, authReady, profile, navigate, fetchProfile, email]);
 
   // If still checking authentication, show loading
   if (isLoading && !authReady) {

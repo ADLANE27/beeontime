@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn } from "lucide-react";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/auth/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
