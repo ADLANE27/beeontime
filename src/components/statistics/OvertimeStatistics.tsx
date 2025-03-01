@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,13 +26,7 @@ export const OvertimeStatistics = () => {
     }
   });
 
-  if (isLoading) return (
-    <Card className="p-6">
-      <div className="flex justify-center p-4">
-        <span>Chargement des statistiques...</span>
-      </div>
-    </Card>
-  );
+  if (isLoading) return <div>Chargement des statistiques...</div>;
 
   return (
     <Card className="p-6">

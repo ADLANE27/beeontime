@@ -1,4 +1,3 @@
-
 export interface Employee {
   id: number;
   name: string;
@@ -27,12 +26,11 @@ export interface LeaveRequest {
 }
 
 export interface Payslip {
-  id: string;
-  employee_id: string;
+  id: number;
+  employeeId: number;
   month: string;
-  year: string;
-  file_url: string;
-  created_at?: string;
+  year: number;
+  fileUrl: string;
 }
 
 export interface OvertimeRequest {

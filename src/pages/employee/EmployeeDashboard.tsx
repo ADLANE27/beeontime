@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Clock4, CalendarDays, AlertTriangle, Menu } from "lucide-react";
@@ -8,7 +7,7 @@ import { PayslipList } from "@/components/payslip/PayslipList";
 import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 import { TimeClock } from "@/components/attendance/TimeClock";
 import { EmployeeDelayList } from "@/components/delays/EmployeeDelayList";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,11 +22,6 @@ const EmployeeDashboard = () => {
   const [selectedTab, setSelectedTab] = useState("documents");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    // For debugging - log when dashboard mounts
-    console.log("EmployeeDashboard mounted");
-  }, []);
 
   const menuItems = [
     { value: "documents", label: "Documents", icon: FileText },

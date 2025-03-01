@@ -1,11 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
-import { Database } from "@/integrations/supabase/types";
-
-type EventCategory = Database["public"]["Enums"]["event_category"];
-type SortField = "event_date" | "severity" | "category";
-type SortOrder = "asc" | "desc";
 
 type SubcategoryMap = {
   [key: string]: [string, string][];
@@ -37,7 +32,7 @@ const subcategories: SubcategoryMap = {
   ],
 };
 
-export const getCategoryLabel = (category: string): string => {
+const getCategoryLabel = (category: string): string => {
   const labels: Record<string, string> = {
     disciplinary: "Disciplinaire",
     evaluation: "Évaluation",
@@ -47,7 +42,7 @@ export const getCategoryLabel = (category: string): string => {
   return labels[category] || category;
 };
 
-export const getSubcategoryLabel = (category: string, subcategory: string): string => {
+const getSubcategoryLabel = (category: string, subcategory: string): string => {
   const subcategoryList = subcategories[category];
   if (!subcategoryList) return subcategory;
   
@@ -57,68 +52,6 @@ export const getSubcategoryLabel = (category: string, subcategory: string): stri
 
 export const getSubcategories = (category: string): [string, string][] => {
   return subcategories[category] || [];
-};
-
-export const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case "critical":
-      return "destructive";
-    case "minor":
-      return "secondary";
-    default:
-      return "default";
-  }
-};
-
-export const getSeverityLabel = (severity: string) => {
-  switch (severity) {
-    case "critical":
-      return "Critique";
-    case "minor":
-      return "Mineure";
-    default:
-      return "Standard";
-  }
-};
-
-export const buildHREventQuery = (
-  searchQuery: string,
-  selectedCategory: EventCategory | "all",
-  selectedPeriod: Date | null,
-  sortField: SortField,
-  sortOrder: SortOrder
-) => {
-  let query = supabase
-    .from("hr_events")
-    .select(`
-      *,
-      employees (
-        first_name,
-        last_name
-      )
-    `);
-
-  if (searchQuery) {
-    query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-  }
-
-  if (selectedCategory && selectedCategory !== "all") {
-    query = query.eq("category", selectedCategory);
-  }
-
-  if (selectedPeriod) {
-    const startOfDay = new Date(selectedPeriod);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(selectedPeriod);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    query = query.gte("event_date", startOfDay.toISOString())
-                .lte("event_date", endOfDay.toISOString());
-  }
-
-  query = query.order(sortField, { ascending: sortOrder === "asc" });
-
-  return query;
 };
 
 export const uploadDocument = async (file: File, eventId: string) => {
@@ -186,15 +119,19 @@ export const deleteDocument = async (documentId: string) => {
 
 export const downloadDocument = async (filePath: string, fileName: string) => {
   try {
+    // First, get a public URL for the file
     const { data } = await supabase.storage
       .from('hr-documents')
       .getPublicUrl(filePath);
 
+    // Fetch the file using the public URL
     const response = await fetch(data.publicUrl);
     if (!response.ok) throw new Error('Failed to download file');
 
+    // Create a blob from the response
     const blob = await response.blob();
     
+    // Create a download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -203,6 +140,7 @@ export const downloadDocument = async (filePath: string, fileName: string) => {
     link.click();
     document.body.removeChild(link);
     
+    // Clean up
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading document:", error);
@@ -218,9 +156,11 @@ export const generateEventPDF = async (event: any) => {
       format: "a4"
     });
 
+    // Add header image
     const headerImage = "/lovable-uploads/d06996cb-5e7c-4b6d-9272-9bf8de33b774.png";
     doc.addImage(headerImage, "PNG", 0, 0, 210, 297);
 
+    // Add event details
     doc.setFontSize(16);
     doc.text("Détails de l'événement", 20, 70);
 
@@ -229,6 +169,7 @@ export const generateEventPDF = async (event: any) => {
     doc.text(`Date: ${new Date(event.event_date).toLocaleDateString('fr-FR')}`, 20, 100);
     doc.text(`Titre: ${event.title}`, 20, 110);
     
+    // Add description with word wrap
     const splitDescription = doc.splitTextToSize(`Description: ${event.description || 'Aucune description'}`, 170);
     doc.text(splitDescription, 20, 120);
     
@@ -243,6 +184,7 @@ export const generateEventPDF = async (event: any) => {
     doc.text(`Statut: ${event.status === 'open' ? 'Ouvert' : 'Clôturé'}`, 20, yPos);
     yPos += 20;
 
+    // Add documents section if there are any
     if (event.documents && event.documents.length > 0) {
       doc.text("Documents attachés:", 20, yPos);
       yPos += 10;
@@ -252,6 +194,7 @@ export const generateEventPDF = async (event: any) => {
       });
     }
 
+    // Save the PDF
     doc.save(`evenement-rh-${event.id}.pdf`);
     toast.success("PDF généré avec succès");
   } catch (error) {

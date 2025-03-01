@@ -1,177 +1,111 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { NewEmployee } from "@/types/hr";
 import { toast } from "sonner";
+import { NewEmployee } from "@/types/hr";
 
-export const useEmployeeSubmit = (
-  onSuccess: () => void, 
-  isEditing: boolean = false,
-  employeeId?: string
-) => {
+export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (employeeData: NewEmployee) => {
+  const handleSubmit = async (formData: NewEmployee) => {
     setIsSubmitting(true);
     try {
-      // Check for active session before proceeding
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        toast.error("Vous devez être connecté pour effectuer cette action");
-        setIsSubmitting(false);
+      console.log('Creating/Updating employee with data:', formData);
+      
+      // First check if user exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email.toLowerCase())
+        .single();
+
+      let userId: string;
+
+      if (existingUser) {
+        console.log('User already exists, using existing ID:', existingUser.id);
+        userId = existingUser.id;
+        
+        // Only update password if it's provided and we're not in edit mode
+        if (!isEditing && formData.initialPassword) {
+          const { error: authError } = await supabase.functions.invoke('update-user-password', {
+            body: { userId, password: formData.initialPassword }
+          });
+
+          if (authError) {
+            console.error('Error updating password:', authError);
+            toast.error("Erreur lors de la mise à jour du mot de passe");
+            return;
+          }
+        }
+      } else {
+        // Create auth user if they don't exist
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email.toLowerCase(),
+          password: formData.initialPassword,
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName
+            }
+          }
+        });
+
+        if (authError || !authData.user) {
+          console.error('Auth error:', authError);
+          toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        userId = authData.user.id;
+        console.log('Auth user created:', userId);
+      }
+
+      // Create or update employee record
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .upsert({
+          id: userId,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email.toLowerCase(),
+          phone: formData.phone || null,
+          birth_date: formData.birthDate || null,
+          birth_place: formData.birthPlace || null,
+          birth_country: formData.birthCountry || null,
+          social_security_number: formData.socialSecurityNumber || null,
+          contract_type: formData.contractType || null,
+          start_date: formData.startDate || null,
+          position: formData.position || null,
+          work_schedule: formData.workSchedule || null,
+          current_year_vacation_days: formData.currentYearVacationDays || 0,
+          current_year_used_days: formData.currentYearUsedDays || 0,
+          previous_year_vacation_days: formData.previousYearVacationDays || 0,
+          previous_year_used_days: formData.previousYearUsedDays || 0,
+          initial_password: formData.initialPassword,
+          street_address: formData.streetAddress || null,
+          city: formData.city || null,
+          postal_code: formData.postalCode || null,
+          country: formData.country || 'France'
+        });
+
+      if (employeeError) {
+        console.error('Employee creation error:', employeeError);
+        toast.error("Erreur lors de la création de l'employé");
         return;
       }
 
-      // Prepare data for Supabase
-      const employeeRecord = {
-        first_name: employeeData.firstName,
-        last_name: employeeData.lastName,
-        email: employeeData.email,
-        phone: employeeData.phone,
-        birth_date: employeeData.birthDate,
-        birth_place: employeeData.birthPlace,
-        birth_country: employeeData.birthCountry,
-        social_security_number: employeeData.socialSecurityNumber,
-        contract_type: employeeData.contractType,
-        start_date: employeeData.startDate,
-        position: employeeData.position,
-        work_schedule: employeeData.workSchedule,
-        current_year_vacation_days: employeeData.currentYearVacationDays,
-        current_year_used_days: employeeData.currentYearUsedDays,
-        previous_year_vacation_days: employeeData.previousYearVacationDays,
-        previous_year_used_days: employeeData.previousYearUsedDays,
-        initial_password: employeeData.initialPassword,
-        street_address: employeeData.streetAddress,
-        city: employeeData.city,
-        postal_code: employeeData.postalCode,
-        country: employeeData.country
-      };
-
-      if (isEditing && employeeId) {
-        // Update existing employee
-        const { error } = await supabase
-          .from('employees')
-          .update(employeeRecord)
-          .eq('id', employeeId);
-          
-        if (error) {
-          if (error.code === 'PGRST301') {
-            toast.error("Vous n'avez pas les permissions nécessaires pour modifier cet employé");
-          } else {
-            throw new Error(error.message);
-          }
-          return;
-        }
-        
-        toast.success("Employé mis à jour avec succès");
-        onSuccess();
-      } else {
-        // For new employee creation
-        try {
-          // Step 1: Create auth user using the standard signUp method
-          console.log("Creating auth user for:", employeeData.email);
-          const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
-            email: employeeData.email,
-            password: employeeData.initialPassword,
-            options: {
-              data: {
-                first_name: employeeData.firstName,
-                last_name: employeeData.lastName
-              }
-            }
-          });
-          
-          if (signUpError) {
-            console.error("Error creating auth user:", signUpError);
-            
-            // Special handling for duplicate email error
-            if (signUpError.message.includes("duplicate")) {
-              throw new Error(`Un utilisateur avec l'email ${employeeData.email} existe déjà`);
-            }
-            
-            throw new Error(`Erreur lors de la création du compte: ${signUpError.message}`);
-          }
-          
-          if (!signUpData.user) {
-            throw new Error("Erreur lors de la création du compte: aucun utilisateur retourné");
-          }
-          
-          console.log("Auth user created successfully:", signUpData.user.id);
-          
-          // Use the ID returned from auth
-          const userId = signUpData.user.id;
-          
-          // Step 2: Create the employee record
-          console.log("Creating employee record with ID:", userId);
-          const { error: employeeError } = await supabase
-            .from('employees')
-            .insert({
-              ...employeeRecord,
-              id: userId
-            });
-          
-          if (employeeError) {
-            console.error("Error creating employee:", employeeError);
-            throw new Error(`Erreur lors de la création de l'employé: ${employeeError.message}`);
-          }
-          
-          console.log("Employee record created successfully");
-          
-          // Step 3: Update the profile entry
-          console.log("Creating/updating profile with ID:", userId);
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: userId,
-              email: employeeData.email,
-              first_name: employeeData.firstName,
-              last_name: employeeData.lastName,
-              role: 'employee'
-            });
-          
-          if (profileError) {
-            console.error("Error updating profile:", profileError);
-            throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
-          }
-          
-          console.log("Profile created/updated successfully");
-          console.log(`
-            Employee created successfully:
-            ID: ${userId}
-            Email: ${employeeData.email}
-            Password: ${employeeData.initialPassword}
-            
-            User has been created in Supabase Auth and can log in immediately.
-          `);
-          
-          toast.success("Nouvel employé créé avec succès");
-          onSuccess();
-        } catch (innerError: any) {
-          console.error('Inner error submitting employee data:', innerError);
-          
-          // Handle RLS policy errors
-          if (innerError.code === 'PGRST301') {
-            toast.error("Vous n'avez pas les permissions nécessaires pour créer un employé");
-          } else {
-            throw innerError;
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error('Error submitting employee data:', error);
-      
-      // More detailed error handling
-      if (error.code === '42501') {
-        toast.error("Erreur d'autorisation: Vérifiez vos permissions");
-      } else if (error.code === 'PGRST301') {
-        toast.error("Accès refusé par les politiques de sécurité");
-      } else {
-        toast.error(`Erreur: ${error.message}`);
-      }
+      console.log('Employee created/updated successfully');
+      toast.success(isEditing ? "Employé modifié avec succès" : "Employé créé avec succès");
+      onSuccess();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("Une erreur inattendue est survenue");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return { handleSubmit, isSubmitting };
+  return {
+    handleSubmit,
+    isSubmitting
+  };
 };
