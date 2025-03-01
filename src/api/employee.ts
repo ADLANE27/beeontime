@@ -32,7 +32,7 @@ export const checkAuthUserExists = async (email: string) => {
     }
     
     // Fall back to edge function
-    const { data, error } = await supabase.functions.invoke('update-user-password', {
+    const { data, error } = await supabase.functions.invoke('manage-users', {
       body: { 
         email: email.toLowerCase(),
         checkOnly: true
@@ -74,11 +74,12 @@ export const updateUserPassword = async (userId: string, password: string, email
     console.warn('Direct password update failed, falling back to edge function:', directUpdateError);
     
     // Fall back to edge function
-    const { data, error } = await supabase.functions.invoke('update-user-password', {
+    const { data, error } = await supabase.functions.invoke('manage-users', {
       body: { 
         userId, 
         password,
-        email: email.toLowerCase()
+        email: email.toLowerCase(),
+        action: 'update-password'
       }
     });
 
@@ -137,13 +138,13 @@ export const createAuthUser = async (email: string, password: string, firstName:
       console.error('Direct auth signup error, trying edge function as fallback:', signUpError);
       
       // Fall back to edge function
-      const { data, error } = await supabase.functions.invoke('update-user-password', {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
         body: { 
           email: email.toLowerCase(),
           password,
           firstName,
           lastName,
-          createIfNotExists: true
+          action: 'create-user'
         }
       });
 

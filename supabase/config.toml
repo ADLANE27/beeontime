@@ -43,7 +43,7 @@ gcp_project_id = ""
 gcp_project_number = ""
 gcp_jwt_path = "supabase/gcloud.json"
 
-[functions.update-user-password]
+[functions.manage-users]
 verify_jwt = true
 
 [functions.delete-employee]
