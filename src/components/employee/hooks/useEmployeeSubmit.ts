@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -74,7 +73,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           console.log('Password update result:', authData);
         }
       } else if (existingProfile && !matchingUser) {
-        // Profile exists but auth user doesn't - create auth user with the same ID if possible
+        // Profile exists but auth user doesn't
         console.log('Profile exists but auth user does not');
         
         if (!formData.initialPassword) {
@@ -83,12 +82,11 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           return;
         }
         
-        console.log('Creating auth user with password length:', formData.initialPassword.length);
+        console.log('Creating auth user with email:', formData.email.toLowerCase());
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
             password: formData.initialPassword,
-            preferredId: existingProfile.id,
             firstName: formData.firstName,
             lastName: formData.lastName,
             createIfNotExists: true
@@ -112,21 +110,25 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         userId = authData.id;
         console.log('Auth user created with ID:', userId);
         
-        // If IDs don't match, sync them
-        if (userId !== existingProfile.id) {
-          console.log('Syncing IDs from', existingProfile.id, 'to', userId);
-          const { error: syncError } = await supabase.rpc('sync_employee_ids', {
-            old_id: existingProfile.id,
-            new_id: userId
-          });
+        // We need to handle two cases:
+        // 1. Delete the existing profile and create a new one with the auth ID
+        // 2. Or keep the existing profile structure but update references
+        
+        // Option 1: Delete and recreate - simpler and less error-prone
+        console.log('Deleting existing profile with ID:', existingProfile.id);
+        const { error: deleteProfileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', existingProfile.id);
           
-          if (syncError) {
-            console.error('Error syncing IDs:', syncError);
-            toast.error("Erreur lors de la synchronisation des identifiants");
-            setIsSubmitting(false);
-            return;
-          }
+        if (deleteProfileError) {
+          console.error('Error deleting old profile:', deleteProfileError);
+          toast.error("Erreur lors de la mise à jour du profil");
+          setIsSubmitting(false);
+          return;
         }
+        
+        // We'll create a new profile with the auth ID below
       } else if (!existingProfile && matchingUser) {
         // Auth user exists but profile doesn't - use auth user ID
         userId = matchingUser.id;
@@ -162,7 +164,6 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         
         console.log('Creating new auth user with password length:', formData.initialPassword.length);
         console.log('Email:', formData.email.toLowerCase());
-        console.log('Password provided:', !!formData.initialPassword);
         
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
