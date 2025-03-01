@@ -72,13 +72,15 @@ const HRPortal = () => {
         console.log("Session exists but no profile yet, checking database");
         setProcessingRedirect(true);
         
-        // Use Promise/then pattern instead of async/await
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .maybeSingle()
-          .then(({ data: profileData, error }) => {
+        // Fixed Promise handling
+        const checkAndCreateProfile = async () => {
+          try {
+            const { data: profileData, error } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
+              .maybeSingle();
+            
             if (error) {
               console.error("Error fetching profile:", error);
               setProcessingRedirect(false);
@@ -97,8 +99,8 @@ const HRPortal = () => {
               console.log("No profile found, checking if admin email");
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
-                // Fix for line 120 - don't chain catch directly
-                supabase
+                
+                const { error: insertError } = await supabase
                   .from("profiles")
                   .insert({
                     id: session.user.id,
@@ -106,31 +108,28 @@ const HRPortal = () => {
                     role: "hr" as const,
                     first_name: "",
                     last_name: ""
-                  })
-                  .then(({ error: insertError }) => {
-                    if (insertError) {
-                      console.error("Error during profile creation:", insertError);
-                      setProcessingRedirect(false);
-                      return;
-                    }
-                    navigate('/hr', { replace: true });
-                  })
-                  .catch(err => {
-                    // This is now a regular Promise catch
-                    console.error("Exception during profile creation:", err);
-                    setProcessingRedirect(false);
                   });
+                
+                if (insertError) {
+                  console.error("Error during profile creation:", insertError);
+                  setProcessingRedirect(false);
+                  return;
+                }
+                
+                navigate('/hr', { replace: true });
               } else {
                 console.log("No profile and not admin email, redirecting to employee dashboard");
                 navigate('/employee', { replace: true });
               }
             }
-          })
-          .catch(error => {
-            // This is now the same pattern as above
-            console.error("Error during profile check:", error);
+          } catch (err) {
+            console.error("Exception during profile check:", err);
             setProcessingRedirect(false);
-          });
+          }
+        };
+        
+        // Execute the async function
+        checkAndCreateProfile();
       }
     }
   }, [session, profile, navigate, authCheckComplete, processingRedirect]);
