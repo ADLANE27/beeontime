@@ -12,7 +12,7 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, isLoading, authReady, signIn } = useAuth();
+  const { session, isLoading, authReady, signIn, profile, fetchProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,10 +21,24 @@ const HRPortal = () => {
   useEffect(() => {
     // Auto-navigate if already logged in
     if (session && authReady) {
-      const isHR = session.user.email?.endsWith('@aftraduction.fr');
-      navigate(isHR ? '/hr' : '/employee', { replace: true });
+      console.log("User is logged in, checking profile:", profile);
+      
+      // If we have a profile, use it to determine if they're HR
+      if (profile) {
+        console.log("User profile found:", profile);
+        const isHR = profile.role === 'hr' || email.endsWith('@aftraduction.fr');
+        navigate(isHR ? '/hr' : '/employee', { replace: true });
+      } else {
+        // If profile isn't loaded yet, try fetching it
+        fetchProfile().then(() => {
+          console.log("Profile fetched, checking email domain");
+          // Fallback to email domain check if profile doesn't specify role
+          const isHR = email.endsWith('@aftraduction.fr') || session.user.email?.endsWith('@aftraduction.fr');
+          navigate(isHR ? '/hr' : '/employee', { replace: true });
+        });
+      }
     }
-  }, [session, authReady, navigate]);
+  }, [session, authReady, profile, navigate, fetchProfile]);
 
   // If still checking authentication, show loading
   if (isLoading && !authReady) {

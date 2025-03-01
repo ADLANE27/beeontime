@@ -29,7 +29,7 @@ interface ProtectedRouteProps {
 
 // Protected route that handles authentication and role-based access
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, user, isLoading, authReady } = useAuth();
+  const { session, user, isLoading, profile, authReady } = useAuth();
   
   // Still loading auth state, show loading screen
   if (isLoading || !authReady) {
@@ -41,9 +41,19 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // Check role based on email domain
-  const isHR = user?.email?.endsWith('@aftraduction.fr'); 
-  const userRole = isHR ? "hr" : "employee";
+  // Check role based on profile role or email domain
+  let userRole: "hr" | "employee" = "employee";
+  
+  // First check profile role if available
+  if (profile && profile.role === "hr") {
+    userRole = "hr";
+  } 
+  // Fallback to email domain check
+  else if (user?.email?.endsWith('@aftraduction.fr')) {
+    userRole = "hr";
+  }
+  
+  console.log("User role determined:", userRole, "Required role:", requiredRole);
   
   // If user doesn't match required role, redirect to appropriate dashboard
   if (userRole !== requiredRole) {

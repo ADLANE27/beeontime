@@ -2,7 +2,7 @@
 import { createContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 
-// Define the profile type but it won't be used yet
+// Define the profile type
 export interface Profile {
   id: string;
   first_name?: string;
@@ -26,6 +26,7 @@ export interface AuthContextType {
     };
   }>;
   signOut: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -43,4 +44,5 @@ export const AuthContext = createContext<AuthContextType>({
     },
   }),
   signOut: async () => {},
+  fetchProfile: async () => {},
 });
