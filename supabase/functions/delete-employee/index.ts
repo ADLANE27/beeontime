@@ -21,7 +21,7 @@ serve(async (req) => {
       throw new Error('employeeId is required')
     }
 
-    console.log(`Deleting employee with ID: ${employeeId}`)
+    console.log(`Attempting to delete employee with ID: ${employeeId}`)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -42,78 +42,32 @@ serve(async (req) => {
       throw new Error(`Employee not found: ${employeeError.message}`)
     }
 
-    // Use a transaction to make sure all operations succeed or fail together
-    console.log('Starting deletion transaction...')
+    console.log(`Employee found: ${employee.id} (${employee.email})`)
+    console.log('Starting deletion process...')
     
-    // Delete related records first (in reverse order of dependencies)
-    console.log('Deleting leave requests...')
-    const { error: leaveRequestsError } = await supabaseAdmin
-      .from('leave_requests')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (leaveRequestsError) {
-      console.error('Error deleting leave requests:', leaveRequestsError)
-    }
-
-    console.log('Deleting hr_events...')
-    const { error: hrEventsError } = await supabaseAdmin
-      .from('hr_events')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (hrEventsError) {
-      console.error('Error deleting HR events:', hrEventsError)
-    }
-
-    console.log('Deleting vacation_history...')
-    const { error: vacationHistoryError } = await supabaseAdmin
-      .from('vacation_history')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (vacationHistoryError) {
-      console.error('Error deleting vacation history:', vacationHistoryError)
-    }
-
-    console.log('Deleting time_records...')
-    const { error: timeRecordsError } = await supabaseAdmin
-      .from('time_records')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (timeRecordsError) {
-      console.error('Error deleting time records:', timeRecordsError)
-    }
-
-    console.log('Deleting overtime_requests...')
-    const { error: overtimeError } = await supabaseAdmin
-      .from('overtime_requests')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (overtimeError) {
-      console.error('Error deleting overtime requests:', overtimeError)
-    }
-
-    console.log('Deleting delays...')
-    const { error: delaysError } = await supabaseAdmin
-      .from('delays')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (delaysError) {
-      console.error('Error deleting delays:', delaysError)
-    }
-
-    console.log('Deleting documents...')
-    const { error: documentsError } = await supabaseAdmin
-      .from('documents')
-      .delete()
-      .eq('employee_id', employeeId)
-
-    if (documentsError) {
-      console.error('Error deleting documents:', documentsError)
+    // Using a structured approach to delete related records
+    const tables = [
+      { name: 'leave_requests', fkColumn: 'employee_id' },
+      { name: 'hr_events', fkColumn: 'employee_id' },
+      { name: 'vacation_history', fkColumn: 'employee_id' },
+      { name: 'time_records', fkColumn: 'employee_id' },
+      { name: 'overtime_requests', fkColumn: 'employee_id' },
+      { name: 'delays', fkColumn: 'employee_id' },
+      { name: 'documents', fkColumn: 'employee_id' }
+    ]
+    
+    // Delete related records from each table
+    for (const table of tables) {
+      console.log(`Deleting from ${table.name}...`)
+      const { error } = await supabaseAdmin
+        .from(table.name)
+        .delete()
+        .eq(table.fkColumn, employeeId)
+      
+      if (error) {
+        console.warn(`Warning: Error deleting from ${table.name}:`, error)
+        // Continue with deletion process, don't throw
+      }
     }
 
     // Delete employee record 
@@ -146,11 +100,19 @@ serve(async (req) => {
 
     if (deleteAuthError) {
       console.error('Error deleting auth user:', deleteAuthError)
-      // Continue even if auth delete fails, since the employee data is gone already
+      // Don't throw here - the profile data is already gone, which is the important part
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Employee deleted successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Employee deleted successfully',
+        details: {
+          employeeId,
+          email: employee.email,
+          authUserDeleted: !deleteAuthError
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {

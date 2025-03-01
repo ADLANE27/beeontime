@@ -67,7 +67,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
-            password: formData.initialPassword,
+            password: formData.initialPassword || 'Welcome123!', // Fallback password
             preferredId: existingProfile.id,
             firstName: formData.firstName,
             lastName: formData.lastName,
@@ -104,24 +104,29 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         console.log('Auth user exists but profile does not, using auth ID:', userId);
       } else {
         // Neither exists - create both
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email.toLowerCase(),
-          password: formData.initialPassword,
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName
-            }
+        if (!formData.initialPassword) {
+          toast.error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
+          setIsSubmitting(false);
+          return;
+        }
+        
+        const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
+          body: { 
+            email: formData.email.toLowerCase(),
+            password: formData.initialPassword,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            createIfNotExists: true
           }
         });
 
-        if (authError || !authData.user) {
+        if (authError || !authData) {
           console.error('Auth error:', authError);
           toast.error("Erreur lors de la création du compte utilisateur");
           return;
         }
 
-        userId = authData.user.id;
+        userId = authData.id;
         console.log('New auth user created with ID:', userId);
       }
 
@@ -157,6 +162,22 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         console.error('Employee creation error:', employeeError);
         toast.error("Erreur lors de la création de l'employé");
         return;
+      }
+
+      // Update profile record to ensure first/last name synced
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: formData.email.toLowerCase(),
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          role: 'employee'
+        });
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Not critical, continue
       }
 
       console.log('Employee created/updated successfully');
