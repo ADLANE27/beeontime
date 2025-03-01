@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 
@@ -7,6 +6,29 @@ import { NewEmployee } from "@/types/hr";
  */
 export const checkAuthUserExists = async (email: string) => {
   try {
+    // First try direct auth API to check user existence
+    console.log('Checking if user exists with email:', email);
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
+      filter: {
+        email: email.toLowerCase(),
+      },
+    });
+    
+    if (!userError && userData?.users?.length > 0) {
+      console.log('User found via direct auth API:', userData.users);
+      return { 
+        users: userData.users, 
+        authUserExists: true 
+      };
+    }
+    
+    if (userError) {
+      console.warn('Error checking user via direct auth API, falling back to edge function:', userError);
+    } else {
+      console.log('No user found via direct auth API, trying edge function');
+    }
+    
+    // Fall back to edge function
     const { data, error } = await supabase.functions.invoke('update-user-password', {
       body: { 
         email: email.toLowerCase(),
@@ -15,7 +37,7 @@ export const checkAuthUserExists = async (email: string) => {
     });
     
     if (error) {
-      console.error('Error checking user existence:', error);
+      console.error('Error checking user existence via edge function:', error);
       throw new Error("Erreur lors de la vérification de l'existence de l'utilisateur");
     }
     
@@ -34,6 +56,21 @@ export const checkAuthUserExists = async (email: string) => {
  */
 export const updateUserPassword = async (userId: string, password: string, email: string) => {
   try {
+    // First try direct auth API
+    console.log(`Attempting to update password for user ${userId} directly`);
+    const { error: directUpdateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { password }
+    );
+    
+    if (!directUpdateError) {
+      console.log('Password updated successfully via direct auth API');
+      return { id: userId };
+    }
+    
+    console.warn('Direct password update failed, falling back to edge function:', directUpdateError);
+    
+    // Fall back to edge function
     const { data, error } = await supabase.functions.invoke('update-user-password', {
       body: { 
         userId, 
@@ -43,7 +80,7 @@ export const updateUserPassword = async (userId: string, password: string, email
     });
 
     if (error) {
-      console.error('Error updating password:', error);
+      console.error('Error updating password via edge function:', error);
       throw new Error("Erreur lors de la mise à jour du mot de passe");
     }
     
@@ -59,56 +96,68 @@ export const updateUserPassword = async (userId: string, password: string, email
  */
 export const createAuthUser = async (email: string, password: string, firstName: string, lastName: string) => {
   try {
-    // Try first with the edge function
-    console.log('Attempting to create user through edge function:', { email, firstName, lastName });
+    // Always use direct Supabase auth API first, as it's more reliable
+    console.log('Creating new auth user with direct auth API:', { email, firstName, lastName });
     
-    const { data, error } = await supabase.functions.invoke('update-user-password', {
-      body: { 
-        email: email.toLowerCase(),
-        password,
-        firstName,
-        lastName,
-        createIfNotExists: true
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: email.toLowerCase(),
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName
+        }
       }
     });
-
-    if (error) {
-      console.error('Edge function error:', error);
-      throw new Error("Erreur lors de la création du compte utilisateur via edge function");
-    }
-
-    if (!data || !data.id) {
-      console.error('No user ID returned after creation attempt with edge function, response:', data);
+    
+    if (!signUpError && signUpData?.user?.id) {
+      console.log('User created successfully with direct auth API, ID:', signUpData.user.id);
       
-      // Fall back to direct auth API
-      console.log('Falling back to direct auth API for user creation');
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: email.toLowerCase(),
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName
-          }
-        }
+      // Verify user was created properly before returning
+      const { data: verifyData } = await supabase.auth.admin.listUsers({
+        filter: {
+          email: email.toLowerCase(),
+        },
       });
       
-      if (signUpError) {
-        console.error('Auth signup error:', signUpError);
-        throw new Error("Erreur lors de la création du compte utilisateur: " + signUpError.message);
+      if (verifyData?.users?.length > 0) {
+        console.log('User creation verified, user exists in auth table');
+      } else {
+        console.warn('User created but not found when verifying creation. This might be a timing issue.');
       }
       
-      if (!signUpData?.user?.id) {
-        console.error('No user ID returned from direct auth signup:', signUpData);
-        throw new Error("Erreur lors de la création du compte utilisateur: ID non retourné");
-      }
-      
-      console.log('User created successfully through direct auth API with ID:', signUpData.user.id);
       return signUpData.user;
     }
+    
+    if (signUpError) {
+      console.error('Direct auth signup error, trying edge function as fallback:', signUpError);
+      
+      // Fall back to edge function
+      const { data, error } = await supabase.functions.invoke('update-user-password', {
+        body: { 
+          email: email.toLowerCase(),
+          password,
+          firstName,
+          lastName,
+          createIfNotExists: true
+        }
+      });
 
-    console.log('User created successfully through edge function with ID:', data.id);
-    return data;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error("Erreur lors de la création du compte utilisateur: " + error.message);
+      }
+
+      if (!data || !data.id) {
+        console.error('No user ID returned from edge function:', data);
+        throw new Error("Erreur lors de la création du compte utilisateur: aucun ID retourné");
+      }
+
+      console.log('User created successfully through edge function with ID:', data.id);
+      return data;
+    }
+    
+    throw new Error("Création utilisateur échouée sans message d'erreur spécifique");
   } catch (error) {
     console.error('Unexpected error in createAuthUser:', error);
     throw new Error("Erreur lors de la création du compte utilisateur: " + (error instanceof Error ? error.message : String(error)));
@@ -126,7 +175,7 @@ export const updateUserProfile = async (
   role: 'employee' | 'hr' = 'employee'
 ) => {
   try {
-    // First try to directly update the profiles table instead of using the edge function
+    // First try directly update the profiles table instead of using the edge function
     const { error: directUpdateError } = await supabase
       .from('profiles')
       .upsert({

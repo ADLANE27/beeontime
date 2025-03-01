@@ -21,7 +21,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       toast.error(errorMessage);
       
       // Add more user-friendly details for specific error cases
-      if (errorMessage.includes("auth user")) {
+      if (errorMessage.includes("auth user") || errorMessage.includes("utilisateur")) {
         toast.error("Problème avec la création du compte utilisateur. Veuillez vérifier les logs pour plus de détails.");
       } else if (errorMessage.includes("profile")) {
         toast.error("Note: Le profil n'a pas pu être mis à jour, mais la fiche employé a été créée.");

@@ -60,6 +60,13 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
 
         userId = authData.id;
         console.log('New auth user created with ID:', userId);
+        
+        // Double check if user was actually created
+        const { users: verifyUsers } = await checkAuthUserExists(email);
+        if (!verifyUsers || verifyUsers.length === 0) {
+          console.error('User was reportedly created but cannot be found in auth users list');
+          throw new Error("L'utilisateur a été créé mais n'a pas pu être vérifié. Veuillez réessayer ou contacter l'administrateur.");
+        }
       } catch (error) {
         console.error('Failed to create auth user:', error);
         throw new Error(`Erreur lors de la création de l'utilisateur: ${error instanceof Error ? error.message : String(error)}`);
