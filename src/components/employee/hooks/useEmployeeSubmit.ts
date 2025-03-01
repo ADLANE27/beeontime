@@ -46,6 +46,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         
         // Only update password if it's provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
+          console.log('Updating password for existing user:', userId);
           const { error: authError } = await supabase.functions.invoke('update-user-password', {
             body: { 
               userId, 
@@ -64,10 +65,17 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         // Profile exists but auth user doesn't - create auth user with the same ID if possible
         console.log('Profile exists but auth user does not');
         
+        if (!formData.initialPassword) {
+          toast.error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
+          setIsSubmitting(false);
+          return;
+        }
+        
+        console.log('Creating auth user with password:', formData.initialPassword);
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
-            password: formData.initialPassword || 'Welcome123!', // Fallback password
+            password: formData.initialPassword,
             preferredId: existingProfile.id,
             firstName: formData.firstName,
             lastName: formData.lastName,
@@ -102,6 +110,24 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         // Auth user exists but profile doesn't - use auth user ID
         userId = users[0].id;
         console.log('Auth user exists but profile does not, using auth ID:', userId);
+        
+        // Still update password if provided and we're not in edit mode
+        if (!isEditing && formData.initialPassword) {
+          console.log('Updating password for existing auth user:', userId);
+          const { error: authError } = await supabase.functions.invoke('update-user-password', {
+            body: { 
+              userId, 
+              password: formData.initialPassword,
+              email: formData.email.toLowerCase()
+            }
+          });
+
+          if (authError) {
+            console.error('Error updating password:', authError);
+            toast.error("Erreur lors de la mise à jour du mot de passe");
+            return;
+          }
+        }
       } else {
         // Neither exists - create both
         if (!formData.initialPassword) {
@@ -110,6 +136,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           return;
         }
         
+        console.log('Creating new auth user with password:', formData.initialPassword);
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
