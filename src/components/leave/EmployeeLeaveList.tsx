@@ -1,12 +1,17 @@
+
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Edit, Search } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -52,6 +57,8 @@ const getLeaveTypeText = (type: string) => {
       return "RTT";
     case "familyEvent":
       return "Absences pour événements familiaux";
+    case "sickLeave":
+      return "Arrêt maladie";
     default:
       return type;
   }
@@ -59,6 +66,11 @@ const getLeaveTypeText = (type: string) => {
 
 export const EmployeeLeaveList = () => {
   const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [currentLeave, setCurrentLeave] = useState<any>(null);
+  const [reason, setReason] = useState("");
 
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['employee-leave-requests'],
@@ -120,11 +132,70 @@ export const EmployeeLeaveList = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string, reason: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ reason })
+        .eq('id', id)
+        .eq('employee_id', user.id)
+        .eq('status', 'pending');
+
+      if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Demande de congé mise à jour avec succès");
+      queryClient.invalidateQueries({ 
+        queryKey: ['employee-leave-requests']
+      });
+      setEditDialogOpen(false);
+      setCurrentLeave(null);
+    },
+    onError: (error) => {
+      console.error('Error in updateMutation:', error);
+      toast.error("Erreur lors de la mise à jour de la demande");
+    }
+  });
+
   const handleCancel = async (leaveId: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir annuler cette demande de congé ?")) {
       await cancelMutation.mutateAsync(leaveId);
     }
   };
+
+  const handleEdit = (leave: any) => {
+    setCurrentLeave(leave);
+    setReason(leave.reason || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateLeave = async () => {
+    if (currentLeave) {
+      await updateMutation.mutateAsync({ id: currentLeave.id, reason });
+    }
+  };
+
+  const filteredLeaveRequests = useMemo(() => {
+    if (!leaveRequests) return [];
+    
+    return leaveRequests.filter(request => {
+      const typeMatches = filterType ? request.type === filterType : true;
+      const searchMatches = searchTerm 
+        ? request.reason?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          format(new Date(request.start_date), "dd/MM/yyyy").includes(searchTerm)
+        : true;
+      
+      return typeMatches && searchMatches;
+    });
+  }, [leaveRequests, searchTerm, filterType]);
 
   if (isLoading) {
     return (
@@ -139,9 +210,41 @@ export const EmployeeLeaveList = () => {
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">Mes demandes de congés</h2>
+      
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Type de congé" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Tous les types</SelectItem>
+            <SelectItem value="vacation">Congés payés</SelectItem>
+            <SelectItem value="annual">Congé annuel</SelectItem>
+            <SelectItem value="paternity">Congé paternité</SelectItem>
+            <SelectItem value="maternity">Congé maternité</SelectItem>
+            <SelectItem value="sickChild">Congé enfant malade</SelectItem>
+            <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
+            <SelectItem value="rtt">RTT</SelectItem>
+            <SelectItem value="familyEvent">Événements familiaux</SelectItem>
+            <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
+            <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
+            <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
       <div className="space-y-4">
-        {leaveRequests && leaveRequests.length > 0 ? (
-          leaveRequests.map((request) => {
+        {filteredLeaveRequests.length > 0 ? (
+          filteredLeaveRequests.map((request) => {
             const startDate = new Date(request.start_date);
             const endDate = new Date(request.end_date);
             const numberOfDays = differenceInDays(endDate, startDate) + 1;
@@ -187,20 +290,29 @@ export const EmployeeLeaveList = () => {
                       {getStatusText(request.status)}
                     </Badge>
                     {request.status === 'pending' && (
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => handleCancel(request.id)}
-                        className="mt-2"
-                        disabled={cancelMutation.isPending}
-                      >
-                        {cancelMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 mr-1" />
-                        )}
-                        Annuler
-                      </Button>
+                      <div className="flex gap-2 mt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEdit(request)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleCancel(request.id)}
+                          disabled={cancelMutation.isPending}
+                        >
+                          {cancelMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-1" />
+                          )}
+                          Supprimer
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -211,6 +323,44 @@ export const EmployeeLeaveList = () => {
           <p className="text-center text-gray-500">Aucune demande de congés</p>
         )}
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier la demande de congé</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="reason" className="text-sm font-medium">
+                Motif
+              </label>
+              <Input
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Motif de la demande"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleUpdateLeave}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Enregistrer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

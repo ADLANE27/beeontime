@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,16 +14,19 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, Check, X } from "lucide-react";
+import { Plus, Loader2, Trash2, Check, X, Edit, Search } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentOvertime, setCurrentOvertime] = useState<any>(null);
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
@@ -156,6 +160,34 @@ export const OvertimeList = () => {
     }
   });
 
+  const updateOvertimeMutation = useMutation({
+    mutationFn: async (updatedRequest: {
+      id: string;
+      date?: string;
+      start_time?: string;
+      end_time?: string;
+      reason?: string;
+      hours?: number;
+    }) => {
+      const { id, ...rest } = updatedRequest;
+      const { error } = await supabase
+        .from('overtime_requests')
+        .update(rest)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
+      toast.success("Demande mise à jour avec succès");
+      setEditDialogOpen(false);
+      setCurrentOvertime(null);
+    },
+    onError: (error) => {
+      console.error('Error updating overtime request:', error);
+      toast.error("Erreur lors de la mise à jour de la demande");
+    }
+  });
+
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -195,6 +227,64 @@ export const OvertimeList = () => {
     }
   };
 
+  const handleEdit = (overtime: any) => {
+    setCurrentOvertime(overtime);
+    setDate(overtime.date);
+    setStartTime(overtime.start_time);
+    setEndTime(overtime.end_time);
+    setReason(overtime.reason || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateOvertime = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!date || !startTime || !endTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    if (!currentOvertime) return;
+
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+    if (hours <= 0) {
+      toast.error("L'heure de fin doit être après l'heure de début");
+      return;
+    }
+
+    updateOvertimeMutation.mutate({
+      id: currentOvertime.id,
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      reason,
+      hours
+    });
+  };
+
+  const filteredOvertimeRequests = useMemo(() => {
+    if (!overtimeRequests) return [];
+    
+    return overtimeRequests.filter(request => {
+      if (!searchTerm) return true;
+      
+      // Pour les RH qui voient les noms des employés
+      if (profile?.role === 'hr' && request.employees) {
+        const fullName = `${request.employees.first_name} ${request.employees.last_name}`.toLowerCase();
+        if (fullName.includes(searchTerm.toLowerCase())) return true;
+      }
+      
+      // Recherche par date ou motif
+      return (
+        request.date.includes(searchTerm) ||
+        (request.reason && request.reason.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    });
+  }, [overtimeRequests, searchTerm, profile?.role]);
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -208,140 +298,237 @@ export const OvertimeList = () => {
   return (
     <Card className="p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        {profile?.role !== 'hr' && (
-          <Dialog open={openManual} onOpenChange={setOpenManual}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto whitespace-nowrap">
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter des heures
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="startTime">Heure de début</Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endTime">Heure de fin</Label>
-                    <Input
-                      id="endTime"
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Motif</Label>
-                  <Textarea
-                    id="reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={addOvertimeMutation.isPending}
-                >
-                  {addOvertimeMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  Enregistrer
+        <div className="w-full sm:w-auto">
+          <h2 className="text-2xl font-bold">Heures supplémentaires</h2>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {profile?.role !== 'hr' && (
+            <Dialog open={openManual} onOpenChange={setOpenManual}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto whitespace-nowrap">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter des heures
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Ajouter des heures supplémentaires</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleManualSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startTime">Heure de début</Label>
+                      <Input
+                        id="startTime"
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endTime">Heure de fin</Label>
+                      <Input
+                        id="endTime"
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reason">Motif</Label>
+                    <Textarea
+                      id="reason"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={addOvertimeMutation.isPending}
+                  >
+                    {addOvertimeMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Enregistrer
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
       <div className="space-y-4">
-        {overtimeRequests?.map((request) => (
-          <div
-            key={request.id}
-            className="flex items-center justify-between p-4 border rounded-lg"
-          >
-            <div>
-              {profile?.role === 'hr' && (
-                <p className="font-medium">
-                  {request.employees.first_name} {request.employees.last_name}
+        {filteredOvertimeRequests.length > 0 ? (
+          filteredOvertimeRequests.map((request) => (
+            <div
+              key={request.id}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div>
+                {profile?.role === 'hr' && (
+                  <p className="font-medium">
+                    {request.employees.first_name} {request.employees.last_name}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">{request.date}</p>
+                <p className="text-sm text-gray-600">
+                  De {request.start_time} à {request.end_time} ({request.hours} heures)
                 </p>
-              )}
-              <p className="text-sm text-gray-600">{request.date}</p>
-              <p className="text-sm text-gray-600">
-                De {request.start_time} à {request.end_time} ({request.hours} heures)
-              </p>
-              <p className="text-sm text-gray-600">{request.reason}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  request.status === "approved"
-                    ? "secondary"
-                    : request.status === "rejected"
-                    ? "destructive"
-                    : "outline"
-                }
-              >
-                {request.status === "pending" ? "En attente" : 
-                 request.status === "approved" ? "Approuvé" : "Refusé"}
-              </Badge>
-              {profile?.role === 'hr' && request.status === 'pending' && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'approved' })}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'rejected' })}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              {profile?.role !== 'hr' && request.status === "pending" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(request.id)}
-                  className="text-destructive hover:text-destructive/90"
+                <p className="text-sm text-gray-600">{request.reason}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={
+                    request.status === "approved"
+                      ? "secondary"
+                      : request.status === "rejected"
+                      ? "destructive"
+                      : "outline"
+                  }
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+                  {request.status === "pending" ? "En attente" : 
+                  request.status === "approved" ? "Approuvé" : "Refusé"}
+                </Badge>
+                {profile?.role === 'hr' && request.status === 'pending' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'approved' })}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => updateStatusMutation.mutate({ id: request.id, status: 'rejected' })}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {profile?.role !== 'hr' && request.status === "pending" && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(request)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(request.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-center text-gray-500">Aucune demande d'heures supplémentaires</p>
+        )}
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Modifier les heures supplémentaires</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateOvertime} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-date">Date</Label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-startTime">Heure de début</Label>
+                <Input
+                  id="edit-startTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endTime">Heure de fin</Label>
+                <Input
+                  id="edit-endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-reason">Motif</Label>
+              <Textarea
+                id="edit-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateOvertimeMutation.isPending}
+              >
+                {updateOvertimeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Enregistrer
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

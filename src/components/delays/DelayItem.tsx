@@ -1,6 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X } from "lucide-react";
+import { Check, X, Edit, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Delay = Database['public']['Tables']['delays']['Row'] & {
@@ -14,6 +15,8 @@ interface DelayItemProps {
   delay: Delay;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
   isUpdating: boolean;
   formatDuration: (duration: unknown) => string;
 }
@@ -35,11 +38,13 @@ export const DelayItem = ({
   delay, 
   onApprove, 
   onReject, 
+  onEdit,
+  onDelete,
   isUpdating,
   formatDuration 
 }: DelayItemProps) => {
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
       <div>
         <p className="font-semibold">
           {delay.employees?.first_name} {delay.employees?.last_name}
@@ -63,26 +68,47 @@ export const DelayItem = ({
         >
           {getStatusLabel(delay.status)}
         </Badge>
-        {delay.status === 'pending' && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onApprove(delay.id)}
-              disabled={isUpdating}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onReject(delay.id)}
-              disabled={isUpdating}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        
+        <div className="flex gap-2">
+          {delay.status === 'pending' && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onApprove(delay.id)}
+                disabled={isUpdating}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onReject(delay.id)}
+                disabled={isUpdating}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Modifier
+          </Button>
+          
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Supprimer
+          </Button>
+        </div>
       </div>
     </div>
   );
