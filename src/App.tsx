@@ -10,6 +10,7 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
+import { LoadingScreen } from "./components/ui/loading-screen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,16 +27,21 @@ interface ProtectedRouteProps {
   requiredRole?: "hr" | "employee";
 }
 
-// Simple access control with no loading states or redirections
+// Protected route that handles authentication and role-based access
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
-  const { session, user } = useAuth();
+  const { session, user, isLoading, authReady } = useAuth();
+  
+  // Still loading auth state, show loading screen
+  if (isLoading || !authReady) {
+    return <LoadingScreen message="Vérification de vos droits d'accès..." />;
+  }
   
   // Not authenticated - go to login
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // Check role based on email domain only - simple, direct check
+  // Check role based on email domain
   const isHR = user?.email?.endsWith('@aftraduction.fr'); 
   const userRole = isHR ? "hr" : "employee";
   
@@ -44,7 +50,7 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={userRole === "hr" ? "/hr" : "/employee"} replace />;
   }
   
-  // User authenticated and matches role, give immediate access
+  // User authenticated and matches role, give access
   return <>{children}</>;
 };
 

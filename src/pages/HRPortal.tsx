@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
@@ -8,24 +8,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const HRPortal = () => {
   const navigate = useNavigate();
-  const { session, signIn } = useAuth();
+  const { session, isLoading, authReady, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Auto-navigate if already logged in
+  useEffect(() => {
+    // Auto-navigate if already logged in
+    if (session && authReady) {
+      const isHR = session.user.email?.endsWith('@aftraduction.fr');
+      navigate(isHR ? '/hr' : '/employee', { replace: true });
+    }
+  }, [session, authReady, navigate]);
+
+  // If still checking authentication, show loading
+  if (isLoading && !authReady) {
+    return <LoadingScreen message="Vérification de l'authentification..." />;
+  }
+
+  // Don't render login form if already logged in (will redirect via useEffect)
   if (session) {
-    const isHR = session.user.email?.endsWith('@aftraduction.fr');
-    navigate(isHR ? '/hr' : '/employee', { replace: true });
-    return null;
+    return <LoadingScreen message="Redirection en cours..." />;
   }
 
   // Handle login form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     
     if (!email || !password) {
       toast.error("Veuillez saisir votre email et votre mot de passe");
@@ -39,10 +53,12 @@ const HRPortal = () => {
       
       if (error) {
         console.error("Login error:", error.message);
+        setLoginError("Identifiants invalides, veuillez réessayer");
         toast.error("Identifiants invalides, veuillez réessayer");
       }
     } catch (error) {
       console.error("Login exception:", error);
+      setLoginError("Une erreur est survenue lors de la connexion");
       toast.error("Une erreur est survenue lors de la connexion");
     } finally {
       setIsSubmitting(false);
@@ -60,6 +76,11 @@ const HRPortal = () => {
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {loginError && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+                  {loginError}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

@@ -2,7 +2,7 @@
 import { createContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 
-// Define the profile type but it won't be used
+// Define the profile type but it won't be used yet
 export interface Profile {
   id: string;
   first_name?: string;
@@ -14,9 +14,9 @@ export interface Profile {
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
-  isLoading: boolean; // Always false
-  profile: Profile | null; // Always null
-  authReady: boolean; // Always true
+  isLoading: boolean;
+  profile: Profile | null;
+  authReady: boolean;
   authError: Error | null;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
@@ -33,7 +33,7 @@ export const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: false,
   profile: null,
-  authReady: true,
+  authReady: false,
   authError: null,
   signIn: async () => ({
     error: null,
