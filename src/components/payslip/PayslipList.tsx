@@ -51,6 +51,7 @@ import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { addMonths, subMonths } from "date-fns";
 import { Payslip } from "@/types/hr";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface Employee {
   id: string;
@@ -58,11 +59,22 @@ interface Employee {
   last_name: string;
 }
 
+// Define the Document type to match the documents table structure
+interface Document {
+  id: string;
+  employee_id: string;
+  title: string;
+  type: string;
+  file_path: string;
+  created_at: string;
+  uploaded_by: string;
+}
+
 const today = new Date();
 const currentYear = today.getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-export const PayslipList = () => {
+export function PayslipList() {
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -109,7 +121,7 @@ export const PayslipList = () => {
         } else {
           // Transform documents to payslips
           const transformedPayslips: Payslip[] = data
-            ? data.map((doc: any) => {
+            ? data.map((doc: Document) => {
                 // Extract month and year from the title or filename
                 const titleParts = doc.title ? doc.title.split('_') : [];
                 const month = titleParts.length > 1 ? titleParts[1].substring(5, 7) : '';
@@ -206,7 +218,8 @@ export const PayslipList = () => {
             file_path: fileURL,
             uploaded_by: selectedEmployee // Assuming the employee uploads their own payslip
           }
-        ]);
+        ])
+        .select();
 
       if (insertError) {
         console.error("Error inserting payslip:", insertError);
@@ -215,11 +228,17 @@ export const PayslipList = () => {
         toast.success("Fiche de paie enregistrée avec succès");
         
         if (insertData && insertData.length > 0) {
+          // Extract month and year from the filename
+          const filenameParts = fileName.split('_');
+          const dateInfo = filenameParts.length > 1 ? filenameParts[1].split('-') : [];
+          const year = dateInfo.length > 0 ? dateInfo[0] : '';
+          const month = dateInfo.length > 1 ? dateInfo[1] : '';
+          
           const newPayslip: Payslip = {
             id: insertData[0].id,
             employee_id: selectedEmployee,
-            month: selectedMonth,
-            year: selectedYear,
+            month: month,
+            year: year,
             file_url: fileURL,
             created_at: insertData[0].created_at
           };
@@ -491,4 +510,4 @@ export const PayslipList = () => {
       </CardContent>
     </Card>
   );
-};
+}
