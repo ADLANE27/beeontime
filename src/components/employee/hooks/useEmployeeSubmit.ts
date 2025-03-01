@@ -22,7 +22,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         .eq('email', formData.email.toLowerCase())
         .single();
 
-      // Check if auth user exists
+      // Explicitly check if auth user exists using email
       const { data: { users }, error: getUserError } = await supabase.functions.invoke('update-user-password', {
         body: { 
           email: formData.email.toLowerCase(),
@@ -50,7 +50,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         // Only update password if it's provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
           console.log('Updating password for existing user:', userId);
-          const { error: authError } = await supabase.functions.invoke('update-user-password', {
+          const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
             body: { 
               userId, 
               password: formData.initialPassword,
@@ -63,6 +63,8 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
             toast.error("Erreur lors de la mise à jour du mot de passe");
             return;
           }
+          
+          console.log('Password update result:', authData);
         }
       } else if (existingProfile && !authUserExists) {
         // Profile exists but auth user doesn't - create auth user with the same ID if possible
@@ -92,6 +94,12 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           return;
         }
 
+        if (!authData || !authData.id) {
+          console.error('No user ID returned after creation');
+          toast.error("Erreur lors de la création du compte utilisateur: ID non retourné");
+          return;
+        }
+
         userId = authData.id;
         console.log('Auth user created with ID:', userId);
         
@@ -117,7 +125,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         // Still update password if provided and we're not in edit mode
         if (!isEditing && formData.initialPassword) {
           console.log('Updating password for existing auth user:', userId);
-          const { error: authError } = await supabase.functions.invoke('update-user-password', {
+          const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
             body: { 
               userId, 
               password: formData.initialPassword,
@@ -130,6 +138,8 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
             toast.error("Erreur lors de la mise à jour du mot de passe");
             return;
           }
+          
+          console.log('Password update result:', authData);
         }
       } else {
         // Neither exists - create both
@@ -140,6 +150,9 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         }
         
         console.log('Creating new auth user with password length:', formData.initialPassword.length);
+        console.log('Email:', formData.email.toLowerCase());
+        console.log('Password provided:', !!formData.initialPassword);
+        
         const { data: authData, error: authError } = await supabase.functions.invoke('update-user-password', {
           body: { 
             email: formData.email.toLowerCase(),
@@ -153,6 +166,12 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         if (authError || !authData) {
           console.error('Auth error:', authError);
           toast.error("Erreur lors de la création du compte utilisateur");
+          return;
+        }
+
+        if (!authData.id) {
+          console.error('No user ID returned after creation');
+          toast.error("Erreur lors de la création du compte utilisateur: ID non retourné");
           return;
         }
 
