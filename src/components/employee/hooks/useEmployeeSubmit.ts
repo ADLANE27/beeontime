@@ -35,14 +35,20 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       if (getUserError) {
         console.error('Error checking user existence:', getUserError);
         toast.error("Erreur lors de la vérification de l'utilisateur");
+        setIsSubmitting(false);
         return;
       }
 
       let userId: string;
       let authUserExists = users && users.length > 0;
+      
+      // Find matching user by email in the auth users list
+      const matchingUser = authUserExists ? 
+        users.find((user: any) => user.email.toLowerCase() === formData.email.toLowerCase()) : 
+        null;
 
       // Handle logic based on whether profile and auth user exist
-      if (existingProfile && authUserExists) {
+      if (existingProfile && matchingUser) {
         // Both profile and auth user exist
         console.log('User exists in both profile and auth, using existing ID:', existingProfile.id);
         userId = existingProfile.id;
@@ -61,12 +67,13 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           if (authError) {
             console.error('Error updating password:', authError);
             toast.error("Erreur lors de la mise à jour du mot de passe");
+            setIsSubmitting(false);
             return;
           }
           
           console.log('Password update result:', authData);
         }
-      } else if (existingProfile && !authUserExists) {
+      } else if (existingProfile && !matchingUser) {
         // Profile exists but auth user doesn't - create auth user with the same ID if possible
         console.log('Profile exists but auth user does not');
         
@@ -91,12 +98,14 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         if (authError) {
           console.error('Error creating auth user:', authError);
           toast.error("Erreur lors de la création du compte utilisateur");
+          setIsSubmitting(false);
           return;
         }
 
         if (!authData || !authData.id) {
           console.error('No user ID returned after creation');
           toast.error("Erreur lors de la création du compte utilisateur: ID non retourné");
+          setIsSubmitting(false);
           return;
         }
 
@@ -114,12 +123,13 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           if (syncError) {
             console.error('Error syncing IDs:', syncError);
             toast.error("Erreur lors de la synchronisation des identifiants");
+            setIsSubmitting(false);
             return;
           }
         }
-      } else if (!existingProfile && authUserExists) {
+      } else if (!existingProfile && matchingUser) {
         // Auth user exists but profile doesn't - use auth user ID
-        userId = users[0].id;
+        userId = matchingUser.id;
         console.log('Auth user exists but profile does not, using auth ID:', userId);
         
         // Still update password if provided and we're not in edit mode
@@ -136,6 +146,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           if (authError) {
             console.error('Error updating password:', authError);
             toast.error("Erreur lors de la mise à jour du mot de passe");
+            setIsSubmitting(false);
             return;
           }
           
@@ -163,15 +174,17 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           }
         });
 
-        if (authError || !authData) {
+        if (authError) {
           console.error('Auth error:', authError);
           toast.error("Erreur lors de la création du compte utilisateur");
+          setIsSubmitting(false);
           return;
         }
 
-        if (!authData.id) {
-          console.error('No user ID returned after creation');
+        if (!authData || !authData.id) {
+          console.error('No user ID returned after creation, response:', authData);
           toast.error("Erreur lors de la création du compte utilisateur: ID non retourné");
+          setIsSubmitting(false);
           return;
         }
 
@@ -194,6 +207,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       if (profileError) {
         console.error('Profile creation/update error:', profileError);
         toast.error("Erreur lors de la mise à jour du profil");
+        setIsSubmitting(false);
         return;
       }
       
@@ -229,6 +243,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       if (employeeError) {
         console.error('Employee creation error:', employeeError);
         toast.error("Erreur lors de la création de l'employé");
+        setIsSubmitting(false);
         return;
       }
       
