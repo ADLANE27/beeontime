@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,6 @@ const HRPortal = () => {
   const [manualSignInAttempted, setManualSignInAttempted] = useState(false);
   const [processingRedirect, setProcessingRedirect] = useState(false);
 
-  // Check network status
   useEffect(() => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
     
@@ -30,7 +28,6 @@ const HRPortal = () => {
     };
   }, []);
 
-  // Set a reasonable timeout to prevent infinite loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
@@ -43,7 +40,6 @@ const HRPortal = () => {
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
 
-  // Mark auth check complete when authReady
   useEffect(() => {
     if (authReady && !authCheckComplete) {
       console.log("Auth is ready, marking auth check complete");
@@ -51,24 +47,19 @@ const HRPortal = () => {
     }
   }, [authReady, authCheckComplete]);
 
-  // Handle redirect to HR dashboard for authenticated users
   useEffect(() => {
     if (processingRedirect) return;
     
-    // Si nous avons une session utilisateur
     if (session?.user) {
       console.log("Session exists, checking for profile", session.user.email);
       
-      // Si nous avons un profil
       if (profile) {
         console.log("Profile found with role:", profile.role);
         
-        // Vérifier le rôle et rediriger en conséquence
         if (profile.role === "hr") {
           console.log("HR role detected, redirecting to HR dashboard");
           navigate('/hr', { replace: true });
         } else {
-          // Si ce n'est pas un admin HR, afficher un message d'erreur et rediriger
           console.log("Employee role detected, redirecting to employee dashboard");
           toast.error("Vous n'avez pas les droits pour accéder à cette page.");
           navigate('/employee', { replace: true });
@@ -76,12 +67,10 @@ const HRPortal = () => {
         return;
       } 
       
-      // Si nous avons une session mais pas de profil, vérifier dans la base de données
       if (authCheckComplete && !profile && !processingRedirect) {
         console.log("Session exists but no profile yet, checking database");
         setProcessingRedirect(true);
         
-        // Vérifier directement dans la base de données
         supabase
           .from("profiles")
           .select("*")
@@ -96,33 +85,25 @@ const HRPortal = () => {
             
             if (profileData) {
               console.log("Profile found in database:", profileData);
-              // Si le profil existe et a le rôle HR, rediriger vers le dashboard HR
               if (profileData.role === "hr") {
                 navigate('/hr', { replace: true });
               } else {
-                // Sinon, afficher un message d'erreur et rediriger vers le dashboard employé
                 toast.error("Vous n'avez pas les droits pour accéder à cette page.");
                 navigate('/employee', { replace: true });
               }
             } else {
               console.log("No profile found, checking if admin email");
-              // Si pas de profil mais email d'administrateur connu, créer un profil HR
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
-                
-                // Create a properly typed Promise that supports .catch
-                const insertPromise = supabase
+                supabase
                   .from("profiles")
                   .insert({
                     id: session.user.id,
                     email: session.user.email,
-                    role: "hr" as const,  // Ensure correct type
+                    role: "hr" as const,
                     first_name: "",
                     last_name: ""
-                  });
-                
-                // Properly handle the Promise chain
-                Promise.resolve(insertPromise)
+                  })
                   .then(() => {
                     navigate('/hr', { replace: true });
                   })
@@ -131,7 +112,6 @@ const HRPortal = () => {
                     setProcessingRedirect(false);
                   });
               } else {
-                // Pour tout autre utilisateur sans profil, rediriger vers le dashboard employé
                 console.log("No profile and not admin email, redirecting to employee dashboard");
                 navigate('/employee', { replace: true });
               }
@@ -145,7 +125,6 @@ const HRPortal = () => {
     }
   }, [session, profile, navigate, authCheckComplete, processingRedirect]);
 
-  // Manual sign-in handler 
   const handleManualSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -173,7 +152,6 @@ const HRPortal = () => {
         }
         setManualSignInAttempted(false);
       } 
-      // La redirection est gérée par l'effet ci-dessus
     } catch (err) {
       console.error("Exception during sign in:", err);
       setLoginError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
@@ -181,12 +159,10 @@ const HRPortal = () => {
     }
   };
 
-  // Handle network status check
   const handleCheckNetwork = () => {
     setNetworkStatus(navigator.onLine ? 'online' : 'offline');
   };
 
-  // Show loading if manual sign-in attempted or admin profile processing
   if (manualSignInAttempted || processingRedirect) {
     return (
       <LoadingState 
@@ -196,7 +172,6 @@ const HRPortal = () => {
     );
   }
 
-  // Show login form
   return (
     <LoginForm
       onSubmit={handleManualSignIn}
