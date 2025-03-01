@@ -110,23 +110,19 @@ const HRPortal = () => {
               if (session.user.email === "a.debassi@aftraduction.fr") {
                 console.log("Admin email detected, creating HR profile");
                 
-                // Use a proper Promise chain to handle potential errors
-                supabase
-                  .from("profiles")
-                  .insert({
-                    id: session.user.id,
-                    email: session.user.email,
-                    role: "hr" as const,  // Ensure correct type
-                    first_name: "",
-                    last_name: ""
-                  })
-                  .then(({ error: insertError }) => {
-                    if (insertError) {
-                      console.error("Error creating HR profile:", insertError);
-                      setProcessingRedirect(false);
-                      return;
-                    }
-                    
+                // Use Promise.resolve() to convert to a full Promise
+                Promise.resolve(
+                  supabase
+                    .from("profiles")
+                    .insert({
+                      id: session.user.id,
+                      email: session.user.email,
+                      role: "hr" as const,  // Ensure correct type
+                      first_name: "",
+                      last_name: ""
+                    })
+                )
+                  .then(() => {
                     navigate('/hr', { replace: true });
                   })
                   .catch((err) => {
