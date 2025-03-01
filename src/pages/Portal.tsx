@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Loader2 } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,9 +16,8 @@ const Portal = () => {
   const { signIn, session } = useAuth();
   const navigate = useNavigate();
 
-  // Simple redirect if already logged in
+  // Auto-navigate if already logged in
   if (session) {
-    // Determine if HR by email domain
     const isHR = session.user.email?.endsWith('@aftraduction.fr');
     navigate(isHR ? '/hr' : '/employee', { replace: true });
     return null;
@@ -94,8 +93,7 @@ const Portal = () => {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connexion en cours...
+                    Se connecter...
                   </>
                 ) : (
                   <>

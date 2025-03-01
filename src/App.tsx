@@ -10,7 +10,6 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/auth";
-import { toast } from "sonner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,26 +26,25 @@ interface ProtectedRouteProps {
   requiredRole?: "hr" | "employee";
 }
 
+// Simple access control with no loading states or redirections
 const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteProps) => {
   const { session, user } = useAuth();
   
-  // Simple check - if we don't have a session, go to login
+  // Not authenticated - go to login
   if (!session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  // Simple email-based role check
-  const emailDomain = user?.email?.split('@')[1];
-  const isHR = emailDomain === 'aftraduction.fr'; // Assuming HR emails have this domain
+  // Check role based on email domain only - simple, direct check
+  const isHR = user?.email?.endsWith('@aftraduction.fr'); 
   const userRole = isHR ? "hr" : "employee";
   
   // If user doesn't match required role, redirect to appropriate dashboard
   if (userRole !== requiredRole) {
-    toast.error(`Vous n'avez pas les droits pour accéder à cette page.`);
     return <Navigate to={userRole === "hr" ? "/hr" : "/employee"} replace />;
   }
   
-  // User has session and matches role, allow access
+  // User authenticated and matches role, give immediate access
   return <>{children}</>;
 };
 
