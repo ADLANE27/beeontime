@@ -87,10 +87,10 @@ async function ensureAdminProfile(userId: string, email: string): Promise<Profil
       return existingProfile as Profile;
     }
     
-    // Create new profile
-    const newProfile: Profile = {
+    // Create new profile - fixing the type issue by ensuring email is always provided
+    const newProfile = {
       id: userId,
-      email: email,
+      email: email, // Ensure email is always present and not optional
       role: "hr",
       first_name: "",
       last_name: ""
@@ -102,7 +102,7 @@ async function ensureAdminProfile(userId: string, email: string): Promise<Profil
       
     if (insertError) throw insertError;
     
-    return newProfile;
+    return newProfile as Profile;
   } catch (error) {
     console.error("Error in ensureAdminProfile:", error);
     return createFallbackProfile(userId, email, "hr");
