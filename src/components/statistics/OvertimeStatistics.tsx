@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +29,7 @@ export const OvertimeStatistics = () => {
 
   if (isLoading) return (
     <Card className="p-6">
-      <LoadingScreen size="sm" message="Chargement des statistiques..." />
+      <LoadingScreen message="Chargement des statistiques..." />
     </Card>
   );
 

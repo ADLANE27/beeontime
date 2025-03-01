@@ -1,362 +1,469 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Download, FileText, Calendar, Loader2, FileSearch, File, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon, Download, Plus, Upload } from "lucide-react";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+import { addMonths, subMonths } from "date-fns";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
-export const PayslipList = () => {
-  const { session } = useAuth();
-  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadTimeout, setLoadTimeout] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
-  const mountedRef = useRef(true);
+interface Payslip {
+  id: string;
+  employee_id: string;
+  month: string;
+  year: string;
+  file_url: string;
+  created_at: string;
+}
+
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+const today = new Date();
+const currentYear = today.getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+export const PayslipManagement = () => {
+  const [payslips, setPayslips] = useState<Payslip[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string | null>(
+    String(currentYear)
+  );
+  const [file, setFile] = useState<File | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: subMonths(new Date(), 2),
+    to: today,
+  });
 
   useEffect(() => {
-    mountedRef.current = true;
-    
-    timeoutRef.current = window.setTimeout(() => {
-      if (mountedRef.current) {
-        setLoadTimeout(true);
-      }
-    }, 3000);
+    const fetchPayslips = async () => {
+      setIsLoading(true);
+      try {
+        let query = supabase
+          .from("payslips")
+          .select("*")
+          .order("year", { ascending: false })
+          .order("month", { ascending: false });
 
-    return () => {
-      mountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+        if (selectedEmployee) {
+          query = query.eq("employee_id", selectedEmployee);
+        }
+
+        if (date?.from && date?.to) {
+          const fromDate = format(date.from, "yyyy-MM");
+          const toDate = format(date.to, "yyyy-MM");
+
+          query = query.gte("year", fromDate.split("-")[0]);
+          query = query.lte("year", toDate.split("-")[0]);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error("Error fetching payslips:", error);
+          toast.error("Erreur lors du chargement des fiches de paie");
+        } else {
+          setPayslips(data || []);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching payslips:", error);
+        toast.error("Une erreur inattendue s'est produite");
+      } finally {
+        setIsLoading(false);
       }
     };
-  }, []);
 
-  const isAuthenticated = !!session?.user?.id;
-  
-  const { 
-    data: payslips = [], 
-    isLoading: isLoadingPayslips, 
-    error: payslipError, 
-    refetch: refetchPayslips,
-    isError: isPayslipError,
-    status: payslipStatus
-  } = useQuery({
-    queryKey: ['payslips', session?.user?.id],
-    queryFn: async () => {
-      console.log('Fetching payslips...');
-      if (!session || !session.user) {
-        console.error('No active session - aborting payslips fetch');
-        throw new Error("Authentification requise");
-      }
-
-      console.log('Payslips fetch - User ID:', session.user.id);
-      
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('employee_id', session.user.id)
-          .eq('type', 'payslip');
-
-        if (error) {
-          console.error('Error fetching payslips:', error);
-          throw error;
-        }
-
-        console.log('Payslips fetched successfully:', data?.length || 0, 'items');
-        return data || [];
-      } catch (err) {
-        console.error('Exception in payslip fetch:', err);
-        throw err;
-      }
-    },
-    enabled: isAuthenticated,
-    retry: 1,
-    retryDelay: 1000,
-    staleTime: 300000,
-    gcTime: 600000,
-  });
-
-  const { 
-    data: importantDocuments = [], 
-    isLoading: isLoadingDocs, 
-    error: docsError, 
-    refetch: refetchDocs,
-    isError: isDocsError
-  } = useQuery({
-    queryKey: ['important_documents'],
-    queryFn: async () => {
-      console.log('Fetching important documents...');
-      
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .is('employee_id', null)
-          .eq('type', 'important_document');
-
-        if (error) {
-          console.error('Error fetching important documents:', error);
-          throw error;
-        }
-
-        console.log('Important documents fetched successfully:', data?.length || 0, 'items');
-        return data || [];
-      } catch (err) {
-        console.error('Exception in documents fetch:', err);
-        throw err;
-      }
-    },
-    retry: 1,
-    retryDelay: 1000,
-    staleTime: 300000,
-    gcTime: 600000,
-  });
+    fetchPayslips();
+  }, [selectedEmployee, date]);
 
   useEffect(() => {
-    if (isPayslipError || isDocsError) {
-      const errorMessage = isPayslipError 
-        ? 'Erreur de chargement des bulletins de paie: ' + (payslipError instanceof Error ? payslipError.message : 'Erreur inconnue')
-        : 'Erreur de chargement des documents: ' + (docsError instanceof Error ? docsError.message : 'Erreur inconnue');
-      
-      console.error('Document loading error:', payslipError || docsError);
-      setLoadError(errorMessage);
-      
-      if (mountedRef.current) {
-        toast.error(errorMessage);
+    const fetchEmployees = async () => {
+      try {
+        const { data: employeesData, error: employeesError } = await supabase
+          .from("employees")
+          .select("id, first_name, last_name");
+
+        if (employeesError) {
+          console.error("Error fetching employees:", employeesError);
+          toast.error("Erreur lors du chargement des employés");
+        } else {
+          setEmployees(employeesData || []);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching employees:", error);
+        toast.error("Une erreur inattendue s'est produite");
       }
+    };
+
+    fetchEmployees();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!selectedEmployee || !selectedMonth || !selectedYear || !file) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
     }
-  }, [isPayslipError, isDocsError, payslipError, docsError]);
 
-  const handleDownload = async (fileUrl: string, title: string) => {
+    setIsUploading(true);
+
     try {
-      setDownloadingDoc(fileUrl);
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .download(fileUrl);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `payslip_${selectedEmployee}_${selectedYear}-${selectedMonth}.${fileExt}`;
+      const filePath = `payslips/${fileName}`;
 
-      if (error) {
-        console.error('Error downloading file:', error);
-        toast.error("Erreur lors du téléchargement du document");
+      // Upload the payslip file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("hr-management")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Error uploading file:", uploadError);
+        toast.error("Erreur lors du téléversement du fichier");
+        setIsUploading(false);
         return;
       }
 
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = title;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Get the public URL of the uploaded file
+      const { data: fileData } = supabase.storage
+        .from("hr-management")
+        .getPublicUrl(filePath);
+      const fileURL = fileData.publicUrl;
 
-      toast.success(`Téléchargement de ${title} réussi`);
-    } catch (error) {
-      console.error('Error downloading document:', error);
-      toast.error("Erreur lors du téléchargement du document");
-    } finally {
-      setDownloadingDoc(null);
-    }
-  };
+      // Create a new payslip record in the database
+      const { data: insertData, error: insertError } = await supabase
+        .from("payslips")
+        .insert([
+          {
+            employee_id: selectedEmployee,
+            month: selectedMonth,
+            year: selectedYear,
+            file_url: fileURL,
+          },
+        ]);
 
-  const handleRefresh = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    setLoadError(null);
-    setLoadTimeout(false);
-    refetchPayslips();
-    refetchDocs();
-    
-    timeoutRef.current = window.setTimeout(() => {
-      if (mountedRef.current) {
-        setLoadTimeout(true);
+      if (insertError) {
+        console.error("Error inserting payslip:", insertError);
+        toast.error("Erreur lors de l'enregistrement de la fiche de paie");
+      } else {
+        toast.success("Fiche de paie enregistrée avec succès");
+        setPayslips((prevPayslips) => [...prevPayslips, insertData[0]]);
       }
-    }, 3000);
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast.error("Une erreur inattendue s'est produite");
+    } finally {
+      setIsUploading(false);
+      setIsDialogOpen(false);
+      setFile(null);
+    }
   };
 
-  if (!isAuthenticated && !isLoadingPayslips) {
-    return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-amber-500">
-            <FileSearch className="h-12 w-12 mx-auto" />
-          </div>
-          <p className="text-gray-700 text-center">Authentification requise</p>
-          <p className="text-sm text-gray-500 text-center">Veuillez vous connecter pour accéder à vos documents</p>
-          <Button onClick={handleRefresh} variant="outline" className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Réessayer
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
 
-  if (loadError) {
-    return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-red-500">
-            <FileSearch className="h-12 w-12 mx-auto" />
-          </div>
-          <p className="text-gray-700 text-center">Une erreur s'est produite lors du chargement des documents</p>
-          <p className="text-sm text-gray-500 text-center">{loadError}</p>
-          <Button onClick={handleRefresh} variant="outline" className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Réessayer
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+  const handleDownload = (fileUrl: string) => {
+    window.open(fileUrl, "_blank");
+  };
 
-  if (isLoadingPayslips || isLoadingDocs) {
-    return (
-      <Card className="p-6">
-        <LoadingScreen 
-          message="Chargement des documents..." 
-          size="md" 
-        />
-        {loadTimeout && (
-          <div className="text-center mt-4">
-            <Button onClick={handleRefresh} variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700">
-              Le chargement est long? Cliquez ici pour rafraîchir
-            </Button>
-          </div>
-        )}
-      </Card>
-    );
-  }
+  const filteredPayslips = payslips.filter((payslip) => {
+    if (selectedEmployee && payslip.employee_id !== selectedEmployee) {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <Tabs defaultValue="payslips" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="payslips">Bulletins de paie</TabsTrigger>
-        <TabsTrigger value="documents">Documents importants</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="payslips">
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-500" />
-            Bulletins de paie
-          </h2>
-          <div className="space-y-4">
-            {payslips.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <FileSearch className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 text-lg">Aucun bulletin de paie disponible</p>
-                <p className="text-gray-400 text-sm mt-1">Vos bulletins apparaîtront ici une fois qu'ils seront chargés par le service RH</p>
+    <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden backdrop-blur-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-2xl font-bold">Fiches de paie</CardTitle>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Ajouter
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Ajouter une fiche de paie</DialogTitle>
+              <DialogDescription>
+                Sélectionnez l'employé, le mois, l'année et le fichier PDF à
+                télécharger.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="employee" className="text-right">
+                  Employé
+                </Label>
+                <Select
+                  onValueChange={setSelectedEmployee}
+                  defaultValue={selectedEmployee || ""}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Sélectionner un employé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.first_name} {employee.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="month" className="text-right">
+                  Mois
+                </Label>
+                <Select
+                  onValueChange={setSelectedMonth}
+                  defaultValue={selectedMonth || ""}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Sélectionner un mois" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = format(new Date(2023, i, 1), "MMMM", {
+                        locale: fr,
+                      });
+                      const monthNumber = String(i + 1).padStart(2, "0");
+                      return (
+                        <SelectItem key={monthNumber} value={monthNumber}>
+                          {month}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="year" className="text-right">
+                  Année
+                </Label>
+                <Select
+                  onValueChange={setSelectedYear}
+                  defaultValue={selectedYear || String(currentYear)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Sélectionner une année" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pdf" className="text-right">
+                  Fichier PDF
+                </Label>
+                <Input
+                  type="file"
+                  id="pdf"
+                  className="col-span-3"
+                  onChange={handleFileChange}
+                  accept=".pdf"
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={isUploading}
+              className="w-full"
+            >
+              {isUploading ? "Téléchargement..." : "Télécharger"}
+            </Button>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardDescription className="px-4">
+        Sélectionnez une période et un employé pour filtrer les fiches de paie.
+      </CardDescription>
+      <CardContent className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date?.from && !date?.to
+                    ? "text-muted-foreground"
+                    : "font-semibold"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "dd MMMM yyyy", { locale: fr })} -{" "}
+                      {format(date.to, "dd MMMM yyyy", { locale: fr })}
+                    </>
+                  ) : (
+                    format(date.from, "dd MMMM yyyy", { locale: fr })
+                  )
+                ) : (
+                  <span>Choisir une date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto p-0"
+              align="start"
+              side="bottom"
+            >
+              <Calendar
+                mode="range"
+                defaultMonth={date?.from ? date.from : new Date()}
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={2}
+                fromMonth={subMonths(new Date(), 12)}
+                toMonth={addMonths(new Date(), 12)}
+                initialFocus
+                locale={fr}
+              />
+            </PopoverContent>
+          </Popover>
+          <Select
+            onValueChange={setSelectedEmployee}
+            defaultValue={selectedEmployee || ""}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filtrer par employé" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Tous les employés</SelectItem>
+              {employees.map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.first_name} {employee.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Employé</TableHead>
+              <TableHead>Mois</TableHead>
+              <TableHead>Année</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  <LoadingScreen message="Chargement des fiches de paie" />
+                </TableCell>
+              </TableRow>
+            ) : filteredPayslips.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  Aucune fiche de paie trouvée.
+                </TableCell>
+              </TableRow>
             ) : (
-              <div className="rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="divide-y divide-gray-100">
-                  {payslips
-                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .map((payslip) => (
-                    <div
-                      key={payslip.id}
-                      className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-50 rounded-full">
-                          <FileText className="h-5 w-5 text-blue-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{payslip.title}</p>
-                          <p className="text-sm text-gray-500">
-                            <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                            {format(new Date(payslip.created_at), "dd MMMM yyyy", { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDownload(payslip.file_path, payslip.title)}
-                        disabled={downloadingDoc === payslip.file_path}
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              filteredPayslips.map((payslip) => {
+                const employee = employees.find(
+                  (emp) => emp.id === payslip.employee_id
+                );
+                const monthName = format(
+                  new Date(2023, parseInt(payslip.month) - 1, 1),
+                  "MMMM",
+                  { locale: fr }
+                );
+
+                return (
+                  <TableRow key={payslip.id}>
+                    <TableCell>
+                      {employee
+                        ? `${employee.first_name} ${employee.last_name}`
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>{monthName}</TableCell>
+                    <TableCell>{payslip.year}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleDownload(payslip.file_url)}
                       >
-                        {downloadingDoc === payslip.file_path ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="mr-2 h-4 w-4" />
-                        )}
+                        <Download className="mr-2 h-4 w-4" />
                         Télécharger
                       </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
-          </div>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="documents">
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-green-500" />
-            Documents importants
-          </h2>
-          <div className="space-y-4">
-            {importantDocuments.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <FileSearch className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 text-lg">Aucun document important disponible</p>
-                <p className="text-gray-400 text-sm mt-1">Les documents importants de l'entreprise apparaîtront ici</p>
-              </div>
-            ) : (
-              <div className="rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="divide-y divide-gray-100">
-                  {importantDocuments
-                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-50 rounded-full">
-                          <FileText className="h-5 w-5 text-green-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{doc.title}</p>
-                          <p className="text-sm text-gray-500">
-                            <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                            {format(new Date(doc.created_at), "dd MMMM yyyy", { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDownload(doc.file_path, doc.title)}
-                        disabled={downloadingDoc === doc.file_path}
-                        className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
-                      >
-                        {downloadingDoc === doc.file_path ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="mr-2 h-4 w-4" />
-                        )}
-                        Télécharger
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      </TabsContent>
-    </Tabs>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
