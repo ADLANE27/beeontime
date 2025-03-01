@@ -50,15 +50,20 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
       }
       
       console.log('Creating new auth user with email:', email);
-      const authData = await createAuthUser(
-        email, 
-        formData.initialPassword, 
-        formData.firstName, 
-        formData.lastName
-      );
+      try {
+        const authData = await createAuthUser(
+          email, 
+          formData.initialPassword, 
+          formData.firstName, 
+          formData.lastName
+        );
 
-      userId = authData.id;
-      console.log('New auth user created with ID:', userId);
+        userId = authData.id;
+        console.log('New auth user created with ID:', userId);
+      } catch (error) {
+        console.error('Failed to create auth user:', error);
+        throw new Error(`Erreur lors de la création de l'utilisateur: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
     try {

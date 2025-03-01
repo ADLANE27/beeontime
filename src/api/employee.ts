@@ -59,6 +59,9 @@ export const updateUserPassword = async (userId: string, password: string, email
  */
 export const createAuthUser = async (email: string, password: string, firstName: string, lastName: string) => {
   try {
+    // Try first with the edge function
+    console.log('Attempting to create user through edge function:', { email, firstName, lastName });
+    
     const { data, error } = await supabase.functions.invoke('update-user-password', {
       body: { 
         email: email.toLowerCase(),
@@ -70,19 +73,45 @@ export const createAuthUser = async (email: string, password: string, firstName:
     });
 
     if (error) {
-      console.error('Auth error:', error);
-      throw new Error("Erreur lors de la création du compte utilisateur");
+      console.error('Edge function error:', error);
+      throw new Error("Erreur lors de la création du compte utilisateur via edge function");
     }
 
     if (!data || !data.id) {
-      console.error('No user ID returned after creation, response:', data);
-      throw new Error("Erreur lors de la création du compte utilisateur: ID non retourné");
+      console.error('No user ID returned after creation attempt with edge function, response:', data);
+      
+      // Fall back to direct auth API
+      console.log('Falling back to direct auth API for user creation');
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName
+          }
+        }
+      });
+      
+      if (signUpError) {
+        console.error('Auth signup error:', signUpError);
+        throw new Error("Erreur lors de la création du compte utilisateur: " + signUpError.message);
+      }
+      
+      if (!signUpData?.user?.id) {
+        console.error('No user ID returned from direct auth signup:', signUpData);
+        throw new Error("Erreur lors de la création du compte utilisateur: ID non retourné");
+      }
+      
+      console.log('User created successfully through direct auth API with ID:', signUpData.user.id);
+      return signUpData.user;
     }
 
+    console.log('User created successfully through edge function with ID:', data.id);
     return data;
   } catch (error) {
     console.error('Unexpected error in createAuthUser:', error);
-    throw new Error("Erreur lors de la création du compte utilisateur");
+    throw new Error("Erreur lors de la création du compte utilisateur: " + (error instanceof Error ? error.message : String(error)));
   }
 };
 

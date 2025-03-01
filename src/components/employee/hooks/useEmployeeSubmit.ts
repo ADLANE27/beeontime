@@ -17,7 +17,15 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       onSuccess();
     } catch (error: any) {
       console.error('Error during employee submission:', error);
-      toast.error(error.message || "Une erreur inattendue est survenue");
+      const errorMessage = error.message || "Une erreur inattendue est survenue";
+      toast.error(errorMessage);
+      
+      // Add more user-friendly details for specific error cases
+      if (errorMessage.includes("auth user")) {
+        toast.error("Problème avec la création du compte utilisateur. Veuillez vérifier les logs pour plus de détails.");
+      } else if (errorMessage.includes("profile")) {
+        toast.error("Note: Le profil n'a pas pu être mis à jour, mais la fiche employé a été créée.");
+      }
     } finally {
       setIsSubmitting(false);
     }
