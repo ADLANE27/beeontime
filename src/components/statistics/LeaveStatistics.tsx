@@ -1,22 +1,11 @@
+
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { differenceInDays, parseISO, isWeekend, isSameMonth, setMonth, startOfMonth, endOfMonth } from "date-fns";
-
-const LEAVE_TYPES_FR = {
-  vacation: "Congés payés",
-  annual: "Congés annuels",
-  paternity: "Congé paternité",
-  maternity: "Congé maternité",
-  sickChild: "Enfant malade",
-  unpaidUnexcused: "Sans solde non excusé",
-  unpaidExcused: "Sans solde excusé",
-  unpaid: "Sans solde",
-  rtt: "RTT",
-  familyEvent: "Événement familial"
-};
+import { leaveTypeColors } from "../planning/LeaveTypeLegend";
 
 export const LeaveStatistics = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -125,7 +114,9 @@ export const LeaveStatistics = () => {
         <div className="grid grid-cols-2 gap-4">
           {leaveStats && Object.entries(leaveStats.statsByType).map(([type, count]) => (
             <div key={type} className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-600">{LEAVE_TYPES_FR[type as keyof typeof LEAVE_TYPES_FR]}</p>
+              <p className="text-sm text-gray-600">
+                {leaveTypeColors[type as keyof typeof leaveTypeColors]?.label || type}
+              </p>
               <p className="text-2xl font-bold">{count}</p>
             </div>
           ))}

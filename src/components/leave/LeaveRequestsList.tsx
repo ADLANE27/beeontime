@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
 import { LeaveRequestForm } from "./LeaveRequestForm";
+import { leaveTypeColors } from "../planning/LeaveTypeLegend";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"] & {
   employees: {
@@ -63,20 +65,6 @@ const getStatusLabel = (status: LeaveRequest["status"]) => {
       return "En attente";
   }
 };
-
-const leaveTypes = [
-  { value: "vacation", label: "Congés payés" },
-  { value: "annual", label: "Congé annuel" },
-  { value: "rtt", label: "RTT" },
-  { value: "paternity", label: "Congé paternité" },
-  { value: "maternity", label: "Congé maternité" },
-  { value: "sickChild", label: "Congé enfant malade" },
-  { value: "sickLeave", label: "Arrêt maladie" },
-  { value: "unpaidUnexcused", label: "Absence injustifiée non rémunérée" },
-  { value: "unpaidExcused", label: "Absence justifiée non rémunérée" },
-  { value: "unpaid", label: "Absence non rémunérée" },
-  { value: "familyEvent", label: "Absences pour événements familiaux" }
-];
 
 export const LeaveRequestsList = () => {
   const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
@@ -232,7 +220,7 @@ export const LeaveRequestsList = () => {
                   {request.employees.first_name} {request.employees.last_name}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {leaveTypes.find(t => t.value === request.type)?.label}
+                  {leaveTypeColors[request.type as keyof typeof leaveTypeColors]?.label || request.type}
                 </p>
                 <div className="flex items-center gap-2">
                   <p className="font-medium">

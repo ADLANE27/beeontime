@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { differenceInHours, differenceInMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
+import { leaveTypeColors } from "../planning/LeaveTypeLegend";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
@@ -29,6 +31,21 @@ interface LeaveRequestFormProps {
   onSubmit?: (data: any) => Promise<void>;
   isSubmitting?: boolean;
 }
+
+// Mapping from database enum to French display labels
+const leaveTypeLabels: Record<LeaveType, string> = {
+  vacation: "Congés payés",
+  rtt: "RTT",
+  paternity: "Congé paternité",
+  maternity: "Congé maternité",
+  sickChild: "Congé enfant malade",
+  sickLeave: "Arrêt maladie",
+  unpaidUnexcused: "Absence injustifiée non rémunérée",
+  unpaidExcused: "Absence justifiée non rémunérée",
+  unpaid: "Absence non rémunérée",
+  annual: "Congé annuel",
+  familyEvent: "Absences pour événements familiaux"
+};
 
 export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormProps) => {
   const [leaveType, setLeaveType] = useState<LeaveType>();
@@ -219,17 +236,17 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting }: LeaveRequestFormPro
                 <SelectValue placeholder="Sélectionnez un type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vacation">Congés payés (48h à l'avance)</SelectItem>
-                <SelectItem value="annual">Congé annuel (2 mois à l'avance)</SelectItem>
-                <SelectItem value="paternity">Congé paternité</SelectItem>
-                <SelectItem value="maternity">Congé maternité</SelectItem>
-                <SelectItem value="sickChild">Congé enfant malade</SelectItem>
-                <SelectItem value="sickLeave">Arrêt maladie</SelectItem>
-                <SelectItem value="unpaidUnexcused">Absence injustifiée non rémunérée</SelectItem>
-                <SelectItem value="unpaidExcused">Absence justifiée non rémunérée</SelectItem>
-                <SelectItem value="unpaid">Absence non rémunérée</SelectItem>
-                <SelectItem value="rtt">RTT</SelectItem>
-                <SelectItem value="familyEvent">Absences pour événements familiaux</SelectItem>
+                <SelectItem value="vacation">{leaveTypeLabels.vacation} (48h à l'avance)</SelectItem>
+                <SelectItem value="annual">{leaveTypeLabels.annual} (2 mois à l'avance)</SelectItem>
+                <SelectItem value="paternity">{leaveTypeLabels.paternity}</SelectItem>
+                <SelectItem value="maternity">{leaveTypeLabels.maternity}</SelectItem>
+                <SelectItem value="sickChild">{leaveTypeLabels.sickChild}</SelectItem>
+                <SelectItem value="sickLeave">{leaveTypeLabels.sickLeave}</SelectItem>
+                <SelectItem value="unpaidUnexcused">{leaveTypeLabels.unpaidUnexcused}</SelectItem>
+                <SelectItem value="unpaidExcused">{leaveTypeLabels.unpaidExcused}</SelectItem>
+                <SelectItem value="unpaid">{leaveTypeLabels.unpaid}</SelectItem>
+                <SelectItem value="rtt">{leaveTypeLabels.rtt}</SelectItem>
+                <SelectItem value="familyEvent">{leaveTypeLabels.familyEvent}</SelectItem>
               </SelectContent>
             </Select>
           </div>

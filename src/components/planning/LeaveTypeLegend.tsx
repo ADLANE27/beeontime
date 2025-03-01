@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 
 const leaveTypeColors = {
@@ -21,8 +22,28 @@ const leaveTypeColors = {
     label: "Congé enfant malade",
     color: "#FEC6A1"
   },
-  other: {
-    label: "Autres congés",
+  sickLeave: {
+    label: "Arrêt maladie",
+    color: "#FFD6A5"
+  },
+  unpaidUnexcused: {
+    label: "Absence injustifiée non rémunérée",
+    color: "#FFB7B7"
+  },
+  unpaidExcused: {
+    label: "Absence justifiée non rémunérée",
+    color: "#FFCCCC"
+  },
+  unpaid: {
+    label: "Absence non rémunérée",
+    color: "#FFE0E0"
+  },
+  annual: {
+    label: "Congé annuel",
+    color: "#BFEFFF"
+  },
+  familyEvent: {
+    label: "Absences pour événements familiaux",
     color: "#E5DEFF"
   }
 } as const;
