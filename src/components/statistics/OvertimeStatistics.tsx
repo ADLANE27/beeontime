@@ -1,8 +1,8 @@
+
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export const OvertimeStatistics = () => {
   const { data: overtimeStats, isLoading } = useQuery({
@@ -29,7 +29,9 @@ export const OvertimeStatistics = () => {
 
   if (isLoading) return (
     <Card className="p-6">
-      <LoadingScreen message="Chargement des statistiques..." />
+      <div className="flex justify-center p-4">
+        <span>Chargement des statistiques...</span>
+      </div>
     </Card>
   );
 

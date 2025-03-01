@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -49,16 +50,7 @@ import { CalendarIcon, Download, Plus, Upload } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { addMonths, subMonths } from "date-fns";
-import { LoadingScreen } from "@/components/ui/loading-screen";
-
-interface Payslip {
-  id: string;
-  employee_id: string;
-  month: string;
-  year: string;
-  file_url: string;
-  created_at: string;
-}
+import { Payslip } from "@/types/hr";
 
 interface Employee {
   id: string;
@@ -70,7 +62,7 @@ const today = new Date();
 const currentYear = today.getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-export const PayslipManagement = () => {
+export const PayslipList = () => {
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -92,21 +84,21 @@ export const PayslipManagement = () => {
       setIsLoading(true);
       try {
         let query = supabase
-          .from("payslips")
+          .from("documents")
           .select("*")
-          .order("year", { ascending: false })
-          .order("month", { ascending: false });
+          .eq("type", "payslip")
+          .order("created_at", { ascending: false });
 
         if (selectedEmployee) {
           query = query.eq("employee_id", selectedEmployee);
         }
 
         if (date?.from && date?.to) {
-          const fromDate = format(date.from, "yyyy-MM");
-          const toDate = format(date.to, "yyyy-MM");
+          const fromDate = format(date.from, "yyyy-MM-dd");
+          const toDate = format(date.to, "yyyy-MM-dd");
 
-          query = query.gte("year", fromDate.split("-")[0]);
-          query = query.lte("year", toDate.split("-")[0]);
+          query = query.gte("created_at", fromDate);
+          query = query.lte("created_at", toDate);
         }
 
         const { data, error } = await query;
@@ -115,7 +107,26 @@ export const PayslipManagement = () => {
           console.error("Error fetching payslips:", error);
           toast.error("Erreur lors du chargement des fiches de paie");
         } else {
-          setPayslips(data || []);
+          // Transform documents to payslips
+          const transformedPayslips: Payslip[] = data
+            ? data.map((doc: any) => {
+                // Extract month and year from the title or filename
+                const titleParts = doc.title ? doc.title.split('_') : [];
+                const month = titleParts.length > 1 ? titleParts[1].substring(5, 7) : '';
+                const year = titleParts.length > 1 ? titleParts[1].substring(0, 4) : '';
+                
+                return {
+                  id: doc.id,
+                  employee_id: doc.employee_id,
+                  month: month,
+                  year: year,
+                  file_url: doc.file_path,
+                  created_at: doc.created_at
+                };
+              })
+            : [];
+          
+          setPayslips(transformedPayslips);
         }
       } catch (error) {
         console.error("Unexpected error fetching payslips:", error);
@@ -160,7 +171,7 @@ export const PayslipManagement = () => {
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `payslip_${selectedEmployee}_${selectedYear}-${selectedMonth}.${fileExt}`;
+      const fileName = `payslip_${selectedYear}-${selectedMonth}_${selectedEmployee}.${fileExt}`;
       const filePath = `payslips/${fileName}`;
 
       // Upload the payslip file to Supabase storage
@@ -184,16 +195,17 @@ export const PayslipManagement = () => {
         .getPublicUrl(filePath);
       const fileURL = fileData.publicUrl;
 
-      // Create a new payslip record in the database
+      // Create a new payslip record in the documents table
       const { data: insertData, error: insertError } = await supabase
-        .from("payslips")
+        .from("documents")
         .insert([
           {
             employee_id: selectedEmployee,
-            month: selectedMonth,
-            year: selectedYear,
-            file_url: fileURL,
-          },
+            title: fileName,
+            type: "payslip",
+            file_path: fileURL,
+            uploaded_by: selectedEmployee // Assuming the employee uploads their own payslip
+          }
         ]);
 
       if (insertError) {
@@ -201,7 +213,19 @@ export const PayslipManagement = () => {
         toast.error("Erreur lors de l'enregistrement de la fiche de paie");
       } else {
         toast.success("Fiche de paie enregistrée avec succès");
-        setPayslips((prevPayslips) => [...prevPayslips, insertData[0]]);
+        
+        if (insertData && insertData.length > 0) {
+          const newPayslip: Payslip = {
+            id: insertData[0].id,
+            employee_id: selectedEmployee,
+            month: selectedMonth,
+            year: selectedYear,
+            file_url: fileURL,
+            created_at: insertData[0].created_at
+          };
+          
+          setPayslips((prevPayslips) => [...prevPayslips, newPayslip]);
+        }
       }
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -234,7 +258,7 @@ export const PayslipManagement = () => {
     <Card className="bg-white/90 shadow-lg rounded-xl border border-gray-100 overflow-hidden backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-2xl font-bold">Fiches de paie</CardTitle>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
               <Plus className="h-4 w-4" />
@@ -419,7 +443,9 @@ export const PayslipManagement = () => {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
-                  <LoadingScreen message="Chargement des fiches de paie" />
+                  <div className="flex justify-center p-4">
+                    <span>Chargement des fiches de paie...</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filteredPayslips.length === 0 ? (
@@ -433,11 +459,10 @@ export const PayslipManagement = () => {
                 const employee = employees.find(
                   (emp) => emp.id === payslip.employee_id
                 );
-                const monthName = format(
-                  new Date(2023, parseInt(payslip.month) - 1, 1),
-                  "MMMM",
-                  { locale: fr }
-                );
+                const monthNumber = parseInt(payslip.month);
+                const monthName = !isNaN(monthNumber) 
+                  ? format(new Date(2023, monthNumber - 1, 1), "MMMM", { locale: fr })
+                  : "N/A";
 
                 return (
                   <TableRow key={payslip.id}>

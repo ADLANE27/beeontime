@@ -6,5 +6,9 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen = ({ message = "Chargement..." }: LoadingScreenProps) => {
-  return null; // Completely disabled loading screen
+  return (
+    <div className="flex justify-center items-center p-4">
+      <span>{message}</span>
+    </div>
+  );
 };
