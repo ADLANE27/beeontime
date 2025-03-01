@@ -16,7 +16,7 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
       toast.success(isEditing ? "Employé modifié avec succès" : "Employé créé avec succès");
       onSuccess();
     } catch (error: any) {
-      console.error('Unexpected error:', error);
+      console.error('Error during employee submission:', error);
       toast.error(error.message || "Une erreur inattendue est survenue");
     } finally {
       setIsSubmitting(false);
