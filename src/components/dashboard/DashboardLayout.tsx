@@ -14,12 +14,11 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, profile } = useAuth();
+  const { signOut, user } = useAuth(); // Remove profile dependency
   const isAdmin = location.pathname.startsWith("/hr");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Use a simplified display name that doesn't depend on profile 
-  // This prevents a dependency on profile data availability
+  // Use email from user object directly instead of profile
   const userName = user?.email?.split('@')[0] || 'User';
 
   const handleLogout = async () => {

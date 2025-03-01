@@ -18,18 +18,16 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useAuth } from "@/contexts/AuthContext";
 
 const EmployeeDashboard = () => {
   const [selectedTab, setSelectedTab] = useState("documents");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { session } = useAuth();
 
   useEffect(() => {
-    // For debugging - log when dashboard mounts and if session exists
-    console.log("EmployeeDashboard mounted, session status:", session ? "Active" : "None");
-  }, [session]);
+    // For debugging - log when dashboard mounts
+    console.log("EmployeeDashboard mounted");
+  }, []);
 
   const menuItems = [
     { value: "documents", label: "Documents", icon: FileText },

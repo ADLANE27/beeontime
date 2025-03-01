@@ -50,25 +50,6 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     });
   }, [session, isLoading, profile, requiredRole, routeTimeout]);
   
-  if (routeTimeout && (isLoading || (session && !profile))) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-        <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md text-center">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">Problème de chargement</h2>
-          <p className="text-gray-600 mb-6">
-            Le chargement de votre profil prend trop de temps. Veuillez rafraîchir la page.
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Rafraîchir la page
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
   if (isLoading) {
     return <LoadingScreen message="Vérification de votre session..." timeout={5000} />;
   }
@@ -77,8 +58,9 @@ const ProtectedRoute = ({ children, requiredRole = "employee" }: ProtectedRouteP
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
   }
   
-  if (session && !profile) {
-    return <LoadingScreen message="Chargement de votre profil..." timeout={5000} />;
+  if (routeTimeout && session && !profile) {
+    console.log("ProtectedRoute - Proceeding with session-only access (profile load timeout)");
+    return <>{children}</>;
   }
   
   if (profile && profile.role !== requiredRole) {
