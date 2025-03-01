@@ -1,0 +1,73 @@
+
+import { NewEmployee } from "@/types/hr";
+import { 
+  checkAuthUserExists, 
+  createAuthUser, 
+  updateUserPassword, 
+  updateUserProfile, 
+  upsertEmployee 
+} from "@/api/employee";
+
+/**
+ * Creates or updates an employee with all related records
+ */
+export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = false) => {
+  // Sanitize email to lowercase
+  const email = formData.email.toLowerCase();
+  
+  console.log('Creating/Updating employee with data:', { 
+    ...formData,
+    initialPassword: formData.initialPassword ? `[Password provided, length: ${formData.initialPassword.length}]` : 'None'
+  });
+  
+  // Check if auth user exists using email
+  const { users, authUserExists } = await checkAuthUserExists(email);
+  console.log('Auth user check result:', users);
+  
+  let userId: string;
+  
+  // Find matching user by email in the auth users list
+  const matchingUser = authUserExists ? 
+    users.find((user: any) => user.email.toLowerCase() === email) : 
+    null;
+
+  if (matchingUser) {
+    // Auth user exists - use the existing ID
+    userId = matchingUser.id;
+    console.log('Auth user exists, using existing ID:', userId);
+    
+    // Only update password if it's provided and we're not in edit mode
+    if (!isEditing && formData.initialPassword) {
+      console.log('Updating password for existing user:', userId);
+      await updateUserPassword(userId, formData.initialPassword, email);
+      console.log('Password updated successfully');
+    }
+  } else {
+    // Create new auth user
+    if (!formData.initialPassword) {
+      throw new Error("A initial password is required to create a new user");
+    }
+    
+    console.log('Creating new auth user with email:', email);
+    const authData = await createAuthUser(
+      email, 
+      formData.initialPassword, 
+      formData.firstName, 
+      formData.lastName
+    );
+
+    userId = authData.id;
+    console.log('New auth user created with ID:', userId);
+  }
+
+  // Create or update profile record using the auth user ID
+  console.log('Creating/updating profile with ID:', userId);
+  await updateUserProfile(userId, email, formData.firstName, formData.lastName);
+  console.log('Profile created/updated with ID:', userId);
+
+  // Create or update employee record
+  await upsertEmployee(formData, userId);
+  console.log('Employee record created/updated with ID:', userId);
+  
+  return { userId };
+};
