@@ -179,6 +179,26 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
         console.log('New auth user created with ID:', userId);
       }
 
+      // CRITICAL: Create or update profile record BEFORE employee record
+      // This ensures the profile always exists
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: formData.email.toLowerCase(),
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          role: 'employee'
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        console.error('Profile creation/update error:', profileError);
+        toast.error("Erreur lors de la mise à jour du profil");
+        return;
+      }
+      
+      console.log('Profile created/updated with ID:', userId);
+
       // Create or update employee record
       const { error: employeeError } = await supabase
         .from('employees')
@@ -204,29 +224,15 @@ export const useEmployeeSubmit = (onSuccess: () => void, isEditing?: boolean) =>
           city: formData.city || null,
           postal_code: formData.postalCode || null,
           country: formData.country || 'France'
-        });
+        }, { onConflict: 'id' });
 
       if (employeeError) {
         console.error('Employee creation error:', employeeError);
         toast.error("Erreur lors de la création de l'employé");
         return;
       }
-
-      // Update profile record to ensure first/last name synced
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          email: formData.email.toLowerCase(),
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          role: 'employee'
-        });
-
-      if (profileError) {
-        console.error('Profile update error:', profileError);
-        // Not critical, continue
-      }
+      
+      console.log('Employee record created/updated with ID:', userId);
 
       console.log('Employee created/updated successfully');
       toast.success(isEditing ? "Employé modifié avec succès" : "Employé créé avec succès");
