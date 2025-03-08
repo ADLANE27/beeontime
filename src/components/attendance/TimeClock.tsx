@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { UserGuide } from "@/components/guides/UserGuide";
 
 interface WorkSchedule {
   startTime: string;
@@ -241,9 +243,12 @@ export const TimeClock = () => {
   return (
     <Card className="p-6">
       <div className="flex flex-col items-center space-y-4">
-        <div className="text-center">
-          <p className="text-lg text-gray-600">{formattedDate}</p>
-          <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
+        <div className="w-full flex justify-between items-center">
+          <div className="text-center flex-1">
+            <p className="text-lg text-gray-600">{formattedDate}</p>
+            <p className="text-4xl font-bold tracking-tight">{formattedTime}</p>
+          </div>
+          <UserGuide />
         </div>
         
         <div className="flex gap-4">
