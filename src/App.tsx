@@ -20,17 +20,21 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      // Add better error handling for queries
-      onError: (error) => {
-        console.error('Query error:', error);
-        toast.error("Erreur lors de la récupération des données");
+      // Using the updated error handling pattern
+      meta: {
+        onError: (error: Error) => {
+          console.error('Query error:', error);
+          toast.error("Erreur lors de la récupération des données");
+        }
       }
     },
     mutations: {
-      // Add better error handling for mutations
-      onError: (error) => {
-        console.error('Mutation error:', error);
-        toast.error("Erreur lors de la modification des données");
+      // Using the updated error handling pattern
+      meta: {
+        onError: (error: Error) => {
+          console.error('Mutation error:', error);
+          toast.error("Erreur lors de la modification des données");
+        }
       }
     }
   },
