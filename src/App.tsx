@@ -10,41 +10,31 @@ import HRPortal from "./pages/HRPortal";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import { supabase } from "./integrations/supabase/client";
 import { toast } from "sonner";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      // Add better error handling for queries
+      onError: (error) => {
+        console.error('Query error:', error);
+        toast.error("Erreur lors de la récupération des données");
+      }
     },
+    mutations: {
+      // Add better error handling for mutations
+      onError: (error) => {
+        console.error('Mutation error:', error);
+        toast.error("Erreur lors de la modification des données");
+      }
+    }
   },
 });
-
-const ProtectedRoute = ({ children, requiredRole = "employee" }: { children: React.ReactNode; requiredRole?: "hr" | "employee" }) => {
-  const { session, isLoading } = useAuth();
-
-  // Show loading state only during initial auth check
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If no session, redirect to appropriate portal
-  if (!session) {
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
-  }
-
-  return <>{children}</>;
-};
 
 const App = () => (
   <ErrorBoundary>

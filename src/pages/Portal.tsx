@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -7,16 +7,49 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { FormEvent } from "react";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 const Portal = () => {
   const navigate = useNavigate();
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, signIn, isSessionExpired } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user) {
       navigate('/employee', { replace: true });
     }
   }, [session, navigate]);
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      toast.warning("Votre session a expiré. Veuillez vous reconnecter.");
+    }
+  }, [isSessionExpired]);
+
+  const handleManualSignIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        setLoginError(error);
+      }
+    } catch (error) {
+      setLoginError("Une erreur inattendue s'est produite.");
+      console.error("Login error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -53,58 +86,58 @@ const Portal = () => {
             <span className="text-sm text-primary">Connexion sécurisée</span>
           </div>
 
-          <Auth
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#0F172A',
-                    brandAccent: '#1E293B',
-                    inputBackground: 'white',
-                    inputText: '#0F172A',
-                    inputBorder: '#E2E8F0',
-                    inputBorderHover: '#CBD5E1',
-                    inputBorderFocus: '#0F172A',
-                  },
-                  borderWidths: {
-                    buttonBorderWidth: '1px',
-                    inputBorderWidth: '1px',
-                  },
-                  radii: {
-                    borderRadiusButton: '0.5rem',
-                    buttonBorderRadius: '0.5rem',
-                    inputBorderRadius: '0.5rem',
-                  },
-                }
-              },
-              className: {
-                container: 'space-y-4',
-                button: 'bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors',
-                input: 'bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full',
-                label: 'text-sm font-medium text-gray-700',
-              }
-            }}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Adresse email',
-                  password_label: 'Mot de passe',
-                  button_label: 'Se connecter',
-                  loading_button_label: 'Vérification...',
-                  email_input_placeholder: 'Votre adresse email',
-                  password_input_placeholder: 'Votre mot de passe'
-                }
-              }
-            }}
-            theme="light"
-            providers={[]}
-            redirectTo={window.location.origin}
-            showLinks={false}
-            view="sign_in"
-            magicLink={false}
-          />
+          <form onSubmit={handleManualSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Adresse email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full px-3 py-2"
+                placeholder="Votre adresse email"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-white border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg w-full px-3 py-2"
+                placeholder="Votre mot de passe"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <div className="text-sm text-red-500 p-2 bg-red-50 rounded border border-red-100">
+                {loginError}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90 text-white font-medium py-2.5 rounded-lg w-full transition-colors"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Vérification...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </Button>
+          </form>
         </Card>
 
         <p className="text-center text-sm text-gray-600 mt-8">
