@@ -366,7 +366,7 @@ export const ExportDataTab = () => {
           "Nom": employee.last_name,
           "Prénom": employee.first_name,
           "Email": employee.email,
-          "Jours ouvrés du mois": workingDays,
+          "Jours ouvrés du mois": workingDays.toString(),
           "Jours d'absence": totalAbsenceDays.toFixed(1),
           "Jours travaillés": (workingDays - totalAbsenceDays).toFixed(1),
           "Retards cumulés (minutes)": totalDelayMinutes.toString(),
