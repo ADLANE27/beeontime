@@ -50,6 +50,7 @@ export const calculateWorkingDays = (startDate: Date, endDate: Date) => {
   return workingDays;
 };
 
+// Updated to handle both string and number values
 export const applyExcelStyling = (worksheet: XLSX.WorkSheet, data: any[]) => {
   const HEADER_FILL = "4472C4";
   const HEADER_FONT = "FFFFFF";

@@ -140,7 +140,7 @@ export const useSalaryElementsExport = () => {
           wch: Math.max(
             key.length + 2,
             ...summaryData.map(row => {
-              // Convert any value to string safely
+              // Convert any value to string safely before getting length
               return String(row[key] || '').length + 2;
             })
           )
@@ -168,7 +168,10 @@ export const useSalaryElementsExport = () => {
         const absenceColWidths = Object.keys(absenceData[0]).map(key => ({
           wch: Math.max(
             key.length + 2,
-            ...absenceData.map(row => String(row[key] || '').length + 2)
+            ...absenceData.map(row => {
+              // Convert any value to string safely before getting length
+              return String(row[key] || '').length + 2;
+            })
           )
         }));
         absenceSheet['!cols'] = absenceColWidths;
@@ -193,7 +196,10 @@ export const useSalaryElementsExport = () => {
         const delayColWidths = Object.keys(delayData[0]).map(key => ({
           wch: Math.max(
             key.length + 2,
-            ...delayData.map(row => String(row[key] || '').length + 2)
+            ...delayData.map(row => {
+              // Convert any value to string safely before getting length
+              return String(row[key] || '').length + 2;
+            })
           )
         }));
         delaySheet['!cols'] = delayColWidths;
@@ -219,7 +225,7 @@ export const useSalaryElementsExport = () => {
           wch: Math.max(
             key.length + 2,
             ...overtimeData.map(row => {
-              // Convert any value to string safely
+              // Convert any value to string safely before getting length
               return String(row[key] || '').length + 2;
             })
           )
