@@ -115,7 +115,7 @@ export const useSalaryElementsExport = () => {
         let totalOvertimeHours = 0;
         
         employeeOvertimes.forEach(overtime => {
-          totalOvertimeHours += parseFloat(overtime.hours);
+          totalOvertimeHours += parseFloat(String(overtime.hours));
         });
 
         const ticketsRestaurant = Math.max(0, workingDays - Math.ceil(totalAbsenceDays));
@@ -216,7 +216,7 @@ export const useSalaryElementsExport = () => {
           "Date": format(parseISO(overtime.date), 'dd/MM/yyyy'),
           "Heure de début": overtime.start_time,
           "Heure de fin": overtime.end_time,
-          "Heures": parseFloat(overtime.hours).toFixed(2)
+          "Heures": parseFloat(String(overtime.hours)).toFixed(2)
         }));
 
         const overtimeSheet = XLSX.utils.json_to_sheet(overtimeData);
