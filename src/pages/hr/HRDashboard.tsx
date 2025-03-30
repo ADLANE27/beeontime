@@ -174,17 +174,17 @@ const HRDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4">
+      <div className="space-y-6 w-full">
+        <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4 w-full">
           {isMobile ? (
-            <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-col gap-3 mb-4 w-full">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
                   {menuItems.find(item => item.value === selectedTab)?.label}
                 </h1>
               </div>
               
-              <div className="overflow-x-auto pb-2 -mx-4 px-4">
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-16 bg-gray-50 z-20">
                 <div className="flex space-x-2 min-w-max">
                   {menuItems.map((item) => (
                     <Button
@@ -245,7 +245,7 @@ const HRDashboard = () => {
               </Drawer>
             </div>
           ) : (
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-2 shadow-sm mb-4">
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-2 shadow-sm mb-4 sticky top-16 z-20">
               <TabsList className="flex flex-wrap items-center gap-1 bg-transparent">
                 {menuItems.map((item) => (
                   <TabsTrigger 
