@@ -5,7 +5,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ExportCard } from "./components/ExportCard";
 import { MonthSelector } from "./components/MonthSelector";
-import { useBasicExport, useTimeExport, useSalaryElementsExport } from "./hooks/useExportHooks";
+import { useBasicExport, useTimeExport, useSalaryElementsExport } from "./hooks";
 
 export const ExportDataTab = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
