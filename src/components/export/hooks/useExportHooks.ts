@@ -330,12 +330,12 @@ export const useSalaryElementsExport = () => {
           "Nom": employee.last_name,
           "Prénom": employee.first_name,
           "Email": employee.email,
-          "Jours ouvrés du mois": String(workingDays),
-          "Jours d'absence": String(totalAbsenceDays),
-          "Jours travaillés": String(workingDays - totalAbsenceDays),
-          "Titres restaurant": String(ticketsRestaurant),
-          "Retards cumulés (minutes)": String(totalDelayMinutes),
-          "Heures supplémentaires": String(totalOvertimeHours)
+          "Jours ouvrés du mois": workingDays,
+          "Jours d'absence": totalAbsenceDays,
+          "Jours travaillés": workingDays - totalAbsenceDays,
+          "Titres restaurant": ticketsRestaurant,
+          "Retards cumulés (minutes)": totalDelayMinutes,
+          "Heures supplémentaires": totalOvertimeHours
         };
       });
 
@@ -413,7 +413,7 @@ export const useSalaryElementsExport = () => {
           "Date": format(parseISO(overtime.date), 'dd/MM/yyyy'),
           "Heure de début": overtime.start_time,
           "Heure de fin": overtime.end_time,
-          "Heures": String(parseFloat(overtime.hours).toFixed(2))
+          "Heures": parseFloat(overtime.hours).toFixed(2)
         }));
 
         const overtimeSheet = XLSX.utils.json_to_sheet(overtimeData);
