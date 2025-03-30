@@ -40,7 +40,7 @@ const EmployeeDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6 w-full">
         {/* Time Clock Section */}
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md p-6 border border-gray-100">
+        <div className="bg-white rounded-lg shadow p-6">
           <TimeClock />
         </div>
 
@@ -48,7 +48,7 @@ const EmployeeDashboard = () => {
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-6">
           {isMobile ? (
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gradient">
+              <h1 className="text-2xl font-bold">
                 {menuItems.find(item => item.value === selectedTab)?.label}
               </h1>
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -83,7 +83,7 @@ const EmployeeDashboard = () => {
                 <TabsTrigger 
                   key={item.value}
                   value={item.value} 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md flex items-center gap-2 h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2 h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
@@ -93,24 +93,24 @@ const EmployeeDashboard = () => {
           )}
 
           <TabsContent value="documents" className="m-0">
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md p-6 border border-gray-100">
+            <div className="bg-white rounded-lg shadow p-6">
               <PayslipList />
             </div>
           </TabsContent>
 
           <TabsContent value="leave" className="m-0">
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md p-6 border border-gray-100">
+            <div className="bg-white rounded-lg shadow p-6">
               <Tabs defaultValue="request" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 gap-4 bg-transparent h-auto p-0">
                   <TabsTrigger 
                     value="request" 
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     Nouvelle demande
                   </TabsTrigger>
                   <TabsTrigger 
                     value="list" 
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     Historique
                   </TabsTrigger>
@@ -128,7 +128,7 @@ const EmployeeDashboard = () => {
           </TabsContent>
 
           <TabsContent value="overtime" className="m-0">
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md p-6 border border-gray-100">
+            <div className="bg-white rounded-lg shadow p-6">
               <OvertimeList />
             </div>
           </TabsContent>

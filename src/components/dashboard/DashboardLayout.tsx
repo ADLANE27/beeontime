@@ -22,18 +22,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 w-full">
-      <header className="bg-gradient-to-r from-primary/95 to-primary/75 text-primary-foreground shadow-md sticky top-0 z-30">
+    <div className="min-h-screen bg-gray-50 w-full">
+      <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-lg font-semibold">
-              {isAdmin ? "Tableau de bord RH" : "Espace Employé"}
-            </h1>
-            <Button 
-              variant="ghost" 
-              onClick={handleLogout} 
-              className="gap-2 text-primary-foreground hover:bg-primary-foreground/10"
-            >
+          <div className="flex items-center justify-end h-16">
+            <Button variant="ghost" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" />
               Se déconnecter
             </Button>

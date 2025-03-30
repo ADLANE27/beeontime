@@ -184,7 +184,7 @@ const HRDashboard = () => {
                 </h1>
               </div>
               
-              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-16 bg-gradient-to-b from-gray-50 to-transparent z-20">
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-16 bg-gray-50 z-20">
                 <div className="flex space-x-2 min-w-max">
                   {menuItems.map((item) => (
                     <Button
@@ -192,9 +192,7 @@ const HRDashboard = () => {
                       variant={selectedTab === item.value ? "default" : "outline"}
                       size="sm"
                       className={`flex items-center gap-1.5 whitespace-nowrap h-9 ${
-                        selectedTab === item.value 
-                          ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-sm' 
-                          : 'bg-background/80 text-foreground/80'
+                        selectedTab === item.value ? 'bg-primary text-primary-foreground' : 'bg-background/80 text-foreground/80'
                       }`}
                       onClick={() => handleTabChange(item.value)}
                     >
@@ -220,18 +218,14 @@ const HRDashboard = () => {
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                 <DrawerContent className="w-[300px] p-4">
                   <DrawerHeader className="p-0 mb-2">
-                    <DrawerTitle className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">Menu</DrawerTitle>
+                    <DrawerTitle className="text-xl font-semibold text-primary">Menu</DrawerTitle>
                   </DrawerHeader>
                   <div className="mt-4 flex flex-col gap-2">
                     {menuItems.map((item) => (
                       <Button
                         key={item.value}
                         variant={selectedTab === item.value ? "default" : "ghost"}
-                        className={`w-full justify-start gap-2 ${
-                          selectedTab === item.value 
-                            ? 'bg-gradient-to-r from-primary to-primary/90 shadow-md' 
-                            : ''
-                        }`}
+                        className={`w-full justify-start gap-2 ${selectedTab === item.value ? 'shadow-md' : ''}`}
                         onClick={() => handleTabChange(item.value)}
                       >
                         <item.icon className={`h-4 w-4 ${selectedTab === item.value ? 'text-primary-foreground' : 'text-primary/60'}`} />
@@ -251,28 +245,20 @@ const HRDashboard = () => {
               </Drawer>
             </div>
           ) : (
-            <div className="bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm rounded-xl p-2 shadow-sm mb-4 sticky top-16 z-20">
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-2 shadow-sm mb-4 sticky top-16 z-20">
               <TabsList className="flex flex-wrap items-center gap-1 bg-transparent">
                 {menuItems.map((item) => (
                   <TabsTrigger 
                     key={item.value} 
                     value={item.value} 
-                    className={`text-xs sm:text-sm gap-1.5 ${
-                      selectedTab === item.value 
-                        ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-md' 
-                        : 'bg-transparent hover:bg-gray-100'
-                    }`}
+                    className={`text-xs sm:text-sm gap-1.5 ${selectedTab === item.value ? 'bg-primary text-primary-foreground shadow-md' : 'bg-transparent hover:bg-gray-100'}`}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
                     {item.badge && (
                       <Badge 
                         variant="secondary"
-                        className={`ml-1 ${
-                          selectedTab === item.value 
-                            ? 'bg-primary-foreground/20 text-primary-foreground' 
-                            : 'bg-muted/50 text-muted-foreground'
-                        } text-xs px-1.5 min-w-[1.25rem] h-5`}
+                        className={`ml-1 ${selectedTab === item.value ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted/50 text-muted-foreground'} text-xs px-1.5 min-w-[1.25rem] h-5`}
                       >
                         {item.badge}
                       </Badge>
@@ -282,7 +268,7 @@ const HRDashboard = () => {
               </TabsList>
             </div>
           )}
-          <div className="bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl p-6 shadow-sm">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-sm">
             {renderTabContent()}
           </div>
         </Tabs>
