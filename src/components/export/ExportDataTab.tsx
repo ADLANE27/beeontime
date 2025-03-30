@@ -15,12 +15,17 @@ export const ExportDataTab = () => {
 
   const isAnyExporting = isBasicExporting || isTimeExporting || isSalaryExporting;
 
+  // Add handler that converts any number to string before setting state
+  const handleMonthChange = (value: string | number) => {
+    setSelectedMonth(String(value));
+  };
+
   return (
     <Card className="p-6">
       <div className="space-y-6">
         <MonthSelector 
           value={selectedMonth} 
-          onValueChange={setSelectedMonth} 
+          onValueChange={handleMonthChange} 
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

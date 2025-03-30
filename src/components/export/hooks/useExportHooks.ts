@@ -345,7 +345,10 @@ export const useSalaryElementsExport = () => {
         const summaryColWidths = Object.keys(summaryData[0]).map(key => ({
           wch: Math.max(
             key.length + 2,
-            ...summaryData.map(row => String(row[key]).length + 2)
+            ...summaryData.map(row => {
+              // Convert any value to string safely
+              return String(row[key]).length + 2;
+            })
           )
         }));
         summarySheet['!cols'] = summaryColWidths;
@@ -421,7 +424,10 @@ export const useSalaryElementsExport = () => {
         const overtimeColWidths = Object.keys(overtimeData[0]).map(key => ({
           wch: Math.max(
             key.length + 2,
-            ...overtimeData.map(row => String(row[key]).length + 2)
+            ...overtimeData.map(row => {
+              // Convert any value to string safely
+              return String(row[key]).length + 2;
+            })
           )
         }));
         overtimeSheet['!cols'] = overtimeColWidths;
