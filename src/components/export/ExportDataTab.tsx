@@ -1,9 +1,8 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes, subMonths, isWeekend, parse } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes, subMonths, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
@@ -270,7 +269,6 @@ export const ExportDataTab = () => {
     const monthYear = format(startDate, 'MM-yyyy');
 
     try {
-      // Fetch all employees
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('id, first_name, last_name, email')
@@ -283,7 +281,6 @@ export const ExportDataTab = () => {
         return;
       }
 
-      // Fetch approved absences for the month
       const { data: absences, error: absencesError } = await supabase
         .from('leave_requests')
         .select(`
@@ -296,7 +293,6 @@ export const ExportDataTab = () => {
 
       if (absencesError) throw absencesError;
 
-      // Fetch approved delays for the month
       const { data: delays, error: delaysError } = await supabase
         .from('delays')
         .select(`
@@ -309,7 +305,6 @@ export const ExportDataTab = () => {
 
       if (delaysError) throw delaysError;
 
-      // Fetch approved overtime for the month
       const { data: overtimes, error: overtimesError } = await supabase
         .from('overtime_requests')
         .select(`
@@ -322,13 +317,10 @@ export const ExportDataTab = () => {
 
       if (overtimesError) throw overtimesError;
 
-      // Calculate working days in the month
       const workingDays = calculateWorkingDays(startDate, endDate);
 
-      // Create a new workbook
       const wb = XLSX.utils.book_new();
 
-      // Set workbook properties for better metadata
       wb.Props = {
         Title: `Éléments de salaires ${formattedMonth}`,
         Subject: "Données pour le comptable",
@@ -336,9 +328,7 @@ export const ExportDataTab = () => {
         CreatedDate: new Date()
       };
 
-      // Create summary data for each employee
       const summaryData = employees.map(employee => {
-        // Calculate total absence days for this employee
         const employeeAbsences = absences?.filter(a => a.employee_id === employee.id) || [];
         let totalAbsenceDays = 0;
         
@@ -358,7 +348,6 @@ export const ExportDataTab = () => {
           totalAbsenceDays += absenceDays;
         });
 
-        // Calculate total delay minutes for this employee
         const employeeDelays = delays?.filter(d => d.employee_id === employee.id) || [];
         let totalDelayMinutes = 0;
         
@@ -373,7 +362,6 @@ export const ExportDataTab = () => {
           }
         });
 
-        // Calculate total overtime hours for this employee
         const employeeOvertimes = overtimes?.filter(o => o.employee_id === employee.id) || [];
         let totalOvertimeHours = 0;
         
@@ -381,19 +369,18 @@ export const ExportDataTab = () => {
           totalOvertimeHours += parseFloat(overtime.hours);
         });
 
-        // Calculate ticket restaurant entitlement
         const ticketsRestaurant = Math.max(0, workingDays - Math.ceil(totalAbsenceDays));
 
         return {
           "Nom": employee.last_name,
           "Prénom": employee.first_name,
           "Email": employee.email,
-          "Jours ouvrés du mois": workingDays.toString(), // Convert to string
-          "Jours d'absence": totalAbsenceDays.toFixed(1),
-          "Jours travaillés": (workingDays - totalAbsenceDays).toFixed(1),
-          "Titres restaurant": ticketsRestaurant.toString(), // Convert to string
-          "Retards cumulés (minutes)": totalDelayMinutes.toString(), // Convert to string
-          "Heures supplémentaires": totalOvertimeHours.toFixed(2)
+          "Jours ouvrés du mois": String(workingDays),
+          "Jours d'absence": String(totalAbsenceDays),
+          "Jours travaillés": String(workingDays - totalAbsenceDays),
+          "Titres restaurant": String(ticketsRestaurant),
+          "Retards cumulés (minutes)": String(totalDelayMinutes),
+          "Heures supplémentaires": String(totalOvertimeHours)
         };
       });
 
@@ -413,7 +400,6 @@ export const ExportDataTab = () => {
         XLSX.utils.book_append_sheet(wb, summarySheet, "Résumé");
       }
 
-      // Create absence sheet if there are absences
       if (absences && absences.length > 0) {
         const absenceData = absences.map(absence => ({
           "Nom": absence.employees?.last_name || 'N/A',
@@ -440,7 +426,6 @@ export const ExportDataTab = () => {
         XLSX.utils.book_append_sheet(wb, absenceSheet, "Absences");
       }
 
-      // Create delay sheet if there are delays
       if (delays && delays.length > 0) {
         const delayData = delays.map(delay => ({
           "Nom": delay.employees?.last_name || 'N/A',
@@ -466,7 +451,6 @@ export const ExportDataTab = () => {
         XLSX.utils.book_append_sheet(wb, delaySheet, "Retards");
       }
 
-      // Create overtime sheet if there are overtimes
       if (overtimes && overtimes.length > 0) {
         const overtimeData = overtimes.map(overtime => ({
           "Nom": overtime.employees?.last_name || 'N/A',
@@ -492,7 +476,6 @@ export const ExportDataTab = () => {
         XLSX.utils.book_append_sheet(wb, overtimeSheet, "Heures supplémentaires");
       }
 
-      // Write the workbook to file
       XLSX.writeFile(wb, `elements_salaires_${monthYear}.xlsx`);
       toast.success(`Export des éléments de salaires pour ${formattedMonth} effectué avec succès`);
     } catch (error) {
