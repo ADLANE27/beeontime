@@ -159,7 +159,7 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
         return;
       }
 
-      // Submit leave request
+      // Submit leave request - CHANGED STATUS TO 'pending' INSTEAD OF 'approved'
       const { data: leaveRequest, error: leaveRequestError } = await supabase
         .from('leave_requests')
         .insert({
@@ -170,7 +170,7 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
           day_type: dayType,
           period: dayType === "half" ? period : null,
           reason: reason,
-          status: 'approved' // Auto-approve when HR creates the request
+          status: 'pending' // Changed from 'approved' to 'pending'
         })
         .select()
         .single();

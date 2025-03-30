@@ -226,7 +226,7 @@ export const EmployeeLeaveList = () => {
             <SelectValue placeholder="Type de congé" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tous les types</SelectItem>
+            <SelectItem value="all">Tous les types</SelectItem>
             <SelectItem value="vacation">Congés payés</SelectItem>
             <SelectItem value="annual">Congé annuel</SelectItem>
             <SelectItem value="paternity">Congé paternité</SelectItem>
