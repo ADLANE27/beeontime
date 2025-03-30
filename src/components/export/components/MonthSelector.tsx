@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { getLastTwelveMonths } from "../utils/exportHelpers";
 
 interface MonthSelectorProps {
-  value: string;
-  onValueChange: (value: string) => void;
+  value: string | number;
+  onValueChange: (value: string | number) => void;
 }
 
 export const MonthSelector = ({ value, onValueChange }: MonthSelectorProps) => {
@@ -20,7 +20,7 @@ export const MonthSelector = ({ value, onValueChange }: MonthSelectorProps) => {
       <div className="w-64">
         <Label>Période</Label>
         <Select
-          value={value}
+          value={value.toString()}
           onValueChange={onValueChange}
         >
           <SelectTrigger>
