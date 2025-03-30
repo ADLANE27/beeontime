@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
@@ -321,6 +322,14 @@ export const ExportDataTab = () => {
 
       const wb = XLSX.utils.book_new();
 
+      // Apply workbook properties for better styling
+      wb.Props = {
+        Title: `Éléments de salaire ${formattedMonth}`,
+        Subject: "Données pour le comptable",
+        Author: "HR Portal",
+        CreatedDate: new Date()
+      };
+
       const summaryData = employees.map(employee => {
         const employeeAbsences = absences?.filter(a => a.employee_id === employee.id) || [];
         let totalAbsenceDays = 0;
@@ -362,6 +371,9 @@ export const ExportDataTab = () => {
           totalOvertimeHours += parseFloat(overtime.hours);
         });
 
+        // Calculate tickets restaurant based on working days minus absences
+        const ticketsRestaurant = Math.max(0, workingDays - Math.ceil(totalAbsenceDays));
+
         return {
           "Nom": employee.last_name,
           "Prénom": employee.first_name,
@@ -369,6 +381,7 @@ export const ExportDataTab = () => {
           "Jours ouvrés du mois": workingDays.toString(),
           "Jours d'absence": totalAbsenceDays.toFixed(1),
           "Jours travaillés": (workingDays - totalAbsenceDays).toFixed(1),
+          "Titres restaurant": ticketsRestaurant.toString(),
           "Retards cumulés (minutes)": totalDelayMinutes.toString(),
           "Heures supplémentaires": totalOvertimeHours.toFixed(2)
         };
@@ -377,13 +390,17 @@ export const ExportDataTab = () => {
       if (summaryData.length > 0) {
         const summarySheet = XLSX.utils.json_to_sheet(summaryData);
         
+        // Improve column widths for better readability
         const summaryColWidths = Object.keys(summaryData[0]).map(key => ({
           wch: Math.max(
-            key.length,
-            ...summaryData.map(row => String(row[key]).length)
+            key.length + 2,
+            ...summaryData.map(row => String(row[key]).length + 2)
           )
         }));
         summarySheet['!cols'] = summaryColWidths;
+
+        // Add styling to the summary sheet
+        applyExcelStyling(summarySheet, summaryData);
         
         XLSX.utils.book_append_sheet(wb, summarySheet, "Résumé");
       }
@@ -403,11 +420,14 @@ export const ExportDataTab = () => {
         
         const absenceColWidths = Object.keys(absenceData[0]).map(key => ({
           wch: Math.max(
-            key.length,
-            ...absenceData.map(row => String(row[key]).length)
+            key.length + 2,
+            ...absenceData.map(row => String(row[key]).length + 2)
           )
         }));
         absenceSheet['!cols'] = absenceColWidths;
+        
+        // Add styling
+        applyExcelStyling(absenceSheet, absenceData);
         
         XLSX.utils.book_append_sheet(wb, absenceSheet, "Absences");
       }
@@ -426,11 +446,14 @@ export const ExportDataTab = () => {
         
         const delayColWidths = Object.keys(delayData[0]).map(key => ({
           wch: Math.max(
-            key.length,
-            ...delayData.map(row => String(row[key]).length)
+            key.length + 2,
+            ...delayData.map(row => String(row[key]).length + 2)
           )
         }));
         delaySheet['!cols'] = delayColWidths;
+        
+        // Add styling
+        applyExcelStyling(delaySheet, delayData);
         
         XLSX.utils.book_append_sheet(wb, delaySheet, "Retards");
       }
@@ -449,11 +472,14 @@ export const ExportDataTab = () => {
         
         const overtimeColWidths = Object.keys(overtimeData[0]).map(key => ({
           wch: Math.max(
-            key.length,
-            ...overtimeData.map(row => String(row[key]).length)
+            key.length + 2,
+            ...overtimeData.map(row => String(row[key]).length + 2)
           )
         }));
         overtimeSheet['!cols'] = overtimeColWidths;
+        
+        // Add styling
+        applyExcelStyling(overtimeSheet, overtimeData);
         
         XLSX.utils.book_append_sheet(wb, overtimeSheet, "Heures supplémentaires");
       }
@@ -465,6 +491,50 @@ export const ExportDataTab = () => {
       toast.error("Une erreur est survenue lors de l'export");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // Helper function to apply Excel styling
+  const applyExcelStyling = (worksheet: XLSX.WorkSheet, data: any[]) => {
+    // Add header styling
+    const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!worksheet[cellRef]) continue;
+      
+      worksheet[cellRef].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4F81BD" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "000000" } },
+          bottom: { style: "thin", color: { rgb: "000000" } },
+          left: { style: "thin", color: { rgb: "000000" } },
+          right: { style: "thin", color: { rgb: "000000" } }
+        }
+      };
+    }
+
+    // Add zebra striping and borders to data rows
+    for (let row = 1; row <= data.length; row++) {
+      const isEvenRow = row % 2 === 0;
+      const fillColor = isEvenRow ? "E9EDF4" : "FFFFFF";
+      
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+        if (!worksheet[cellRef]) continue;
+        
+        worksheet[cellRef].s = {
+          fill: { fgColor: { rgb: fillColor } },
+          border: {
+            top: { style: "thin", color: { rgb: "D3D3D3" } },
+            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+            left: { style: "thin", color: { rgb: "D3D3D3" } },
+            right: { style: "thin", color: { rgb: "D3D3D3" } }
+          },
+          alignment: { horizontal: "left", vertical: "center" }
+        };
+      }
     }
   };
 
@@ -500,7 +570,7 @@ export const ExportDataTab = () => {
                 <FileText className="h-6 w-6 text-blue-500" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Export consolidé des jours ouvrés, absences, retards et heures supplémentaires pour tous les employés
+                Export consolidé des jours ouvrés, absences, retards, tickets restaurant et heures supplémentaires pour tous les employés
               </p>
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-700" 
