@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
@@ -17,7 +16,6 @@ import {
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 
-// Ajout des traductions des types de congés
 const leaveTypeTranslations: { [key: string]: string } = {
   "vacation": "Congés payés",
   "annual": "Congé annuel",
@@ -32,7 +30,6 @@ const leaveTypeTranslations: { [key: string]: string } = {
   "sickLeave": "Arrêt maladie"
 };
 
-// Fonction pour obtenir les 12 derniers mois
 const getLastTwelveMonths = () => {
   const months = [];
   for (let i = 0; i < 12; i++) {
@@ -51,18 +48,15 @@ const formatDuration = (minutes: number) => {
   return `${hours}h${String(remainingMinutes).padStart(2, '0')}`;
 };
 
-// Fonction pour calculer le nombre de jours ouvrés dans un mois
 const calculateWorkingDays = (startDate: Date, endDate: Date) => {
   let workingDays = 0;
   let currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
-    // Si ce n'est pas un weekend (0 = dimanche, 6 = samedi)
     if (!isWeekend(currentDate)) {
       workingDays++;
     }
     
-    // Passer au jour suivant
     currentDate.setDate(currentDate.getDate() + 1);
   }
   
@@ -166,11 +160,9 @@ export const ExportDataTab = () => {
         return;
       }
 
-      // Création du workbook Excel avec style
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
 
-      // Ajustement automatique de la largeur des colonnes
       const colWidths = Object.keys(data[0]).map(key => ({
         wch: Math.max(
           key.length,
@@ -179,10 +171,8 @@ export const ExportDataTab = () => {
       }));
       ws['!cols'] = colWidths;
 
-      // Ajout de la feuille au workbook
       XLSX.utils.book_append_sheet(wb, ws, `Données ${type}`);
 
-      // Génération et téléchargement du fichier
       XLSX.writeFile(wb, `export_${type}_${formattedMonth}.xlsx`);
       
       toast.success(`Export des ${type} pour ${formattedMonth} effectué avec succès`);
@@ -201,19 +191,15 @@ export const ExportDataTab = () => {
     const formattedMonth = format(startDate, 'MMMM yyyy', { locale: fr });
 
     try {
-      // Récupérer tous les employés
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('id, first_name, last_name, work_schedule');
 
       if (employeesError) throw employeesError;
 
-      // Créer un nouveau workbook
       const wb = XLSX.utils.book_new();
 
-      // Pour chaque employé
       for (const employee of employees) {
-        // Récupérer les pointages du mois pour cet employé
         const { data: timeRecords, error: timeError } = await supabase
           .from('time_records')
           .select('*')
@@ -224,7 +210,6 @@ export const ExportDataTab = () => {
 
         if (timeError) throw timeError;
 
-        // Préparer les données pour l'export
         const data = timeRecords.map(record => {
           let totalHours = "Pointage incomplet";
           
@@ -232,15 +217,13 @@ export const ExportDataTab = () => {
             const startTime = parseISO(`2000-01-01T${record.morning_in}`);
             const endTime = parseISO(`2000-01-01T${record.evening_out}`);
             
-            // Calculer la pause déjeuner si elle est renseignée
-            let breakDuration = 60; // Pause standard d'1h par défaut
+            let breakDuration = 60;
             if (record.lunch_out && record.lunch_in) {
               const breakStart = parseISO(`2000-01-01T${record.lunch_out}`);
               const breakEnd = parseISO(`2000-01-01T${record.lunch_in}`);
               breakDuration = differenceInMinutes(breakEnd, breakStart);
             }
             
-            // Calculer le temps total en minutes puis convertir en format "XhYY"
             const totalMinutes = differenceInMinutes(endTime, startTime) - breakDuration;
             totalHours = formatDuration(totalMinutes);
           }
@@ -255,11 +238,9 @@ export const ExportDataTab = () => {
           };
         });
 
-        // Créer une feuille pour l'employé
         const ws = XLSX.utils.json_to_sheet(data);
 
-        // Ajuster la largeur des colonnes
-        const colWidths = Object.keys(data[0] || {}).map(key => ({
+        const colWidths = Object.keys(data[0]).map(key => ({
           wch: Math.max(
             key.length,
             ...data.map(row => String(row[key]).length)
@@ -267,11 +248,9 @@ export const ExportDataTab = () => {
         }));
         ws['!cols'] = colWidths;
 
-        // Ajouter la feuille au workbook
         XLSX.utils.book_append_sheet(wb, ws, `${employee.first_name} ${employee.last_name}`);
       }
 
-      // Générer et télécharger le fichier
       XLSX.writeFile(wb, `temps_travail_${formattedMonth}.xlsx`);
       toast.success(`Export du temps de travail pour ${formattedMonth} effectué avec succès`);
     } catch (error) {
@@ -282,7 +261,6 @@ export const ExportDataTab = () => {
     }
   };
 
-  // Nouvelle fonction pour exporter les éléments de salaires
   const handleSalaryElementsExport = async () => {
     setIsExporting(true);
     const startDate = startOfMonth(new Date(selectedMonth));
@@ -291,7 +269,6 @@ export const ExportDataTab = () => {
     const monthYear = format(startDate, 'MM-yyyy');
 
     try {
-      // Récupérer tous les employés
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('id, first_name, last_name, email')
@@ -304,7 +281,6 @@ export const ExportDataTab = () => {
         return;
       }
 
-      // Récupérer les absences approuvées
       const { data: absences, error: absencesError } = await supabase
         .from('leave_requests')
         .select(`
@@ -317,7 +293,6 @@ export const ExportDataTab = () => {
 
       if (absencesError) throw absencesError;
 
-      // Récupérer les retards
       const { data: delays, error: delaysError } = await supabase
         .from('delays')
         .select(`
@@ -330,7 +305,6 @@ export const ExportDataTab = () => {
 
       if (delaysError) throw delaysError;
 
-      // Récupérer les heures supplémentaires
       const { data: overtimes, error: overtimesError } = await supabase
         .from('overtime_requests')
         .select(`
@@ -343,15 +317,11 @@ export const ExportDataTab = () => {
 
       if (overtimesError) throw overtimesError;
 
-      // Calculer le nombre de jours ouvrés dans le mois
       const workingDays = calculateWorkingDays(startDate, endDate);
 
-      // Créer un nouveau workbook Excel
       const wb = XLSX.utils.book_new();
 
-      // Feuille de résumé par employé
       const summaryData = employees.map(employee => {
-        // Calculer les absences pour cet employé
         const employeeAbsences = absences?.filter(a => a.employee_id === employee.id) || [];
         let totalAbsenceDays = 0;
         
@@ -359,13 +329,11 @@ export const ExportDataTab = () => {
           const absenceStartDate = new Date(absence.start_date);
           const absenceEndDate = new Date(absence.end_date);
           
-          // Calculer les jours ouvrés pour chaque absence
           let absenceDays = calculateWorkingDays(
             absenceStartDate > startDate ? absenceStartDate : startDate,
             absenceEndDate < endDate ? absenceEndDate : endDate
           );
           
-          // Ajuster pour les demi-journées
           if (absence.day_type === 'half') {
             absenceDays = absenceDays / 2;
           }
@@ -373,13 +341,11 @@ export const ExportDataTab = () => {
           totalAbsenceDays += absenceDays;
         });
 
-        // Calculer les retards pour cet employé
         const employeeDelays = delays?.filter(d => d.employee_id === employee.id) || [];
         let totalDelayMinutes = 0;
         
         employeeDelays.forEach(delay => {
           if (delay.duration) {
-            // Convertir le format interval PostgreSQL (HH:MM:SS) en minutes
             const durationParts = String(delay.duration).split(':');
             if (durationParts.length >= 2) {
               const hours = parseInt(durationParts[0], 10);
@@ -389,7 +355,6 @@ export const ExportDataTab = () => {
           }
         });
 
-        // Calculer les heures supplémentaires pour cet employé
         const employeeOvertimes = overtimes?.filter(o => o.employee_id === employee.id) || [];
         let totalOvertimeHours = 0;
         
@@ -404,7 +369,7 @@ export const ExportDataTab = () => {
           "Jours ouvrés du mois": workingDays,
           "Jours d'absence": totalAbsenceDays.toFixed(1),
           "Jours travaillés": (workingDays - totalAbsenceDays).toFixed(1),
-          "Retards cumulés (minutes)": totalDelayMinutes,
+          "Retards cumulés (minutes)": totalDelayMinutes.toString(),
           "Heures supplémentaires": totalOvertimeHours.toFixed(2)
         };
       });
@@ -412,7 +377,6 @@ export const ExportDataTab = () => {
       if (summaryData.length > 0) {
         const summarySheet = XLSX.utils.json_to_sheet(summaryData);
         
-        // Ajuster la largeur des colonnes
         const summaryColWidths = Object.keys(summaryData[0]).map(key => ({
           wch: Math.max(
             key.length,
@@ -421,11 +385,9 @@ export const ExportDataTab = () => {
         }));
         summarySheet['!cols'] = summaryColWidths;
         
-        // Ajouter la feuille au workbook
         XLSX.utils.book_append_sheet(wb, summarySheet, "Résumé");
       }
 
-      // Feuille détaillée des absences
       if (absences && absences.length > 0) {
         const absenceData = absences.map(absence => ({
           "Nom": absence.employees?.last_name || 'N/A',
@@ -439,7 +401,6 @@ export const ExportDataTab = () => {
 
         const absenceSheet = XLSX.utils.json_to_sheet(absenceData);
         
-        // Ajuster la largeur des colonnes
         const absenceColWidths = Object.keys(absenceData[0]).map(key => ({
           wch: Math.max(
             key.length,
@@ -448,11 +409,9 @@ export const ExportDataTab = () => {
         }));
         absenceSheet['!cols'] = absenceColWidths;
         
-        // Ajouter la feuille au workbook
         XLSX.utils.book_append_sheet(wb, absenceSheet, "Absences");
       }
 
-      // Feuille détaillée des retards
       if (delays && delays.length > 0) {
         const delayData = delays.map(delay => ({
           "Nom": delay.employees?.last_name || 'N/A',
@@ -465,7 +424,6 @@ export const ExportDataTab = () => {
 
         const delaySheet = XLSX.utils.json_to_sheet(delayData);
         
-        // Ajuster la largeur des colonnes
         const delayColWidths = Object.keys(delayData[0]).map(key => ({
           wch: Math.max(
             key.length,
@@ -474,11 +432,9 @@ export const ExportDataTab = () => {
         }));
         delaySheet['!cols'] = delayColWidths;
         
-        // Ajouter la feuille au workbook
         XLSX.utils.book_append_sheet(wb, delaySheet, "Retards");
       }
 
-      // Feuille détaillée des heures supplémentaires
       if (overtimes && overtimes.length > 0) {
         const overtimeData = overtimes.map(overtime => ({
           "Nom": overtime.employees?.last_name || 'N/A',
@@ -491,7 +447,6 @@ export const ExportDataTab = () => {
 
         const overtimeSheet = XLSX.utils.json_to_sheet(overtimeData);
         
-        // Ajuster la largeur des colonnes
         const overtimeColWidths = Object.keys(overtimeData[0]).map(key => ({
           wch: Math.max(
             key.length,
@@ -500,11 +455,9 @@ export const ExportDataTab = () => {
         }));
         overtimeSheet['!cols'] = overtimeColWidths;
         
-        // Ajouter la feuille au workbook
         XLSX.utils.book_append_sheet(wb, overtimeSheet, "Heures supplémentaires");
       }
 
-      // Générer et télécharger le fichier
       XLSX.writeFile(wb, `elements_salaires_${monthYear}.xlsx`);
       toast.success(`Export des éléments de salaires pour ${formattedMonth} effectué avec succès`);
     } catch (error) {
@@ -540,7 +493,6 @@ export const ExportDataTab = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Nouveau bloc pour l'export des éléments de salaires */}
           <Card className="p-4 hover:bg-accent/50 transition-colors col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
