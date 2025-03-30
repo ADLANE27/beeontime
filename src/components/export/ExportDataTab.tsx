@@ -458,7 +458,7 @@ export const ExportDataTab = () => {
           "Date": format(parseISO(overtime.date), 'dd/MM/yyyy'),
           "Heure de début": overtime.start_time,
           "Heure de fin": overtime.end_time,
-          "Heures": parseFloat(overtime.hours).toFixed(2)
+          "Heures": String(parseFloat(overtime.hours).toFixed(2))
         }));
 
         const overtimeSheet = XLSX.utils.json_to_sheet(overtimeData);
@@ -487,41 +487,52 @@ export const ExportDataTab = () => {
   };
 
   const applyExcelStyling = (worksheet: XLSX.WorkSheet, data: any[]) => {
-    const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+    const HEADER_FILL = "4472C4";
+    const HEADER_FONT = "FFFFFF";
+    const EVEN_ROW_FILL = "E9EFF8";
+    const ODD_ROW_FILL = "FFFFFF";
+    const ACCENT_FONT = "2F75B5";
+    const WARNING_FONT = "C00000";
+    const BORDER_COLOR = "D0D7E5";
+
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    
+    for (let col = range.s.c; col <= range.e.c; col++) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
       if (!worksheet[cellRef]) continue;
       
       worksheet[cellRef].s = {
-        font: { bold: true, color: { rgb: "FFFFFF" } },
-        fill: { fgColor: { rgb: "4F81BD" } },
-        alignment: { horizontal: "center", vertical: "center" },
+        font: { bold: true, color: { rgb: HEADER_FONT }, sz: 12 },
+        fill: { fgColor: { rgb: HEADER_FILL } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
         border: {
-          top: { style: "thin", color: { rgb: "000000" } },
-          bottom: { style: "thin", color: { rgb: "000000" } },
-          left: { style: "thin", color: { rgb: "000000" } },
-          right: { style: "thin", color: { rgb: "000000" } }
+          top: { style: "thin", color: { rgb: BORDER_COLOR } },
+          bottom: { style: "thin", color: { rgb: BORDER_COLOR } },
+          left: { style: "thin", color: { rgb: BORDER_COLOR } },
+          right: { style: "thin", color: { rgb: BORDER_COLOR } }
         }
       };
     }
 
+    worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+
     for (let row = 1; row <= data.length; row++) {
       const isEvenRow = row % 2 === 0;
-      const fillColor = isEvenRow ? "E9EDF4" : "FFFFFF";
+      const fillColor = isEvenRow ? EVEN_ROW_FILL : ODD_ROW_FILL;
 
-      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
         const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
         if (!worksheet[cellRef]) continue;
         
         worksheet[cellRef].s = {
           fill: { fgColor: { rgb: fillColor } },
           border: {
-            top: { style: "thin", color: { rgb: "D3D3D3" } },
-            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-            left: { style: "thin", color: { rgb: "D3D3D3" } },
-            right: { style: "thin", color: { rgb: "D3D3D3" } }
+            top: { style: "thin", color: { rgb: BORDER_COLOR } },
+            bottom: { style: "thin", color: { rgb: BORDER_COLOR } },
+            left: { style: "thin", color: { rgb: BORDER_COLOR } },
+            right: { style: "thin", color: { rgb: BORDER_COLOR } }
           },
-          alignment: { horizontal: "left", vertical: "center" }
+          alignment: { horizontal: "left", vertical: "center", wrapText: true }
         };
         
         const colHeader = Object.keys(data[0])[col];
@@ -529,19 +540,28 @@ export const ExportDataTab = () => {
           colHeader.includes("Jours") || 
           colHeader.includes("Titres") || 
           colHeader.includes("Heures") ||
-          colHeader.includes("Retards")
+          colHeader.includes("Retards") ||
+          colHeader.includes("minutes")
         ) {
           worksheet[cellRef].s.alignment = { 
             horizontal: "center", 
             vertical: "center" 
           };
           
-          if (colHeader === "Titres restaurant" || colHeader === "Heures supplémentaires") {
+          if (
+            colHeader === "Titres restaurant" || 
+            colHeader === "Heures supplémentaires" ||
+            colHeader === "Jours travaillés"
+          ) {
             worksheet[cellRef].s.font = { 
-              color: { rgb: isEvenRow ? "0070C0" : "0070C0" },
+              color: { rgb: ACCENT_FONT },
               bold: true
             };
           }
+        }
+
+        if (colHeader === "Nom" || colHeader === "Prénom") {
+          worksheet[cellRef].s.font = { bold: true };
         }
       }
     }
@@ -552,10 +572,13 @@ export const ExportDataTab = () => {
         c: Object.keys(data[0]).findIndex(key => key === "Jours d'absence") 
       });
       
-      if (worksheet[absenceCellRef] && parseFloat(String(worksheet[absenceCellRef].v)) > 0) {
+      if (
+        worksheet[absenceCellRef] && 
+        parseFloat(String(worksheet[absenceCellRef].v)) > 0
+      ) {
         worksheet[absenceCellRef].s = {
           ...worksheet[absenceCellRef].s,
-          font: { bold: true, color: { rgb: "C00000" } }
+          font: { bold: true, color: { rgb: WARNING_FONT } }
         };
       }
       
@@ -564,10 +587,13 @@ export const ExportDataTab = () => {
         c: Object.keys(data[0]).findIndex(key => key === "Retards cumulés (minutes)") 
       });
       
-      if (worksheet[delayCellRef] && parseFloat(String(worksheet[delayCellRef].v)) > 0) {
+      if (
+        worksheet[delayCellRef] && 
+        parseFloat(String(worksheet[delayCellRef].v)) > 0
+      ) {
         worksheet[delayCellRef].s = {
           ...worksheet[delayCellRef].s,
-          font: { bold: true, color: { rgb: "C00000" } }
+          font: { bold: true, color: { rgb: WARNING_FONT } }
         };
       }
     }
