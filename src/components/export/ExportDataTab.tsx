@@ -378,11 +378,11 @@ export const ExportDataTab = () => {
           "Nom": employee.last_name,
           "Prénom": employee.first_name,
           "Email": employee.email,
-          "Jours ouvrés du mois": workingDays.toString(),
+          "Jours ouvrés du mois": workingDays.toString(), // Convert to string to fix TS error
           "Jours d'absence": totalAbsenceDays.toFixed(1),
           "Jours travaillés": (workingDays - totalAbsenceDays).toFixed(1),
-          "Titres restaurant": ticketsRestaurant.toString(),
-          "Retards cumulés (minutes)": totalDelayMinutes.toString(),
+          "Titres restaurant": ticketsRestaurant.toString(), // Convert to string to fix TS error
+          "Retards cumulés (minutes)": totalDelayMinutes.toString(), // Convert to string to fix TS error
           "Heures supplémentaires": totalOvertimeHours.toFixed(2)
         };
       });
@@ -494,9 +494,9 @@ export const ExportDataTab = () => {
     }
   };
 
-  // Helper function to apply Excel styling
+  // Helper function to apply Excel styling with improved colors and layout
   const applyExcelStyling = (worksheet: XLSX.WorkSheet, data: any[]) => {
-    // Add header styling
+    // Add header styling with better colors
     const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
     for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -504,7 +504,7 @@ export const ExportDataTab = () => {
       
       worksheet[cellRef].s = {
         font: { bold: true, color: { rgb: "FFFFFF" } },
-        fill: { fgColor: { rgb: "4F81BD" } },
+        fill: { fgColor: { rgb: "4F81BD" } }, // Professional blue color
         alignment: { horizontal: "center", vertical: "center" },
         border: {
           top: { style: "thin", color: { rgb: "000000" } },
@@ -515,15 +515,16 @@ export const ExportDataTab = () => {
       };
     }
 
-    // Add zebra striping and borders to data rows
+    // Add zebra striping and borders to data rows with better colors
     for (let row = 1; row <= data.length; row++) {
       const isEvenRow = row % 2 === 0;
-      const fillColor = isEvenRow ? "E9EDF4" : "FFFFFF";
+      const fillColor = isEvenRow ? "E9EDF4" : "FFFFFF"; // Light blue for even rows
       
       for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
         const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
         if (!worksheet[cellRef]) continue;
         
+        // Apply cell styling
         worksheet[cellRef].s = {
           fill: { fgColor: { rgb: fillColor } },
           border: {
@@ -533,6 +534,57 @@ export const ExportDataTab = () => {
             right: { style: "thin", color: { rgb: "D3D3D3" } }
           },
           alignment: { horizontal: "left", vertical: "center" }
+        };
+        
+        // Highlight numeric columns with special formatting
+        const colHeader = Object.keys(data[0])[col];
+        if (
+          colHeader.includes("Jours") || 
+          colHeader.includes("Titres") || 
+          colHeader.includes("Heures") ||
+          colHeader.includes("Retards")
+        ) {
+          worksheet[cellRef].s.alignment = { 
+            horizontal: "center", 
+            vertical: "center" 
+          };
+          
+          // Add special color to highlight important numeric data
+          if (colHeader === "Titres restaurant" || colHeader === "Heures supplémentaires") {
+            worksheet[cellRef].s.font = { 
+              color: { rgb: isEvenRow ? "0070C0" : "0070C0" },
+              bold: true
+            };
+          }
+        }
+      }
+    }
+    
+    // Add conditional formatting - highlight cells with values that need attention
+    for (let row = 1; row <= data.length; row++) {
+      // Highlight absence days greater than 0
+      const absenceCellRef = XLSX.utils.encode_cell({ 
+        r: row, 
+        c: Object.keys(data[0]).findIndex(key => key === "Jours d'absence") 
+      });
+      
+      if (worksheet[absenceCellRef] && parseFloat(worksheet[absenceCellRef].v) > 0) {
+        worksheet[absenceCellRef].s = {
+          ...worksheet[absenceCellRef].s,
+          font: { bold: true, color: { rgb: "C00000" } } // Red color for absences
+        };
+      }
+      
+      // Highlight delays greater than 0
+      const delayCellRef = XLSX.utils.encode_cell({ 
+        r: row, 
+        c: Object.keys(data[0]).findIndex(key => key === "Retards cumulés (minutes)") 
+      });
+      
+      if (worksheet[delayCellRef] && parseFloat(worksheet[delayCellRef].v) > 0) {
+        worksheet[delayCellRef].s = {
+          ...worksheet[delayCellRef].s,
+          font: { bold: true, color: { rgb: "C00000" } } // Red color for delays
         };
       }
     }
