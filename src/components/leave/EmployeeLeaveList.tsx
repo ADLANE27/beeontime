@@ -12,6 +12,7 @@ import { fr } from "date-fns/locale";
 import { Loader2, Trash2, Edit, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useErrorHandler } from "@/hooks/use-error-handler";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -71,34 +72,40 @@ export const EmployeeLeaveList = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentLeave, setCurrentLeave] = useState<any>(null);
   const [reason, setReason] = useState("");
+  const { handleError } = useErrorHandler();
 
   const { data: leaveRequests, isLoading } = useQuery({
     queryKey: ['employee-leave-requests'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('User not authenticated');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.error('No authenticated user found');
+          throw new Error('User not authenticated');
+        }
+
+        console.log('Fetching leave requests for user:', user.id);
+
+        const { data, error } = await supabase
+          .from('leave_requests')
+          .select('*')
+          .eq('employee_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching leave requests:', error);
+          throw error;
+        }
+
+        console.log('Leave requests fetched:', data);
+        return data;
+      } catch (error) {
+        handleError(error, "Erreur lors de la récupération des demandes de congés");
+        return [];
       }
-
-      console.log('Fetching leave requests for user:', user.id);
-
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select('*')
-        .eq('employee_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching leave requests:', error);
-        throw error;
-      }
-
-      console.log('Leave requests fetched:', data);
-      return data;
     },
-    retry: false
+    retry: 1
   });
 
   const cancelMutation = useMutation({
@@ -127,8 +134,7 @@ export const EmployeeLeaveList = () => {
       });
     },
     onError: (error) => {
-      console.error('Error in cancelMutation:', error);
-      toast.error("Erreur lors de l'annulation de la demande");
+      handleError(error, "Erreur lors de l'annulation de la demande");
     }
   });
 
@@ -160,8 +166,7 @@ export const EmployeeLeaveList = () => {
       setCurrentLeave(null);
     },
     onError: (error) => {
-      console.error('Error in updateMutation:', error);
-      toast.error("Erreur lors de la mise à jour de la demande");
+      handleError(error, "Erreur lors de la mise à jour de la demande");
     }
   });
 
@@ -189,8 +194,8 @@ export const EmployeeLeaveList = () => {
     return leaveRequests.filter(request => {
       const typeMatches = filterType ? request.type === filterType : true;
       const searchMatches = searchTerm 
-        ? request.reason?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          format(new Date(request.start_date), "dd/MM/yyyy").includes(searchTerm)
+        ? (request.reason?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           format(new Date(request.start_date), "dd/MM/yyyy").includes(searchTerm))
         : true;
       
       return typeMatches && searchMatches;
@@ -226,7 +231,7 @@ export const EmployeeLeaveList = () => {
             <SelectValue placeholder="Type de congé" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tous les types</SelectItem>
+            <SelectItem value="">Tous les types</SelectItem>
             <SelectItem value="vacation">Congés payés</SelectItem>
             <SelectItem value="annual">Congé annuel</SelectItem>
             <SelectItem value="paternity">Congé paternité</SelectItem>
