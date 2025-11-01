@@ -141,32 +141,32 @@ const HRDashboard = () => {
   };
 
   const renderTabContent = () => (
-    <div className="space-y-6">
-      <TabsContent value="employees">
+    <div className="min-h-[600px]">
+      <TabsContent value="employees" className="mt-0">
         <EmployeesList />
       </TabsContent>
-      <TabsContent value="planning">
+      <TabsContent value="planning" className="mt-0">
         <AdminPlanning />
       </TabsContent>
-      <TabsContent value="events">
+      <TabsContent value="events" className="mt-0">
         <HREventsList />
       </TabsContent>
-      <TabsContent value="leave">
+      <TabsContent value="leave" className="mt-0">
         <LeaveRequestsList />
       </TabsContent>
-      <TabsContent value="overtime">
+      <TabsContent value="overtime" className="mt-0">
         <OvertimeList />
       </TabsContent>
-      <TabsContent value="lateness">
+      <TabsContent value="lateness" className="mt-0">
         <DelayList />
       </TabsContent>
-      <TabsContent value="payslips">
+      <TabsContent value="payslips" className="mt-0">
         <PayslipManagement />
       </TabsContent>
-      <TabsContent value="statistics">
+      <TabsContent value="statistics" className="mt-0">
         <StatisticsTab />
       </TabsContent>
-      <TabsContent value="export">
+      <TabsContent value="export" className="mt-0">
         <ExportDataTab />
       </TabsContent>
     </div>
@@ -275,7 +275,7 @@ const HRDashboard = () => {
               </TabsList>
             </div>
           )}
-          <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-card hover-lift">
+          <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-card">
             {renderTabContent()}
           </div>
         </Tabs>

@@ -5,18 +5,18 @@
  
 @layer base {
   :root {
-    --background: 220 25% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222.2 47.4% 11.2%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222.2 47.4% 11.2%;
  
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 221 83% 65%;
+    --primary: 210 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 210 100% 60%;
  
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -24,22 +24,22 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 262 83% 58%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
  
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 210 100% 45%;
  
     --radius: 0.75rem;
     
-    --shadow-soft: 0 2px 8px -2px hsl(221 83% 53% / 0.08);
-    --shadow-card: 0 4px 16px -4px hsl(221 83% 53% / 0.12);
-    --shadow-elevation: 0 8px 24px -6px hsl(221 83% 53% / 0.16);
-    --shadow-glow: 0 0 40px hsl(221 83% 65% / 0.3);
+    --shadow-soft: 0 2px 8px -2px hsl(210 40% 20% / 0.08);
+    --shadow-card: 0 4px 16px -4px hsl(210 40% 20% / 0.12);
+    --shadow-elevation: 0 8px 24px -6px hsl(210 40% 20% / 0.16);
+    --shadow-glow: 0 0 40px hsl(210 100% 60% / 0.2);
   }
  
   .dark {
@@ -78,7 +78,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-br from-background via-primary/5 to-accent/5 text-foreground;
+    @apply bg-gradient-to-br from-background via-slate-50 to-blue-50/30 text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     min-height: 100vh;
   }
