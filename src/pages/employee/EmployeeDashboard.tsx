@@ -38,9 +38,15 @@ const EmployeeDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full">
+      <div className="space-y-8 w-full animate-fade-in">
+        {/* Welcome Header */}
+        <div className="gradient-card rounded-2xl p-8 card-highlight hover-lift">
+          <h1 className="text-3xl font-bold text-gradient mb-2">Bienvenue</h1>
+          <p className="text-muted-foreground">Gérez votre temps et vos demandes en toute simplicité</p>
+        </div>
+
         {/* Time Clock Section */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift card-highlight border border-primary/10">
           <TimeClock />
         </div>
 
@@ -48,12 +54,12 @@ const EmployeeDashboard = () => {
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-6">
           {isMobile ? (
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-foreground">
                 {menuItems.find(item => item.value === selectedTab)?.label}
-              </h1>
+              </h2>
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                 <DrawerTrigger asChild>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" className="hover-scale">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DrawerTrigger>
@@ -66,7 +72,7 @@ const EmployeeDashboard = () => {
                       <Button
                         key={item.value}
                         variant={selectedTab === item.value ? "default" : "ghost"}
-                        className="w-full justify-start gap-2"
+                        className="w-full justify-start gap-2 hover-scale"
                         onClick={() => handleTabChange(item.value)}
                       >
                         <item.icon className="h-4 w-4" />
@@ -83,34 +89,34 @@ const EmployeeDashboard = () => {
                 <TabsTrigger 
                   key={item.value}
                   value={item.value} 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2 h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation flex items-center gap-3 h-14 bg-white/80 backdrop-blur-sm shadow-soft hover:shadow-card hover-lift transition-all rounded-xl border border-transparent data-[state=active]:border-primary/20"
                 >
                   <item.icon className="h-5 w-5" />
-                  {item.label}
+                  <span className="font-medium">{item.label}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
           )}
 
           <TabsContent value="documents" className="m-0">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
               <PayslipList />
             </div>
           </TabsContent>
 
           <TabsContent value="leave" className="m-0">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
               <Tabs defaultValue="request" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 gap-4 bg-transparent h-auto p-0">
                   <TabsTrigger 
                     value="request" 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation h-12 bg-muted/50 hover:bg-muted transition-all rounded-lg font-medium"
                   >
                     Nouvelle demande
                   </TabsTrigger>
                   <TabsTrigger 
                     value="list" 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-12 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation h-12 bg-muted/50 hover:bg-muted transition-all rounded-lg font-medium"
                   >
                     Historique
                   </TabsTrigger>
@@ -128,7 +134,7 @@ const EmployeeDashboard = () => {
           </TabsContent>
 
           <TabsContent value="overtime" className="m-0">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
               <OvertimeList />
             </div>
           </TabsContent>

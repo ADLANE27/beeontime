@@ -72,14 +72,20 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    min-height: 100vh;
   }
 }
 
 @layer utilities {
   .glass-card {
     @apply backdrop-blur-sm bg-white/80 border border-white/20 shadow-md;
+  }
+
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05), hsl(var(--primary) / 0.02));
+    @apply border border-primary/10;
   }
   
   .text-gradient {
@@ -88,6 +94,14 @@
   
   .hover-scale {
     @apply transition-transform duration-200 hover:scale-102;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-elevation;
   }
   
   .animate-fade-in {
@@ -103,6 +117,21 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  .card-highlight {
+    @apply relative overflow-hidden;
+  }
+
+  .card-highlight::before {
+    content: '';
+    @apply absolute top-0 -left-full w-full h-full;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s ease-in-out;
+  }
+
+  .card-highlight:hover::before {
+    @apply left-full;
   }
 }
 
