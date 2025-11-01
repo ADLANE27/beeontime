@@ -16,8 +16,9 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
   const email = formData.email.toLowerCase();
   
   console.log('Creating/Updating employee with data:', { 
-    ...formData,
-    initialPassword: formData.initialPassword ? `[Password provided, length: ${formData.initialPassword.length}]` : 'None'
+    email: formData.email,
+    firstName: formData.firstName,
+    lastName: formData.lastName
   });
   
   try {
@@ -45,7 +46,7 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
       }
     } else {
       // Create new auth user
-      if (!formData.initialPassword && !isEditing) {
+      if (!formData.initialPassword || formData.initialPassword.trim() === '') {
         throw new Error("Un mot de passe initial est requis pour créer un nouvel utilisateur");
       }
       
@@ -53,7 +54,7 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
       try {
         const authData = await createAuthUser(
           email, 
-          formData.initialPassword || 'Welcome123!', // Utiliser un mot de passe par défaut si aucun n'est fourni
+          formData.initialPassword,
           formData.firstName, 
           formData.lastName
         );

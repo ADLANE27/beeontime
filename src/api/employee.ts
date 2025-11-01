@@ -59,21 +59,19 @@ export const checkAuthUserExists = async (email: string) => {
  */
 export const updateUserPassword = async (userId: string, password: string, email: string) => {
   try {
-    // First try direct auth API
-    console.log(`Attempting to update password for user ${userId} directly`);
+    console.log(`Updating password for user ${userId}`);
     const { error: directUpdateError } = await supabase.auth.admin.updateUserById(
       userId,
       { password }
     );
     
     if (!directUpdateError) {
-      console.log('Password updated successfully via direct auth API');
+      console.log('Password updated successfully');
       return { id: userId };
     }
     
     console.warn('Direct password update failed, falling back to edge function:', directUpdateError);
     
-    // Fall back to edge function
     const { data, error } = await supabase.functions.invoke('manage-users', {
       body: { 
         userId, 
@@ -84,7 +82,7 @@ export const updateUserPassword = async (userId: string, password: string, email
     });
 
     if (error) {
-      console.error('Error updating password via edge function:', error);
+      console.error('Error updating password:', error);
       throw new Error("Erreur lors de la mise à jour du mot de passe");
     }
     

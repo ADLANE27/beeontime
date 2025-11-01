@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { generateSecurePassword } from "@/utils/passwordGenerator";
+import { generateSecurePassword } from "@/utils/securePassword";
 
 interface PasswordFieldProps {
   value: string;
@@ -16,8 +16,8 @@ interface PasswordFieldProps {
 export const PasswordField = ({ 
   value, 
   onChange, 
-  isRequired = false,
-  label = "Mot de passe initial"
+  isRequired = true,
+  label = "Mot de passe initial (requis)"
 }: PasswordFieldProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
