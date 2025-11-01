@@ -164,8 +164,13 @@ export const useTimeRecord = () => {
 
   const handleTimeRecord = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("=== STARTING TIME RECORD ===");
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log("User auth check:", { user: user?.id, error: userError });
+      
       if (!user) {
+        console.error("No authenticated user found");
         toast.error("Vous devez être connecté pour pointer");
         return;
       }
@@ -173,29 +178,50 @@ export const useTimeRecord = () => {
       const currentTimeStr = format(new Date(), "HH:mm");
       const today = format(new Date(), "yyyy-MM-dd");
       const nextAction = getNextAction();
+      
+      console.log("Time record details:", {
+        userId: user.id,
+        currentTime: currentTimeStr,
+        today,
+        nextAction,
+        hasExistingRecord: !!timeRecord.id
+      });
 
       if (!nextAction) {
+        console.log("All time records completed for today");
         toast.error("Tous les pointages ont déjà été effectués aujourd'hui");
         return;
       }
 
       if (!timeRecord.id) {
         // First check-in of the day
+        console.log("Creating new time record...");
+        const insertData = {
+          employee_id: user.id,
+          date: today,
+          [nextAction]: currentTimeStr
+        };
+        console.log("Insert data:", insertData);
+        
         const { data, error } = await supabase
           .from("time_records")
-          .insert({
-            employee_id: user.id,
-            date: today,
-            [nextAction]: currentTimeStr
-          })
+          .insert(insertData)
           .select()
           .single();
 
         if (error) {
           console.error("Error creating time record:", error);
-          toast.error("Erreur lors de l'enregistrement du pointage");
+          console.error("Error details:", {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          toast.error(`Erreur lors de l'enregistrement: ${error.message}`);
           return;
         }
+        
+        console.log("Time record created successfully:", data);
         
         setTimeRecord({
           id: data.id,
@@ -207,22 +233,35 @@ export const useTimeRecord = () => {
 
         // Check for delay only on morning check-in
         if (nextAction === "morning_in") {
+          console.log("Checking for delay...");
           await checkForDelay(user.id, currentTimeStr);
         }
       } else {
         // Update existing record
+        console.log("Updating existing time record...");
+        const updateData = { [nextAction]: currentTimeStr };
+        console.log("Update data:", updateData);
+        
         const { data, error } = await supabase
           .from("time_records")
-          .update({ [nextAction]: currentTimeStr })
+          .update(updateData)
           .eq("id", timeRecord.id)
           .select()
           .single();
 
         if (error) {
           console.error("Error updating time record:", error);
-          toast.error("Erreur lors de l'enregistrement du pointage");
+          console.error("Error details:", {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          toast.error(`Erreur lors de l'enregistrement: ${error.message}`);
           return;
         }
+        
+        console.log("Time record updated successfully:", data);
         
         setTimeRecord({
           id: data.id,
@@ -233,9 +272,13 @@ export const useTimeRecord = () => {
         });
       }
 
+      console.log("=== TIME RECORD SUCCESS ===");
       toast.success("Pointage enregistré avec succès");
     } catch (error) {
-      console.error("Erreur lors du pointage:", error);
+      console.error("=== UNEXPECTED ERROR IN TIME RECORD ===");
+      console.error("Error:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error constructor:", error?.constructor?.name);
       toast.error("Erreur lors de l'enregistrement du pointage");
     }
   };
