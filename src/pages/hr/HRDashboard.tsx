@@ -11,7 +11,6 @@ import {
   Users, 
   BarChart,
   ClipboardList,
-  BadgeIcon,
 } from "lucide-react";
 import { PayslipManagement } from "@/components/payslip/PayslipManagement";
 import { AdminPlanning } from "@/components/planning/AdminPlanning";
@@ -22,6 +21,7 @@ import { LeaveRequestsList } from "@/components/leave/LeaveRequestsList";
 import { EmployeesList } from "@/components/employee/EmployeesList";
 import { StatisticsTab } from "@/components/statistics/StatisticsTab";
 import { HREventsList } from "@/components/hr-events/HREventsList";
+import { HRAnalytics } from "@/components/hr/HRAnalytics";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -174,25 +174,39 @@ const HRDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full">
+      <div className="space-y-6 sm:space-y-8 w-full animate-fade-in">
+        {/* Welcome Header & Analytics */}
+        <div className="space-y-4 sm:space-y-6">
+          <div className="gradient-card rounded-xl sm:rounded-2xl p-6 sm:p-8 card-highlight hover-lift glow-border">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient mb-2">
+              Tableau de bord RH
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
+              Gérez vos employés et leurs demandes en toute simplicité
+            </p>
+          </div>
+          
+          <HRAnalytics />
+        </div>
+
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4 w-full">
           {isMobile ? (
             <div className="flex flex-col gap-3 mb-4 w-full">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-                  {menuItems.find(item => item.value === selectedTab)?.label}
-                </h1>
-              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gradient">
+                {menuItems.find(item => item.value === selectedTab)?.label}
+              </h2>
               
-              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-16 bg-gray-50 z-20">
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-14 sm:top-16 glass-card z-20 py-2">
                 <div className="flex space-x-2 min-w-max">
                   {menuItems.map((item) => (
                     <Button
                       key={item.value}
                       variant={selectedTab === item.value ? "default" : "outline"}
                       size="sm"
-                      className={`flex items-center gap-1.5 whitespace-nowrap h-9 ${
-                        selectedTab === item.value ? 'bg-primary text-primary-foreground' : 'bg-background/80 text-foreground/80'
+                      className={`flex items-center gap-1.5 whitespace-nowrap h-9 transition-all hover-scale ${
+                        selectedTab === item.value 
+                          ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-card' 
+                          : 'glass-card text-foreground/80'
                       }`}
                       onClick={() => handleTabChange(item.value)}
                     >
@@ -245,13 +259,17 @@ const HRDashboard = () => {
               </Drawer>
             </div>
           ) : (
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-2 shadow-sm mb-4 sticky top-16 z-20">
+            <div className="glass-card rounded-xl sm:rounded-2xl p-2 shadow-card mb-4 sticky top-14 sm:top-16 md:top-20 z-20">
               <TabsList className="flex flex-wrap items-center gap-1 bg-transparent">
                 {menuItems.map((item) => (
                   <TabsTrigger 
                     key={item.value} 
                     value={item.value} 
-                    className={`text-xs sm:text-sm gap-1.5 ${selectedTab === item.value ? 'bg-primary text-primary-foreground shadow-md' : 'bg-transparent hover:bg-gray-100'}`}
+                    className={`text-xs sm:text-sm gap-1.5 transition-all hover-scale ${
+                      selectedTab === item.value 
+                        ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-card' 
+                        : 'bg-transparent hover:bg-muted'
+                    }`}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
@@ -268,7 +286,7 @@ const HRDashboard = () => {
               </TabsList>
             </div>
           )}
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-card hover-lift">
             {renderTabContent()}
           </div>
         </Tabs>
