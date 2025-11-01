@@ -163,6 +163,34 @@ export const PayslipManagement = () => {
     }
   };
 
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) {
+        console.error('Error downloading file:', error);
+        toast.error("Erreur lors du téléchargement du fichier");
+        return;
+      }
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Téléchargement réussi");
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("Une erreur inattendue est survenue");
+    }
+  };
+
   const handleDelete = async (type: 'payslip' | 'document', id: string) => {
     try {
       const { error } = await supabase
@@ -238,7 +266,11 @@ export const PayslipManagement = () => {
                         <span>{doc.title}</span>
                       </div>
                       <div className="space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownload(doc.file_path, doc.title)}
+                        >
                           <Download className="mr-2 h-4 w-4" />
                           Télécharger
                         </Button>
@@ -291,7 +323,11 @@ export const PayslipManagement = () => {
                   </div>
                 </div>
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownload(doc.file_path, doc.title)}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
                   </Button>
