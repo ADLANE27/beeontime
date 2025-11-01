@@ -23,17 +23,17 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen w-full">
-      <header className="bg-white/80 backdrop-blur-md shadow-soft sticky top-0 z-30 border-b border-primary/5">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-end h-16">
-            <Button variant="ghost" onClick={handleLogout} className="gap-2 hover-scale">
+      <header className="glass-card sticky top-0 z-30 border-b border-primary/10">
+        <div className="max-w-full mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-end h-20">
+            <Button variant="ghost" onClick={handleLogout} className="gap-2 hover-scale hover:bg-primary/5 rounded-xl h-11 px-5">
               <LogOut className="h-4 w-4" />
-              Se déconnecter
+              <span className="font-medium">Se déconnecter</span>
             </Button>
           </div>
         </div>
       </header>
-      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-full mx-auto px-6 lg:px-8 py-10">
         {children}
       </main>
     </div>

@@ -5,7 +5,7 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 220 25% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -14,8 +14,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
+    --primary-glow: 221 83% 65%;
  
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -23,17 +24,22 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 210 40% 98%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 221 83% 53%;
  
     --radius: 0.75rem;
+    
+    --shadow-soft: 0 2px 8px -2px hsl(221 83% 53% / 0.08);
+    --shadow-card: 0 4px 16px -4px hsl(221 83% 53% / 0.12);
+    --shadow-elevation: 0 8px 24px -6px hsl(221 83% 53% / 0.16);
+    --shadow-glow: 0 0 40px hsl(221 83% 65% / 0.3);
   }
  
   .dark {
@@ -72,7 +78,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 text-foreground;
+    @apply bg-gradient-to-br from-background via-primary/5 to-accent/5 text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     min-height: 100vh;
   }
@@ -80,28 +86,48 @@
 
 @layer utilities {
   .glass-card {
-    @apply backdrop-blur-sm bg-white/80 border border-white/20 shadow-md;
+    @apply backdrop-blur-xl bg-white/90 border border-white/40;
+    box-shadow: var(--shadow-card), inset 0 1px 0 0 hsl(0 0% 100% / 0.5);
   }
 
   .gradient-card {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.05), hsl(var(--primary) / 0.02));
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--accent) / 0.05));
     @apply border border-primary/10;
+    box-shadow: var(--shadow-soft);
   }
   
   .text-gradient {
-    @apply bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    @apply bg-clip-text text-transparent;
   }
   
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-102;
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .hover-scale:hover {
+    @apply scale-[1.02];
   }
 
   .hover-lift {
-    @apply transition-all duration-300;
+    @apply transition-all duration-300 ease-out;
   }
 
   .hover-lift:hover {
-    @apply -translate-y-1 shadow-elevation;
+    @apply -translate-y-1;
+    box-shadow: var(--shadow-elevation);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-elevation {
+    box-shadow: var(--shadow-elevation);
   }
   
   .animate-fade-in {
@@ -125,13 +151,29 @@
 
   .card-highlight::before {
     content: '';
-    @apply absolute top-0 -left-full w-full h-full;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transition: left 0.5s ease-in-out;
+    @apply absolute top-0 -left-full w-full h-full pointer-events-none;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.08), transparent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .card-highlight:hover::before {
     @apply left-full;
+  }
+  
+  .glow-border {
+    @apply relative;
+  }
+  
+  .glow-border::after {
+    content: '';
+    @apply absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300 pointer-events-none;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.3));
+    filter: blur(8px);
+    z-index: -1;
+  }
+  
+  .glow-border:hover::after {
+    @apply opacity-100;
   }
 }
 

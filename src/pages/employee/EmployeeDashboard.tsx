@@ -40,13 +40,13 @@ const EmployeeDashboard = () => {
     <DashboardLayout>
       <div className="space-y-8 w-full animate-fade-in">
         {/* Welcome Header */}
-        <div className="gradient-card rounded-2xl p-8 card-highlight hover-lift">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Bienvenue</h1>
-          <p className="text-muted-foreground">Gérez votre temps et vos demandes en toute simplicité</p>
+        <div className="gradient-card rounded-2xl p-10 card-highlight hover-lift glow-border">
+          <h1 className="text-4xl font-bold text-gradient mb-3">Bienvenue</h1>
+          <p className="text-muted-foreground text-lg">Gérez votre temps et vos demandes en toute simplicité</p>
         </div>
 
         {/* Time Clock Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift card-highlight border border-primary/10">
+        <div className="glass-card rounded-2xl p-10 hover-lift card-highlight glow-border">
           <TimeClock />
         </div>
 
@@ -89,34 +89,34 @@ const EmployeeDashboard = () => {
                 <TabsTrigger 
                   key={item.value}
                   value={item.value} 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation flex items-center gap-3 h-14 bg-white/80 backdrop-blur-sm shadow-soft hover:shadow-card hover-lift transition-all rounded-xl border border-transparent data-[state=active]:border-primary/20"
+                  className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation flex items-center gap-3 h-16 glass-card hover:shadow-elevation hover-lift transition-all duration-300 rounded-2xl border-transparent data-[state=active]:border-primary/30 data-[state=active]:scale-[1.02] glow-border"
                 >
                   <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-semibold">{item.label}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
           )}
 
           <TabsContent value="documents" className="m-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
+            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
               <PayslipList />
             </div>
           </TabsContent>
 
           <TabsContent value="leave" className="m-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
+            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
               <Tabs defaultValue="request" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 gap-4 bg-transparent h-auto p-0">
                   <TabsTrigger 
                     value="request" 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation h-12 bg-muted/50 hover:bg-muted transition-all rounded-lg font-medium"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-xl font-semibold"
                   >
                     Nouvelle demande
                   </TabsTrigger>
                   <TabsTrigger 
                     value="list" 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation h-12 bg-muted/50 hover:bg-muted transition-all rounded-lg font-medium"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-xl font-semibold"
                   >
                     Historique
                   </TabsTrigger>
@@ -134,7 +134,7 @@ const EmployeeDashboard = () => {
           </TabsContent>
 
           <TabsContent value="overtime" className="m-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card p-8 hover-lift border border-primary/5">
+            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
               <OvertimeList />
             </div>
           </TabsContent>
