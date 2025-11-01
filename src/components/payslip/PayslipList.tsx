@@ -91,35 +91,36 @@ export const PayslipList = () => {
 
   return (
     <Tabs defaultValue="payslips" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="payslips">Bulletins de paie</TabsTrigger>
-        <TabsTrigger value="documents">Documents importants</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 gap-2">
+        <TabsTrigger value="payslips" className="text-sm sm:text-base">Bulletins de paie</TabsTrigger>
+        <TabsTrigger value="documents" className="text-sm sm:text-base">Documents importants</TabsTrigger>
       </TabsList>
 
       <TabsContent value="payslips">
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Bulletins de paie</h2>
-          <div className="space-y-4">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Bulletins de paie</h2>
+          <div className="space-y-3 sm:space-y-4">
             {payslips.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Aucun bulletin de paie disponible
               </p>
             ) : (
               payslips.map((payslip) => (
                 <div
                   key={payslip.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-center space-x-4">
-                    <FileText className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                      <p className="font-semibold">{payslip.title}</p>
+                  <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                    <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm sm:text-base truncate">{payslip.title}</p>
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleDownload(payslip.file_path, payslip.title)}
+                    className="w-full sm:w-auto text-sm h-9"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger
@@ -132,29 +133,30 @@ export const PayslipList = () => {
       </TabsContent>
 
       <TabsContent value="documents">
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Documents importants</h2>
-          <div className="space-y-4">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Documents importants</h2>
+          <div className="space-y-3 sm:space-y-4">
             {importantDocuments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Aucun document important disponible
               </p>
             ) : (
               importantDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-center space-x-4">
-                    <FileText className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                      <p className="font-semibold">{doc.title}</p>
+                  <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                    <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm sm:text-base truncate">{doc.title}</p>
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleDownload(doc.file_path, doc.title)}
+                    className="w-full sm:w-auto text-sm h-9"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Télécharger

@@ -39,20 +39,20 @@ const EmployeeDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 w-full animate-fade-in">
+      <div className="space-y-6 sm:space-y-8 w-full animate-fade-in">
         {/* Welcome Header */}
-        <div className="gradient-card rounded-2xl p-10 card-highlight hover-lift glow-border">
-          <h1 className="text-4xl font-bold text-gradient mb-3">Bienvenue</h1>
-          <p className="text-muted-foreground text-lg mb-8">Gérez votre temps et vos demandes en toute simplicité</p>
+        <div className="gradient-card rounded-xl sm:rounded-2xl p-6 sm:p-10 card-highlight hover-lift glow-border">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient mb-2 sm:mb-3">Bienvenue</h1>
+          <p className="text-muted-foreground text-base sm:text-lg mb-6 sm:mb-8">Gérez votre temps et vos demandes en toute simplicité</p>
           
           {/* Quote Section */}
-          <div className="mt-6 pt-6 border-t border-primary/10">
+          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-primary/10">
             <WorkQuote />
           </div>
         </div>
 
         {/* Time Clock Section */}
-        <div className="glass-card rounded-2xl p-10 hover-lift card-highlight glow-border">
+        <div className="glass-card rounded-xl sm:rounded-2xl p-6 sm:p-10 hover-lift card-highlight glow-border">
           <TimeClock />
         </div>
 
@@ -60,28 +60,28 @@ const EmployeeDashboard = () => {
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-6">
           {isMobile ? (
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                 {menuItems.find(item => item.value === selectedTab)?.label}
               </h2>
               <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                 <DrawerTrigger asChild>
-                  <Button variant="outline" size="icon" className="hover-scale">
+                  <Button variant="outline" size="icon" className="hover-scale h-10 w-10">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent className="w-[300px] p-4">
-                  <DrawerHeader className="p-0">
+                  <DrawerHeader className="p-0 pb-4">
                     <DrawerTitle>Menu</DrawerTitle>
                   </DrawerHeader>
-                  <div className="mt-4 flex flex-col gap-2">
+                  <div className="mt-2 flex flex-col gap-2">
                     {menuItems.map((item) => (
                       <Button
                         key={item.value}
                         variant={selectedTab === item.value ? "default" : "ghost"}
-                        className="w-full justify-start gap-2 hover-scale"
+                        className="w-full justify-start gap-3 hover-scale h-12 text-base"
                         onClick={() => handleTabChange(item.value)}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </Button>
                     ))}
@@ -90,14 +90,14 @@ const EmployeeDashboard = () => {
               </Drawer>
             </div>
           ) : (
-            <TabsList className="grid w-full grid-cols-4 gap-4 bg-transparent h-auto p-0">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 bg-transparent h-auto p-0">
               {menuItems.map((item) => (
                 <TabsTrigger 
                   key={item.value}
                   value={item.value} 
-                  className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation flex items-center gap-3 h-16 glass-card hover:shadow-elevation hover-lift transition-all duration-300 rounded-2xl border-transparent data-[state=active]:border-primary/30 data-[state=active]:scale-[1.02] glow-border"
+                  className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-elevation flex items-center gap-2 sm:gap-3 h-14 sm:h-16 glass-card hover:shadow-elevation hover-lift transition-all duration-300 rounded-xl sm:rounded-2xl border-transparent data-[state=active]:border-primary/30 data-[state=active]:scale-[1.02] glow-border text-sm sm:text-base"
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="font-semibold">{item.label}</span>
                 </TabsTrigger>
               ))}
@@ -105,24 +105,24 @@ const EmployeeDashboard = () => {
           )}
 
           <TabsContent value="documents" className="m-0">
-            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
+            <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-10 hover-lift glow-border">
               <PayslipList />
             </div>
           </TabsContent>
 
           <TabsContent value="leave" className="m-0">
-            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
-              <Tabs defaultValue="request" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 gap-4 bg-transparent h-auto p-0">
+            <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-10 hover-lift glow-border">
+              <Tabs defaultValue="request" className="space-y-4 sm:space-y-6">
+                <TabsList className="grid w-full grid-cols-2 gap-2 sm:gap-4 bg-transparent h-auto p-0">
                   <TabsTrigger 
                     value="request" 
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-xl font-semibold"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-10 sm:h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base"
                   >
                     Nouvelle demande
                   </TabsTrigger>
                   <TabsTrigger 
                     value="list" 
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-xl font-semibold"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary-glow data-[state=active]:text-primary-foreground data-[state=active]:shadow-card h-10 sm:h-12 bg-muted/50 hover:bg-muted transition-all duration-300 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base"
                   >
                     Historique
                   </TabsTrigger>
@@ -140,7 +140,7 @@ const EmployeeDashboard = () => {
           </TabsContent>
 
           <TabsContent value="overtime" className="m-0">
-            <div className="glass-card rounded-2xl p-10 hover-lift glow-border">
+            <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-10 hover-lift glow-border">
               <OvertimeList />
             </div>
           </TabsContent>

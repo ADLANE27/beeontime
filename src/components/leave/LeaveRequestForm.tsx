@@ -233,9 +233,9 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
   };
 
   return (
-    <Card className="p-6">
-      <ScrollArea className="h-[calc(100vh-200px)] pr-4">
-        <form className="space-y-4" onSubmit={handleSubmit}>
+    <Card className="p-4 sm:p-6">
+      <ScrollArea className="h-[calc(100vh-250px)] sm:h-[calc(100vh-200px)] pr-2 sm:pr-4">
+        <form className="space-y-3 sm:space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="employee">Employé</Label>
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee} disabled={isEditing}>
@@ -297,9 +297,9 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
 
           <div className="space-y-2">
             <Label htmlFor="dayType">Type de journée</Label>
-            <ToggleGroup type="single" value={dayType} onValueChange={(value) => value && setDayType(value)}>
-              <ToggleGroupItem value="full">Journée complète</ToggleGroupItem>
-              <ToggleGroupItem value="half">Demi-journée</ToggleGroupItem>
+            <ToggleGroup type="single" value={dayType} onValueChange={(value) => value && setDayType(value)} className="justify-start">
+              <ToggleGroupItem value="full" className="text-sm sm:text-base h-9 sm:h-10">Journée complète</ToggleGroupItem>
+              <ToggleGroupItem value="half" className="text-sm sm:text-base h-9 sm:h-10">Demi-journée</ToggleGroupItem>
             </ToggleGroup>
           </div>
 
@@ -355,7 +355,7 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isSubmitting}>
             {isEditing ? "Mettre à jour" : "Soumettre la demande"}
           </Button>
         </form>

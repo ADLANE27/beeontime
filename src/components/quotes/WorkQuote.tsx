@@ -57,27 +57,27 @@ export const WorkQuote = () => {
 
   return (
     <div className="relative overflow-hidden">
-      <div className="flex items-start gap-4">
-        <Quote className="h-8 w-8 text-primary/30 flex-shrink-0 mt-1" />
+      <div className="flex items-start gap-3 sm:gap-4">
+        <Quote className="h-6 w-6 sm:h-8 sm:w-8 text-primary/30 flex-shrink-0 mt-1" />
         <div className="flex-1 animate-fade-in" key={currentQuote}>
-          <p className="text-lg font-medium text-foreground/90 italic leading-relaxed mb-2">
+          <p className="text-sm sm:text-base md:text-lg font-medium text-foreground/90 italic leading-relaxed mb-2">
             "{quotes[currentQuote].text}"
           </p>
-          <p className="text-sm text-muted-foreground font-medium">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium">
             — {quotes[currentQuote].author}
           </p>
         </div>
       </div>
       
       {/* Progress indicator */}
-      <div className="flex gap-1.5 mt-6">
+      <div className="flex gap-1 sm:gap-1.5 mt-4 sm:mt-6">
         {quotes.map((_, index) => (
           <div
             key={index}
             className={`h-1 rounded-full transition-all duration-500 ${
               index === currentQuote
                 ? "flex-1 bg-gradient-to-r from-primary to-accent"
-                : "w-8 bg-muted"
+                : "w-6 sm:w-8 bg-muted"
             }`}
           />
         ))}
