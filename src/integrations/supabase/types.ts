@@ -126,7 +126,6 @@ export type Database = {
           email: string
           first_name: string
           id: string
-          initial_password: string | null
           last_name: string
           last_vacation_credit_date: string | null
           phone: string | null
@@ -134,7 +133,6 @@ export type Database = {
           postal_code: string | null
           previous_year_used_days: number | null
           previous_year_vacation_days: number | null
-          social_security_number: string | null
           social_security_number_encrypted: string | null
           start_date: string | null
           street_address: string | null
@@ -154,7 +152,6 @@ export type Database = {
           email: string
           first_name: string
           id: string
-          initial_password?: string | null
           last_name: string
           last_vacation_credit_date?: string | null
           phone?: string | null
@@ -162,7 +159,6 @@ export type Database = {
           postal_code?: string | null
           previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
-          social_security_number?: string | null
           social_security_number_encrypted?: string | null
           start_date?: string | null
           street_address?: string | null
@@ -182,7 +178,6 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
-          initial_password?: string | null
           last_name?: string
           last_vacation_credit_date?: string | null
           phone?: string | null
@@ -190,7 +185,6 @@ export type Database = {
           postal_code?: string | null
           previous_year_used_days?: number | null
           previous_year_vacation_days?: number | null
-          social_security_number?: string | null
           social_security_number_encrypted?: string | null
           start_date?: string | null
           street_address?: string | null
@@ -536,6 +530,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vacation_history: {
         Row: {
           action_date: string | null
@@ -591,6 +606,13 @@ export type Database = {
       handle_previous_year_vacation_expiration: {
         Args: never
         Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       sync_employee_ids: {
         Args: { new_id: string; old_id: string }
