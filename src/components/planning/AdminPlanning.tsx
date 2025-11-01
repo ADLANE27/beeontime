@@ -4,11 +4,15 @@ import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, is
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, FileSpreadsheet } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
 import { PlanningCell } from "./PlanningCell";
+import { PlanningFilters } from "./PlanningFilters";
+import { PlanningStatistics } from "./PlanningStatistics";
+import { usePlanningFilters } from "./hooks/usePlanningFilters";
+import { usePlanningStatistics } from "./hooks/usePlanningStatistics";
 import { Database } from "@/integrations/supabase/types";
 import { generatePlanningPDF } from "@/utils/pdf";
 import { createEvents } from 'ics';
@@ -48,6 +52,27 @@ export const AdminPlanning = () => {
   const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
+  // Use custom hooks for filters and statistics
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedDepartment,
+    setSelectedDepartment,
+    selectedLeaveType,
+    setSelectedLeaveType,
+    selectedStatus,
+    setSelectedStatus,
+    filteredEmployees,
+    activeFiltersCount,
+    clearFilters,
+  } = usePlanningFilters(employees, leaveRequests);
+
+  const statistics = usePlanningStatistics(
+    filteredEmployees,
+    leaveRequests,
+    timeRecords
+  );
+
   const firstDayOfPeriod = viewMode === 'month' 
     ? startOfMonth(currentDate)
     : startOfWeek(currentDate, { locale: fr });
@@ -57,7 +82,8 @@ export const AdminPlanning = () => {
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, position');
+        .select('id, first_name, last_name, position')
+        .order('last_name', { ascending: true });
 
       if (employeesError) {
         console.error('Error fetching employees:', employeesError);
@@ -225,7 +251,27 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Statistics Dashboard */}
+      <PlanningStatistics {...statistics} />
+
+      {/* Filters */}
+      <Card className="p-4 glass-card">
+        <PlanningFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedDepartment={selectedDepartment}
+          onDepartmentChange={setSelectedDepartment}
+          selectedLeaveType={selectedLeaveType}
+          onLeaveTypeChange={setSelectedLeaveType}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          onClearFilters={clearFilters}
+          activeFiltersCount={activeFiltersCount}
+        />
+      </Card>
+
+      {/* Planning Table */}
       <Card className="p-4 sm:p-6 glass-card">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex items-center space-x-2 sm:space-x-4">
@@ -261,7 +307,18 @@ export const AdminPlanning = () => {
           </div>
         </div>
 
-        <LeaveTypeLegend />
+        <div className="mb-4">
+          <LeaveTypeLegend />
+        </div>
+
+        {filteredEmployees.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Aucun employé trouvé avec les filtres actuels</p>
+            <Button variant="outline" onClick={clearFilters} className="mt-4">
+              Réinitialiser les filtres
+            </Button>
+          </div>
+        ) : (
         
         <ScrollArea className="h-[500px] w-full rounded-xl border" orientation="both">
           <div className="min-w-max">
@@ -289,7 +346,7 @@ export const AdminPlanning = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
+                {filteredEmployees.map((employee) => (
                   <TableRow key={employee.id} className="hover:bg-muted/30 transition-colors">
                     <TableHead className="sticky left-0 bg-background font-medium w-[200px] border-r">
                       <div className="flex flex-col">
@@ -319,6 +376,7 @@ export const AdminPlanning = () => {
             </Table>
           </div>
         </ScrollArea>
+        )}
       </Card>
     </div>
   );

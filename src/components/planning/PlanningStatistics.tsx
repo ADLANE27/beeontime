@@ -1,0 +1,67 @@
+import { Card } from "@/components/ui/card";
+import { Users, Calendar, Clock, TrendingUp } from "lucide-react";
+
+interface PlanningStatisticsProps {
+  totalEmployees: number;
+  presentToday: number;
+  absentToday: number;
+  totalLeaveHours: number;
+  averagePresenceRate: number;
+}
+
+export const PlanningStatistics = ({
+  totalEmployees,
+  presentToday,
+  absentToday,
+  totalLeaveHours,
+  averagePresenceRate,
+}: PlanningStatisticsProps) => {
+  const stats = [
+    {
+      label: "Total Employés",
+      value: totalEmployees,
+      icon: Users,
+      color: "text-blue-500",
+    },
+    {
+      label: "Présents Aujourd'hui",
+      value: presentToday,
+      icon: Calendar,
+      color: "text-green-500",
+    },
+    {
+      label: "Absents Aujourd'hui",
+      value: absentToday,
+      icon: Calendar,
+      color: "text-orange-500",
+    },
+    {
+      label: "Heures d'absence",
+      value: totalLeaveHours,
+      icon: Clock,
+      color: "text-purple-500",
+    },
+    {
+      label: "Taux de présence",
+      value: `${averagePresenceRate}%`,
+      icon: TrendingUp,
+      color: "text-teal-500",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {stats.map((stat, index) => (
+        <Card key={index} className="p-4 glass-card hover-scale">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-2xl font-bold">{stat.value}</p>
+            </div>
+            <stat.icon className={`h-8 w-8 ${stat.color}`} />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+};
