@@ -9,6 +9,7 @@ import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 import { TimeClock } from "@/components/attendance/TimeClock";
 import { EmployeeDelayList } from "@/components/delays/EmployeeDelayList";
 import { WorkQuote } from "@/components/quotes/WorkQuote";
+import { EmployeeAnalytics } from "@/components/analytics/EmployeeAnalytics";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,9 @@ const EmployeeDashboard = () => {
         <div className="glass-card rounded-xl sm:rounded-2xl p-6 sm:p-10 hover-lift card-highlight glow-border">
           <TimeClock />
         </div>
+
+        {/* Analytics Dashboard */}
+        <EmployeeAnalytics />
 
         {/* Main Navigation Tabs */}
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-6">
