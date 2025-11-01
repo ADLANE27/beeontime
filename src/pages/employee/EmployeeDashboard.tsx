@@ -8,6 +8,7 @@ import { PayslipList } from "@/components/payslip/PayslipList";
 import { EmployeeLeaveList } from "@/components/leave/EmployeeLeaveList";
 import { TimeClock } from "@/components/attendance/TimeClock";
 import { EmployeeDelayList } from "@/components/delays/EmployeeDelayList";
+import { WorkQuote } from "@/components/quotes/WorkQuote";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,12 @@ const EmployeeDashboard = () => {
         {/* Welcome Header */}
         <div className="gradient-card rounded-2xl p-10 card-highlight hover-lift glow-border">
           <h1 className="text-4xl font-bold text-gradient mb-3">Bienvenue</h1>
-          <p className="text-muted-foreground text-lg">Gérez votre temps et vos demandes en toute simplicité</p>
+          <p className="text-muted-foreground text-lg mb-8">Gérez votre temps et vos demandes en toute simplicité</p>
+          
+          {/* Quote Section */}
+          <div className="mt-6 pt-6 border-t border-primary/10">
+            <WorkQuote />
+          </div>
         </div>
 
         {/* Time Clock Section */}
