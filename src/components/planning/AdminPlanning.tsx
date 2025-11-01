@@ -225,35 +225,36 @@ export const AdminPlanning = () => {
   };
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon" onClick={previousPeriod}>
+    <div className="space-y-4">
+      <Card className="p-4 sm:p-6 glass-card">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Button variant="outline" size="icon" onClick={previousPeriod} className="hover-scale">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-lg sm:text-xl font-semibold">
               {capitalizeFirstLetter(
                 format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
               )}
             </h2>
-            <Button variant="outline" size="icon" onClick={nextPeriod}>
+            <Button variant="outline" size="icon" onClick={nextPeriod} className="hover-scale">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
+              className="text-xs sm:text-sm hover-scale"
             >
               <CalendarIcon className="h-4 w-4 mr-2" />
-              {viewMode === 'month' ? 'Vue hebdomadaire' : 'Vue mensuelle'}
+              {viewMode === 'month' ? 'Vue semaine' : 'Vue mois'}
             </Button>
-            <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2">
+            <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2 text-xs sm:text-sm hover-scale">
               <Download className="h-4 w-4" />
               PDF
             </Button>
-            <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2">
+            <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2 text-xs sm:text-sm hover-scale">
               <Download className="h-4 w-4" />
               iCal
             </Button>
@@ -262,19 +263,26 @@ export const AdminPlanning = () => {
 
         <LeaveTypeLegend />
         
-        <ScrollArea className="h-[500px] w-full" orientation="both">
-          <div className="min-w-max border rounded-lg">
+        <ScrollArea className="h-[500px] w-full rounded-xl border" orientation="both">
+          <div className="min-w-max">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-white z-10 w-[200px]">Employé</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="sticky left-0 bg-background z-10 w-[200px] font-semibold border-r">
+                    Employé
+                  </TableHead>
                   {getDaysToShow().map((date, i) => (
                     <TableHead 
                       key={i} 
-                      className="text-center min-w-[100px] p-2 whitespace-pre-line"
+                      className={`text-center min-w-[100px] p-2 whitespace-pre-line ${
+                        isToday(date) ? 'bg-primary/5' : ''
+                      } ${isWeekend(date) ? 'bg-muted/50' : ''}`}
                     >
                       <div className="text-xs font-medium">
-                        {format(date, 'EEEE dd', { locale: fr })}
+                        {format(date, 'EEE', { locale: fr })}
+                      </div>
+                      <div className={`text-sm ${isToday(date) ? 'font-bold text-primary' : ''}`}>
+                        {format(date, 'dd')}
                       </div>
                     </TableHead>
                   ))}
@@ -282,9 +290,18 @@ export const AdminPlanning = () => {
               </TableHeader>
               <TableBody>
                 {employees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableHead className="sticky left-0 bg-white font-medium w-[200px]">
-                      {`${employee.first_name} ${employee.last_name}`}
+                  <TableRow key={employee.id} className="hover:bg-muted/30 transition-colors">
+                    <TableHead className="sticky left-0 bg-background font-medium w-[200px] border-r">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-sm">
+                          {`${employee.first_name} ${employee.last_name}`}
+                        </span>
+                        {employee.position && (
+                          <span className="text-xs text-muted-foreground">
+                            {employee.position}
+                          </span>
+                        )}
+                      </div>
                     </TableHead>
                     {getDaysToShow().map((date, i) => (
                       <PlanningCell
@@ -302,7 +319,7 @@ export const AdminPlanning = () => {
             </Table>
           </div>
         </ScrollArea>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };

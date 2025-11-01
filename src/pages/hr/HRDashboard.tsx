@@ -174,20 +174,9 @@ const HRDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 sm:space-y-8 w-full animate-fade-in">
-        {/* Welcome Header & Analytics */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="gradient-card rounded-xl sm:rounded-2xl p-6 sm:p-8 card-highlight hover-lift glow-border">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient mb-2">
-              Tableau de bord RH
-            </h1>
-            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
-              Gérez vos employés et leurs demandes en toute simplicité
-            </p>
-          </div>
-          
-          <HRAnalytics />
-        </div>
+      <div className="space-y-4 sm:space-y-6 w-full">
+        {/* Analytics Dashboard */}
+        <HRAnalytics />
 
         <Tabs value={selectedTab} onValueChange={handleTabChange} className="space-y-4 w-full">
           {isMobile ? (

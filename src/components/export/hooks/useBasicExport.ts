@@ -27,22 +27,47 @@ export const useBasicExport = () => {
               *,
               employees (
                 first_name,
-                last_name
+                last_name,
+                position
               )
             `)
             .gte('start_date', format(startDate, 'yyyy-MM-dd'))
-            .lte('end_date', format(endDate, 'yyyy-MM-dd'))
-            .eq('status', 'approved');
+            .lte('start_date', format(endDate, 'yyyy-MM-dd'))
+            .eq('status', 'approved')
+            .order('start_date', { ascending: true });
 
           if (leaveError) throw leaveError;
+
+          // Calculate exact number of working days
+          const calculateWorkingDays = (start: string, end: string, dayType: string) => {
+            const startDate = parseISO(start);
+            const endDate = parseISO(end);
+            let workingDays = 0;
+            
+            const current = new Date(startDate);
+            while (current <= endDate) {
+              const dayOfWeek = current.getDay();
+              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                workingDays++;
+              }
+              current.setDate(current.getDate() + 1);
+            }
+            
+            return dayType === 'half' ? workingDays * 0.5 : workingDays;
+          };
 
           data = leaveRequests.map(request => ({
             "Nom": request.employees?.last_name || 'N/A',
             "Prénom": request.employees?.first_name || 'N/A',
+            "Poste": request.employees?.position || 'N/A',
             "Date de début": format(parseISO(request.start_date), 'dd/MM/yyyy'),
             "Date de fin": format(parseISO(request.end_date), 'dd/MM/yyyy'),
             "Type de congé": leaveTypeTranslations[request.type] || request.type,
-            "Nombre de jours": request.day_type === 'full' ? 1 : 0.5
+            "Type de journée": request.day_type === 'full' ? 'Journée complète' : 'Demi-journée',
+            "Période": request.period === 'morning' ? 'Matin' : request.period === 'afternoon' ? 'Après-midi' : 'N/A',
+            "Nombre de jours ouvrés": calculateWorkingDays(request.start_date, request.end_date, request.day_type),
+            "Statut": 'Approuvé',
+            "Motif": request.reason || ''
           }));
           break;
 
@@ -58,7 +83,8 @@ export const useBasicExport = () => {
             `)
             .gte('date', format(startDate, 'yyyy-MM-dd'))
             .lte('date', format(endDate, 'yyyy-MM-dd'))
-            .eq('status', 'approved');
+            .eq('status', 'approved')
+            .order('date', { ascending: true });
 
           if (overtimeError) throw overtimeError;
 
@@ -66,9 +92,12 @@ export const useBasicExport = () => {
             "Nom": request.employees?.last_name || 'N/A',
             "Prénom": request.employees?.first_name || 'N/A',
             "Date": format(parseISO(request.date), 'dd/MM/yyyy'),
+            "Jour": format(parseISO(request.date), 'EEEE', { locale: fr }),
             "Heure de début": request.start_time,
             "Heure de fin": request.end_time,
-            "Durée (heures)": Number(request.hours).toFixed(2)
+            "Durée (heures)": Number(request.hours).toFixed(2),
+            "Statut": 'Approuvé',
+            "Motif": request.reason || ''
           }));
           break;
 
@@ -83,17 +112,60 @@ export const useBasicExport = () => {
               )
             `)
             .gte('date', format(startDate, 'yyyy-MM-dd'))
-            .lte('date', format(endDate, 'yyyy-MM-dd'));
+            .lte('date', format(endDate, 'yyyy-MM-dd'))
+            .order('date', { ascending: true });
 
           if (delaysError) throw delaysError;
+
+          // Calculate delay duration in minutes more accurately
+          const calculateDelayMinutes = (duration: any) => {
+            if (!duration) return 'N/A';
+            const durationStr = String(duration);
+            const parts = durationStr.split(':');
+            if (parts.length >= 2) {
+              const hours = parseInt(parts[0]) || 0;
+              const minutes = parseInt(parts[1]) || 0;
+              return hours * 60 + minutes;
+            }
+            return 'N/A';
+          };
 
           data = delays.map(delay => ({
             "Nom": delay.employees?.last_name || 'N/A',
             "Prénom": delay.employees?.first_name || 'N/A',
             "Date": format(parseISO(delay.date), 'dd/MM/yyyy'),
+            "Jour": format(parseISO(delay.date), 'EEEE', { locale: fr }),
             "Heure prévue": delay.scheduled_time,
             "Heure réelle": delay.actual_time,
-            "Durée du retard": delay.duration ? String(delay.duration).split('.')[0] : 'N/A'
+            "Retard (minutes)": calculateDelayMinutes(delay.duration),
+            "Statut": delay.status === 'approved' ? 'Justifié' : delay.status === 'rejected' ? 'Non justifié' : 'En attente',
+            "Motif": delay.reason || ''
+          }));
+          break;
+
+        case "employees":
+          const { data: employeesData, error: employeesError } = await supabase
+            .from('employees')
+            .select('*')
+            .order('last_name', { ascending: true });
+
+          if (employeesError) throw employeesError;
+
+          data = employeesData.map(emp => ({
+            "Nom": emp.last_name || 'N/A',
+            "Prénom": emp.first_name || 'N/A',
+            "Email": emp.email || 'N/A',
+            "Téléphone": emp.phone || 'N/A',
+            "Poste": emp.position || 'N/A',
+            "Type de contrat": emp.contract_type || 'N/A',
+            "Date d'embauche": emp.start_date ? format(parseISO(emp.start_date), 'dd/MM/yyyy') : 'N/A',
+            "Date de naissance": emp.birth_date ? format(parseISO(emp.birth_date), 'dd/MM/yyyy') : 'N/A',
+            "Ville": emp.city || 'N/A',
+            "Congés année en cours": Number(emp.current_year_vacation_days || 0).toFixed(1),
+            "Congés utilisés": Number(emp.current_year_used_days || 0).toFixed(1),
+            "Congés restants": (Number(emp.current_year_vacation_days || 0) - Number(emp.current_year_used_days || 0)).toFixed(1),
+            "Congés année précédente": Number(emp.previous_year_vacation_days || 0).toFixed(1),
+            "Congés N-1 utilisés": Number(emp.previous_year_used_days || 0).toFixed(1)
           }));
           break;
       }
