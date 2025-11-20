@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
+import { PasswordResetDialog } from "./PasswordResetDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Phone, Building, Calendar, Loader2, Trash, UserPlus, Edit, Shield } from "lucide-react";
@@ -30,7 +31,7 @@ interface Employee {
   birth_date: string | null;
   birth_place: string | null;
   birth_country: string | null;
-  social_security_number: string | null;
+  social_security_number_encrypted: string | null;
   street_address: string | null;
   city: string | null;
   postal_code: string | null;
@@ -166,7 +167,7 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
                   birthDate: employee.birth_date || '',
                   birthPlace: employee.birth_place || '',
                   birthCountry: employee.birth_country || '',
-                  socialSecurityNumber: employee.social_security_number || '',
+                  socialSecurityNumber: '',
                   contractType: employee.contract_type as ContractType,
                   startDate: employee.start_date || '',
                   position: employee.position as Position,
@@ -186,6 +187,12 @@ const EmployeeCard = ({ employee, onDelete }: { employee: Employee; onDelete: (i
               />
             </DialogContent>
           </Dialog>
+
+          <PasswordResetDialog
+            employeeId={employee.id}
+            employeeEmail={employee.email}
+            employeeName={`${employee.first_name} ${employee.last_name}`}
+          />
 
           <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <DialogTrigger asChild>

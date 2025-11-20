@@ -75,10 +75,12 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
     }
 
     try {
-      // Create or update profile record using the auth user ID
-      console.log('Creating/updating profile with ID:', userId);
-      await updateUserProfile(userId, email, formData.firstName, formData.lastName);
-      console.log('Profile created/updated with ID:', userId);
+      // Only update profile if we're creating a new user or if it's an editing operation
+      if (!matchingUser || isEditing) {
+        console.log('Creating/updating profile with ID:', userId);
+        await updateUserProfile(userId, email, formData.firstName, formData.lastName);
+        console.log('Profile created/updated with ID:', userId);
+      }
     } catch (profileError) {
       console.error('Profile update failed, but proceeding with employee record creation:', profileError);
       // We'll continue with employee creation even if profile update fails
