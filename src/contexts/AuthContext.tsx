@@ -7,6 +7,7 @@ import { toast } from "sonner";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  userRole: "hr" | "employee" | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<"hr" | "employee" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
@@ -45,17 +47,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);
+      setUserRole(null);
     } catch (error) {
       console.error("Sign out error:", error);
       toast.error("Erreur lors de la déconnexion");
     }
   };
 
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return null;
+      }
+      
+      return data?.role as "hr" | "employee" | null;
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
+      
+      // Fetch user role if session exists
+      if (initialSession?.user) {
+        const role = await fetchUserRole(initialSession.user.id);
+        setUserRole(role);
+      } else {
+        setUserRole(null);
+      }
+      
       setIsLoading(false);
       
       // Check if session is expired
@@ -66,9 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      
+      // Fetch user role on auth change
+      if (currentSession?.user) {
+        const role = await fetchUserRole(currentSession.user.id);
+        setUserRole(role);
+      } else {
+        setUserRole(null);
+      }
+      
       setIsLoading(false);
       
       // Check session expiry on auth state change
@@ -103,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session]);
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, signOut, signIn, isSessionExpired }}>
+    <AuthContext.Provider value={{ session, user, userRole, isLoading, signOut, signIn, isSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );
