@@ -141,10 +141,28 @@ serve(async (req) => {
         }, { onConflict: 'id' })
 
       if (profileError) {
-        console.warn('Error creating profile record:', profileError)
-        // Continue anyway as the auth user was created successfully
+        console.error('Error creating profile record:', profileError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create profile: ' + profileError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+
+      console.log('Profile record created successfully')
+
+      // Create user_roles entry for role checking
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userData.user.id,
+          role: 'employee'
+        })
+
+      if (roleError) {
+        console.warn('Error creating user_roles record:', roleError)
+        // Continue anyway as the auth user and profile were created successfully
       } else {
-        console.log('Profile record created successfully')
+        console.log('User role record created successfully')
       }
 
       return new Response(
