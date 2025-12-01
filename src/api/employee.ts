@@ -216,7 +216,7 @@ export const upsertEmployee = async (employee: NewEmployee, userId: string) => {
         birth_date: employee.birthDate || null,
         birth_place: employee.birthPlace || null,
         birth_country: employee.birthCountry || null,
-        social_security_number: employee.socialSecurityNumber || null,
+        social_security_number_encrypted: employee.socialSecurityNumber || null,
         contract_type: employee.contractType || null,
         start_date: employee.startDate || null,
         position: employee.position || null,
