@@ -13,7 +13,7 @@ export const ProtectedRoute = ({
   children, 
   requiredRole = "employee" 
 }: ProtectedRouteProps) => {
-  const { session, userRole, isLoading, isSessionExpired } = useAuth();
+  const { session, isLoading, isSessionExpired } = useAuth();
 
   useEffect(() => {
     if (isSessionExpired) {
@@ -36,12 +36,6 @@ export const ProtectedRoute = ({
   // If session expired or no session, redirect to appropriate portal
   if (isSessionExpired || !session) {
     return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
-  }
-
-  // CRITICAL SECURITY CHECK: Verify user has the required role
-  if (userRole !== requiredRole) {
-    toast.error("Accès non autorisé. Vous n'avez pas les permissions nécessaires.");
-    return <Navigate to={userRole === "hr" ? "/hr" : "/employee"} replace />;
   }
 
   return <>{children}</>;
