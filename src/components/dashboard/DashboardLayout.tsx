@@ -23,10 +23,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen w-full">
-      <header className="glass-card sticky top-0 z-30 border-b border-primary/10">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-end h-14 sm:h-16 md:h-20">
-            <Button variant="ghost" onClick={handleLogout} className="gap-2 hover-scale hover:bg-primary/5 rounded-lg sm:rounded-xl h-9 sm:h-10 md:h-11 px-3 sm:px-4 md:px-5 text-sm sm:text-base">
+      <header className="glass-card sticky top-0 z-30">
+        <div className="max-w-full mx-auto px-6 sm:px-8 lg:px-10">
+          <div className="flex items-center justify-end h-16 sm:h-18 md:h-20">
+            <Button variant="ghost" onClick={handleLogout} className="gap-2 hover-scale hover:bg-primary/5 rounded-xl h-10 sm:h-11 md:h-12 px-4 sm:px-5 md:px-6 text-sm sm:text-base">
               <LogOut className="h-4 w-4" />
               <span className="font-medium hidden sm:inline">Se déconnecter</span>
               <span className="font-medium sm:hidden">Quitter</span>
@@ -34,7 +34,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
       </header>
-      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-10">
+      <main className="max-w-full mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 md:py-12">
         {children}
       </main>
     </div>

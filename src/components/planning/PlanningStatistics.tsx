@@ -50,15 +50,17 @@ export const PlanningStatistics = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
       {stats.map((stat, index) => (
-        <Card key={index} className="p-4 glass-card hover-scale">
+        <Card key={index} className="p-6 hover-scale gradient-card">
           <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-              <p className="text-2xl font-bold">{stat.value}</p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+              <p className="text-3xl font-bold">{stat.value}</p>
             </div>
-            <stat.icon className={`h-8 w-8 ${stat.color}`} />
+            <div className={`p-3 rounded-xl bg-background/50 ${stat.color}`}>
+              <stat.icon className="h-6 w-6" />
+            </div>
           </div>
         </Card>
       ))}
