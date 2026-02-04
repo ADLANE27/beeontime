@@ -18,7 +18,8 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
   console.log('Creating/Updating employee with data:', { 
     email: formData.email,
     firstName: formData.firstName,
-    lastName: formData.lastName
+    lastName: formData.lastName,
+    isEditing
   });
   
   try {
@@ -87,7 +88,8 @@ export const createOrUpdateEmployee = async (formData: NewEmployee, isEditing = 
     }
 
     // Create or update employee record
-    await upsertEmployee(formData, userId);
+    // Pass isEditing flag to handle SSN updates properly
+    await upsertEmployee(formData, userId, isEditing);
     console.log('Employee record created/updated with ID:', userId);
     
     return { userId };

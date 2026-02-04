@@ -72,8 +72,8 @@ export const NewEmployeeForm = ({
         birthPlace={formData.birthPlace}
         birthCountry={formData.birthCountry}
         socialSecurityNumber={formData.socialSecurityNumber}
-        initialPassword={formData.initialPassword}
         onFieldChange={handleFieldChange}
+        isEditing={isEditing}
       />
 
       <AddressInfoForm

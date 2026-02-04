@@ -1,7 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NewEmployee } from "@/types/hr";
-import { PasswordField } from "./PasswordField";
 
 export interface PersonalInfoFormProps {
   firstName: string;
@@ -12,8 +11,8 @@ export interface PersonalInfoFormProps {
   birthPlace: string;
   birthCountry: string;
   socialSecurityNumber: string;
-  initialPassword: string;
   onFieldChange: (field: keyof NewEmployee, value: string) => void;
+  isEditing?: boolean;
 }
 
 export const PersonalInfoForm = ({
@@ -25,8 +24,8 @@ export const PersonalInfoForm = ({
   birthPlace,
   birthCountry,
   socialSecurityNumber,
-  initialPassword,
   onFieldChange,
+  isEditing = false,
 }: PersonalInfoFormProps) => {
   return (
     <div className="space-y-4">
@@ -61,10 +60,6 @@ export const PersonalInfoForm = ({
           required
         />
       </div>
-      <PasswordField 
-        value={initialPassword}
-        onChange={(value) => onFieldChange("initialPassword", value)}
-      />
       <div className="space-y-2">
         <Label htmlFor="phone">Téléphone</Label>
         <Input
@@ -82,7 +77,7 @@ export const PersonalInfoForm = ({
           type="date"
           value={birthDate}
           onChange={(e) => onFieldChange("birthDate", e.target.value)}
-          required
+          required={!isEditing}
         />
       </div>
       <div className="space-y-2">
@@ -91,7 +86,7 @@ export const PersonalInfoForm = ({
           id="birthPlace"
           value={birthPlace}
           onChange={(e) => onFieldChange("birthPlace", e.target.value)}
-          required
+          required={!isEditing}
         />
       </div>
       <div className="space-y-2">
@@ -100,16 +95,20 @@ export const PersonalInfoForm = ({
           id="birthCountry"
           value={birthCountry}
           onChange={(e) => onFieldChange("birthCountry", e.target.value)}
-          required
+          required={!isEditing}
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="socialSecurityNumber">Numéro de sécurité sociale</Label>
+        <Label htmlFor="socialSecurityNumber">
+          Numéro de sécurité sociale
+          {isEditing && <span className="text-muted-foreground text-sm ml-2">(laisser vide pour ne pas modifier)</span>}
+        </Label>
         <Input
           id="socialSecurityNumber"
           value={socialSecurityNumber}
           onChange={(e) => onFieldChange("socialSecurityNumber", e.target.value)}
-          required
+          required={!isEditing}
+          placeholder={isEditing ? "Laisser vide pour conserver l'actuel" : ""}
         />
       </div>
     </div>

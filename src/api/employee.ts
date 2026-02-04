@@ -185,12 +185,12 @@ export const updateUserProfile = async (
 /**
  * Creates or updates an employee record
  */
-export const upsertEmployee = async (employee: NewEmployee, userId: string) => {
+export const upsertEmployee = async (employee: NewEmployee, userId: string, isEditing = false) => {
   try {
     // Check if an employee with this email already exists
     const { data: existingEmployee, error: checkError } = await supabase
       .from('employees')
-      .select('id, email')
+      .select('id, email, social_security_number_encrypted')
       .eq('email', employee.email.toLowerCase())
       .maybeSingle();
     
@@ -205,6 +205,18 @@ export const upsertEmployee = async (employee: NewEmployee, userId: string) => {
       throw new Error(`Un employé avec l'email ${employee.email} existe déjà`);
     }
     
+    // Determine SSN value: only update if provided, otherwise preserve existing
+    let ssnValue: string | null = null;
+    if (employee.socialSecurityNumber && employee.socialSecurityNumber.trim() !== '') {
+      ssnValue = employee.socialSecurityNumber;
+    } else if (!isEditing) {
+      // For new employees, set SSN (required field for new)
+      ssnValue = employee.socialSecurityNumber || null;
+    } else {
+      // In edit mode with empty SSN, preserve existing value
+      ssnValue = existingEmployee?.social_security_number_encrypted as string ?? null;
+    }
+    
     const { error } = await supabase
       .from('employees')
       .upsert({
@@ -216,7 +228,7 @@ export const upsertEmployee = async (employee: NewEmployee, userId: string) => {
         birth_date: employee.birthDate || null,
         birth_place: employee.birthPlace || null,
         birth_country: employee.birthCountry || null,
-        social_security_number_encrypted: employee.socialSecurityNumber || null,
+        social_security_number_encrypted: ssnValue,
         contract_type: employee.contractType || null,
         start_date: employee.startDate || null,
         position: employee.position || null,
