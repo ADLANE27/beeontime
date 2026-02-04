@@ -14,8 +14,16 @@ vi.mock("@/contexts/AuthContext", async () => {
   };
 });
 
+// Mock the user role hook
+vi.mock("@/hooks/useUserRole", () => ({
+  useUserRole: vi.fn(),
+}));
+
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+
 const mockUseAuth = vi.mocked(useAuth);
+const mockUseUserRole = vi.mocked(useUserRole);
 
 describe("ProtectedRoute", () => {
   beforeEach(() => {
@@ -31,33 +39,10 @@ describe("ProtectedRoute", () => {
       signIn: vi.fn(),
       isSessionExpired: false,
     });
-
-    render(
-      <MemoryRouter initialEntries={["/protected"]}>
-        <Routes>
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <div>Protected Content</div>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText("Chargement...")).toBeInTheDocument();
-  });
-
-  it("renders children when user is authenticated", async () => {
-    mockUseAuth.mockReturnValue({
-      session: { user: { id: "123", email: "test@test.com" } } as any,
-      user: { id: "123", email: "test@test.com" } as any,
-      isLoading: false,
-      signOut: vi.fn(),
-      signIn: vi.fn(),
-      isSessionExpired: false,
+    mockUseUserRole.mockReturnValue({
+      role: null,
+      isLoading: true,
+      hasRole: () => false,
     });
 
     render(
@@ -75,7 +60,108 @@ describe("ProtectedRoute", () => {
       </MemoryRouter>
     );
 
+    expect(screen.getByText("Vérification des accès...")).toBeInTheDocument();
+  });
+
+  it("renders children when user is authenticated with correct role", async () => {
+    mockUseAuth.mockReturnValue({
+      session: { user: { id: "123", email: "test@test.com" } } as any,
+      user: { id: "123", email: "test@test.com" } as any,
+      isLoading: false,
+      signOut: vi.fn(),
+      signIn: vi.fn(),
+      isSessionExpired: false,
+    });
+    mockUseUserRole.mockReturnValue({
+      role: "employee",
+      isLoading: false,
+      hasRole: (requiredRole) => requiredRole === "employee",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/protected"]}>
+        <Routes>
+          <Route
+            path="/protected"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <div>Protected Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
     expect(screen.getByText("Protected Content")).toBeInTheDocument();
+  });
+
+  it("shows unauthorized message when employee tries to access HR route", async () => {
+    mockUseAuth.mockReturnValue({
+      session: { user: { id: "123", email: "test@test.com" } } as any,
+      user: { id: "123", email: "test@test.com" } as any,
+      isLoading: false,
+      signOut: vi.fn(),
+      signIn: vi.fn(),
+      isSessionExpired: false,
+    });
+    mockUseUserRole.mockReturnValue({
+      role: "employee",
+      isLoading: false,
+      hasRole: (requiredRole) => requiredRole === "employee", // Employee cannot access HR
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hr"]}>
+        <Routes>
+          <Route
+            path="/hr"
+            element={
+              <ProtectedRoute requiredRole="hr">
+                <div>HR Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Accès non autorisé")).toBeInTheDocument();
+    });
+  });
+
+  it("allows HR to access HR routes", async () => {
+    mockUseAuth.mockReturnValue({
+      session: { user: { id: "123", email: "hr@test.com" } } as any,
+      user: { id: "123", email: "hr@test.com" } as any,
+      isLoading: false,
+      signOut: vi.fn(),
+      signIn: vi.fn(),
+      isSessionExpired: false,
+    });
+    mockUseUserRole.mockReturnValue({
+      role: "hr",
+      isLoading: false,
+      hasRole: () => true, // HR can access all routes
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hr"]}>
+        <Routes>
+          <Route
+            path="/hr"
+            element={
+              <ProtectedRoute requiredRole="hr">
+                <div>HR Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("HR Content")).toBeInTheDocument();
   });
 
   it("redirects to portal when session is expired", async () => {
@@ -86,6 +172,11 @@ describe("ProtectedRoute", () => {
       signOut: vi.fn(),
       signIn: vi.fn(),
       isSessionExpired: true,
+    });
+    mockUseUserRole.mockReturnValue({
+      role: null,
+      isLoading: false,
+      hasRole: () => false,
     });
 
     render(
@@ -109,7 +200,7 @@ describe("ProtectedRoute", () => {
     });
   });
 
-  it("redirects to hr-portal for HR required role", async () => {
+  it("redirects to hr-portal for HR required role when not authenticated", async () => {
     mockUseAuth.mockReturnValue({
       session: null,
       user: null,
@@ -117,6 +208,11 @@ describe("ProtectedRoute", () => {
       signOut: vi.fn(),
       signIn: vi.fn(),
       isSessionExpired: false,
+    });
+    mockUseUserRole.mockReturnValue({
+      role: null,
+      isLoading: false,
+      hasRole: () => false,
     });
 
     render(
