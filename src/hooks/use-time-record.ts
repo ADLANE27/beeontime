@@ -82,6 +82,43 @@ export const useTimeRecord = () => {
       console.log("Checking for delay - User ID:", userId);
       console.log("Actual arrival time:", actualTime);
 
+      const today = format(new Date(), "yyyy-MM-dd");
+
+      // First, check if the employee has an approved leave request for today
+      const { data: approvedLeaves, error: leaveError } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('employee_id', userId)
+        .eq('status', 'approved')
+        .lte('start_date', today)
+        .gte('end_date', today);
+
+      if (leaveError) {
+        console.error("Error fetching leave requests:", leaveError);
+      }
+
+      // Check if employee has a morning leave (half-day morning or full day)
+      if (approvedLeaves && approvedLeaves.length > 0) {
+        const hasMorningLeave = approvedLeaves.some(leave => {
+          // Full day leave
+          if (leave.day_type === 'full') {
+            console.log("Employee has full day leave, skipping delay check");
+            return true;
+          }
+          // Half-day morning leave
+          if (leave.day_type === 'half' && leave.period === 'morning') {
+            console.log("Employee has morning half-day leave, skipping delay check");
+            return true;
+          }
+          return false;
+        });
+
+        if (hasMorningLeave) {
+          console.log("Employee has approved leave for this morning, no delay will be recorded");
+          return;
+        }
+      }
+
       // Get employee's work schedule using employee_id
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
@@ -103,13 +140,26 @@ export const useTimeRecord = () => {
       console.log("Work schedule:", employee.work_schedule);
 
       const workSchedule = employee.work_schedule as any;
-      if (!workSchedule.startTime) {
+      
+      // If employee has an afternoon leave, use the breakEndTime as scheduled arrival
+      let scheduledTime = workSchedule.startTime;
+      
+      if (approvedLeaves && approvedLeaves.length > 0) {
+        const hasAfternoonLeave = approvedLeaves.some(leave => 
+          leave.day_type === 'half' && leave.period === 'afternoon'
+        );
+        
+        // If afternoon leave, no need to adjust morning start time
+        // The employee should still arrive at normal start time
+        if (hasAfternoonLeave) {
+          console.log("Employee has afternoon leave - checking normal morning arrival");
+        }
+      }
+
+      if (!scheduledTime) {
         console.log("Start time not defined in work schedule for employee:", userId);
         return;
       }
-
-      const scheduledTime = workSchedule.startTime;
-      const today = format(new Date(), "yyyy-MM-dd");
 
       // Compare arrival time with scheduled time
       const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
