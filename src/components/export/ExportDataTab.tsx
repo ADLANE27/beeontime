@@ -1,17 +1,18 @@
 
 import { Card } from "@/components/ui/card";
-import { FileSpreadsheet, FileText, Download } from "lucide-react";
+import { FileSpreadsheet, FileText, Download, FileDown } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ExportCard } from "./components/ExportCard";
 import { MonthSelector } from "./components/MonthSelector";
 import { useBasicExport, useTimeExport, useSalaryElementsExport } from "./hooks";
+import { Button } from "@/components/ui/button";
 
 export const ExportDataTab = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const { isExporting: isBasicExporting, handleExport } = useBasicExport();
   const { isExporting: isTimeExporting, handleTimeExport } = useTimeExport();
-  const { isExporting: isSalaryExporting, handleSalaryElementsExport } = useSalaryElementsExport();
+  const { isExporting: isSalaryExporting, handleSalaryElementsExport, handlePDFExport } = useSalaryElementsExport();
 
   const isAnyExporting = isBasicExporting || isTimeExporting || isSalaryExporting;
 
@@ -29,7 +30,7 @@ export const ExportDataTab = () => {
           </div>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Exports de données</h2>
-            <p className="text-sm text-muted-foreground">Téléchargez vos données au format Excel</p>
+            <p className="text-sm text-muted-foreground">Téléchargez vos données au format Excel ou PDF</p>
           </div>
         </div>
 
@@ -39,16 +40,53 @@ export const ExportDataTab = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <ExportCard 
-          title="📊 Éléments de salaires"
-          description="Export consolidé pour comptable : jours ouvrés, absences, retards, tickets restaurant et heures supplémentaires de tous les employés"
-          icon={<FileText className="h-6 w-6 text-blue-600" />}
-          onClick={() => handleSalaryElementsExport(selectedMonth)}
-          isExporting={isAnyExporting}
-          variant="highlight"
-        />
+      {/* Export principal pour comptable avec options */}
+      <div className="glass-card p-6 rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="flex items-start gap-4 mb-4">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent">
+            <FileText className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              📊 Éléments de salaires
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                Recommandé
+              </span>
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Export consolidé pour comptable avec feuille de contrôle, calcul des jours fériés, titres restaurant et alertes automatiques
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => handleSalaryElementsExport(selectedMonth, false)}
+            disabled={isAnyExporting}
+            className="flex-1 min-w-[200px]"
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            {isSalaryExporting ? "Export en cours..." : "Exporter Excel"}
+          </Button>
+          <Button
+            onClick={() => handlePDFExport(selectedMonth)}
+            disabled={isAnyExporting}
+            variant="secondary"
+            className="flex-1 min-w-[200px]"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {isSalaryExporting ? "Export en cours..." : "Excel + PDF récapitulatif"}
+          </Button>
+        </div>
+        
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            <strong>Nouveautés :</strong> Exclusion automatique des jours fériés français • Feuille de contrôle avec alertes • PDF résumé pour le comptable
+          </p>
+        </div>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <ExportCard 
           title="📅 Absences et congés"
           description="Liste détaillée des demandes de congés : dates, types, statuts et employés concernés"
@@ -98,19 +136,19 @@ export const ExportDataTab = () => {
         <div className="space-y-3 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-            <p><strong>Format:</strong> Tous les exports sont au format Excel (.xlsx) pour une compatibilité maximale</p>
+            <p><strong>Format:</strong> Excel (.xlsx) avec mise en forme professionnelle + PDF récapitulatif optionnel</p>
           </div>
           <div className="flex items-start gap-2">
             <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-            <p><strong>Période:</strong> Sélectionnez le mois souhaité pour filtrer les données exportées</p>
+            <p><strong>Jours fériés:</strong> Les jours fériés français sont automatiquement exclus du calcul des jours ouvrés</p>
           </div>
           <div className="flex items-start gap-2">
             <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-            <p><strong>Export comptable:</strong> L'export éléments de salaires regroupe toutes les données nécessaires pour la paie</p>
+            <p><strong>Contrôle:</strong> L'onglet "Contrôle" affiche les totaux, alertes et incohérences à vérifier</p>
           </div>
           <div className="flex items-start gap-2">
             <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-            <p><strong>Données en temps réel:</strong> Les exports reflètent l'état actuel de la base de données</p>
+            <p><strong>PDF:</strong> Résumé visuel 1 page idéal pour transmettre au comptable</p>
           </div>
         </div>
       </div>

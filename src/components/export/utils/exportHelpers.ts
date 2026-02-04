@@ -1,7 +1,8 @@
 
-import { format, startOfMonth, endOfMonth, parseISO, subMonths, isWeekend } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from 'xlsx';
+import { calculateWorkingDaysExcludingHolidays, countHolidaysInPeriod } from "@/utils/frenchHolidays";
 
 export const leaveTypeTranslations: { [key: string]: string } = {
   "vacation": "Congés payés",
@@ -35,19 +36,25 @@ export const formatDuration = (minutes: number) => {
   return `${hours}h${String(remainingMinutes).padStart(2, '0')}`;
 };
 
+/**
+ * @deprecated Utilisez calculateWorkingDaysExcludingHolidays de frenchHolidays.ts pour inclure les jours fériés
+ */
 export const calculateWorkingDays = (startDate: Date, endDate: Date) => {
-  let workingDays = 0;
-  let currentDate = new Date(startDate);
+  // Utilise la nouvelle fonction qui exclut les jours fériés
+  return calculateWorkingDaysExcludingHolidays(startDate, endDate);
+};
+
+/**
+ * Calcule les jours ouvrés d'un mois en excluant les week-ends ET les jours fériés
+ */
+export const getWorkingDaysInMonth = (year: number, month: number): { workingDays: number; holidays: number } => {
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0); // Dernier jour du mois
   
-  while (currentDate <= endDate) {
-    if (!isWeekend(currentDate)) {
-      workingDays++;
-    }
-    
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
+  const workingDays = calculateWorkingDaysExcludingHolidays(startDate, endDate);
+  const holidays = countHolidaysInPeriod(startDate, endDate);
   
-  return workingDays;
+  return { workingDays, holidays };
 };
 
 // Updated to handle both string and number values

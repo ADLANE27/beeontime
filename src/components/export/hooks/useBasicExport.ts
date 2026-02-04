@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { leaveTypeTranslations, applyExcelStyling } from "../utils/exportHelpers";
+import { calculateWorkingDaysExcludingHolidays } from "@/utils/frenchHolidays";
 
 export const useBasicExport = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -38,21 +39,11 @@ export const useBasicExport = () => {
 
           if (leaveError) throw leaveError;
 
-          // Calculate exact number of working days
+          // Utilise la nouvelle fonction avec jours fériés exclus
           const calculateWorkingDays = (start: string, end: string, dayType: string) => {
             const startDate = parseISO(start);
             const endDate = parseISO(end);
-            let workingDays = 0;
-            
-            const current = new Date(startDate);
-            while (current <= endDate) {
-              const dayOfWeek = current.getDay();
-              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                workingDays++;
-              }
-              current.setDate(current.getDate() + 1);
-            }
-            
+            const workingDays = calculateWorkingDaysExcludingHolidays(startDate, endDate);
             return dayType === 'half' ? workingDays * 0.5 : workingDays;
           };
 
