@@ -34,12 +34,15 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 210 100% 45%;
  
-    --radius: 0.75rem;
+    --radius: 1rem;
     
-    --shadow-soft: 0 2px 8px -2px hsl(210 40% 20% / 0.08);
-    --shadow-card: 0 4px 16px -4px hsl(210 40% 20% / 0.12);
-    --shadow-elevation: 0 8px 24px -6px hsl(210 40% 20% / 0.16);
-    --shadow-glow: 0 0 40px hsl(210 100% 60% / 0.2);
+    --shadow-soft: 0 2px 12px -3px hsl(210 40% 20% / 0.06);
+    --shadow-card: 0 8px 24px -8px hsl(210 40% 20% / 0.1);
+    --shadow-elevation: 0 16px 40px -12px hsl(210 40% 20% / 0.14);
+    --shadow-glow: 0 0 50px hsl(15 75% 55% / 0.15);
+    
+    --gradient-subtle: linear-gradient(135deg, hsl(210 40% 98%), hsl(210 30% 96%));
+    --gradient-section: linear-gradient(180deg, transparent 0%, hsl(210 40% 98% / 0.5) 100%);
   }
  
   .dark {
@@ -113,14 +116,22 @@
 
 @layer utilities {
   .glass-card {
-    @apply backdrop-blur-xl bg-white/90 border border-white/40;
-    box-shadow: var(--shadow-card), inset 0 1px 0 0 hsl(0 0% 100% / 0.5);
+    @apply backdrop-blur-xl bg-white/95 rounded-xl;
+    box-shadow: var(--shadow-card);
   }
 
   .gradient-card {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--accent) / 0.05));
-    @apply border border-primary/10;
+    background: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    @apply rounded-xl;
     box-shadow: var(--shadow-soft);
+  }
+  
+  .section-fade {
+    background: var(--gradient-section);
+  }
+  
+  .fluid-container {
+    @apply px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12;
   }
   
   .text-gradient {

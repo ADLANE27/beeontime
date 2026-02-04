@@ -50,16 +50,16 @@ const leaveTypeColors = {
 
 export const LeaveTypeLegend = () => {
   return (
-    <Card className="p-4 mb-4">
-      <h3 className="text-sm font-medium mb-2">Légende des congés</h3>
-      <div className="flex flex-wrap gap-4">
+    <Card className="p-6 mb-6">
+      <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">Légende des congés</h3>
+      <div className="flex flex-wrap gap-5">
         {Object.entries(leaveTypeColors).map(([key, { label, color }]) => (
-          <div key={key} className="flex items-center gap-2">
+          <div key={key} className="flex items-center gap-2.5">
             <div
-              className="w-4 h-4 rounded"
+              className="w-3.5 h-3.5 rounded-md"
               style={{ backgroundColor: color }}
             />
-            <span className="text-sm">{label}</span>
+            <span className="text-sm font-medium">{label}</span>
           </div>
         ))}
       </div>
