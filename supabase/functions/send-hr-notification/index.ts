@@ -188,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email to:", hrNotificationEmail);
 
     const emailResponse = await resend.emails.send({
-      from: "BeeOnTime <onboarding@resend.dev>",
+      from: "BeeOnTime <noreply@aftraduction.com>",
       to: [hrNotificationEmail],
       subject,
       html: htmlContent,
