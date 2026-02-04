@@ -141,32 +141,32 @@ const HRDashboard = () => {
   };
 
   const renderTabContent = () => (
-    <div className="min-h-[600px]">
-      <TabsContent value="employees" className="mt-0">
+    <div className="min-h-[700px]">
+      <TabsContent value="employees" className="mt-0 animate-fade-in">
         <EmployeesList />
       </TabsContent>
-      <TabsContent value="planning" className="mt-0">
+      <TabsContent value="planning" className="mt-0 animate-fade-in">
         <AdminPlanning />
       </TabsContent>
-      <TabsContent value="events" className="mt-0">
+      <TabsContent value="events" className="mt-0 animate-fade-in">
         <HREventsList />
       </TabsContent>
-      <TabsContent value="leave" className="mt-0">
+      <TabsContent value="leave" className="mt-0 animate-fade-in">
         <LeaveRequestsList />
       </TabsContent>
-      <TabsContent value="overtime" className="mt-0">
+      <TabsContent value="overtime" className="mt-0 animate-fade-in">
         <OvertimeList />
       </TabsContent>
-      <TabsContent value="lateness" className="mt-0">
+      <TabsContent value="lateness" className="mt-0 animate-fade-in">
         <DelayList />
       </TabsContent>
-      <TabsContent value="payslips" className="mt-0">
+      <TabsContent value="payslips" className="mt-0 animate-fade-in">
         <PayslipManagement />
       </TabsContent>
-      <TabsContent value="statistics" className="mt-0">
+      <TabsContent value="statistics" className="mt-0 animate-fade-in">
         <StatisticsTab />
       </TabsContent>
-      <TabsContent value="export" className="mt-0">
+      <TabsContent value="export" className="mt-0 animate-fade-in">
         <ExportDataTab />
       </TabsContent>
     </div>
