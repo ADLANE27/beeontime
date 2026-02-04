@@ -161,6 +161,9 @@ export const useTimeRecord = () => {
         return;
       }
 
+      // Grace period in minutes (configurable tolerance before flagging as late)
+      const GRACE_PERIOD_MINUTES = 5;
+
       // Compare arrival time with scheduled time
       const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
       const [actualHour, actualMinute] = actualTime.split(':').map(Number);
@@ -171,14 +174,20 @@ export const useTimeRecord = () => {
       const actualDate = new Date();
       actualDate.setHours(actualHour, actualMinute, 0);
 
-      console.log("Scheduled time:", scheduledDate);
-      console.log("Actual time:", actualDate);
+      // Add grace period to scheduled time
+      const scheduledWithGrace = new Date(scheduledDate.getTime() + GRACE_PERIOD_MINUTES * 60 * 1000);
 
-      // If employee is late, create a delay entry
-      if (actualDate > scheduledDate) {
+      console.log("Scheduled time:", scheduledDate);
+      console.log("Scheduled time with grace period:", scheduledWithGrace);
+      console.log("Actual time:", actualDate);
+      console.log("Grace period:", GRACE_PERIOD_MINUTES, "minutes");
+
+      // If employee is late (after grace period), create a delay entry
+      if (actualDate > scheduledWithGrace) {
+        // Calculate duration from original scheduled time (not from grace period end)
         const duration = (actualDate.getTime() - scheduledDate.getTime()) / (1000 * 60);
         const hours = Math.floor(duration / 60);
-        const minutes = duration % 60;
+        const minutes = Math.round(duration % 60);
         const formattedDuration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 
         console.log("Delay detected for employee:", employee.first_name, employee.last_name);
@@ -203,6 +212,8 @@ export const useTimeRecord = () => {
 
         toast.info("Retard détecté et enregistré pour validation par les RH");
         console.log("Delay successfully recorded");
+      } else if (actualDate > scheduledDate) {
+        console.log("Employee arrived late but within grace period - no delay recorded");
       } else {
         console.log("No delay detected for employee:", employee.first_name, employee.last_name);
       }

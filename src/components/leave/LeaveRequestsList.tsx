@@ -168,13 +168,19 @@ export const LeaveRequestsList = () => {
   const handleReject = async () => {
     if (!selectedRequest) return;
     
+    // Validate rejection reason is provided
+    if (!rejectionReason || rejectionReason.trim() === '') {
+      toast.error("Veuillez fournir un motif de refus");
+      return;
+    }
+    
     setLoadingRequestId(selectedRequest.id);
     try {
       const { error } = await supabase
         .from('leave_requests')
         .update({ 
           status: 'rejected',
-          rejection_reason: rejectionReason,
+          rejection_reason: rejectionReason.trim(),
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedRequest.id);

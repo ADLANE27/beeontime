@@ -107,6 +107,23 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
     }
   };
 
+  // Check for overlapping leave requests
+  const checkOverlappingLeaves = async (employeeId: string, start: string, end: string): Promise<boolean> => {
+    const { data: existingLeaves, error } = await supabase
+      .from('leave_requests')
+      .select('id, start_date, end_date, status')
+      .eq('employee_id', employeeId)
+      .neq('status', 'rejected')
+      .or(`and(start_date.lte.${end},end_date.gte.${start})`);
+
+    if (error) {
+      console.error('Error checking overlapping leaves:', error);
+      return false;
+    }
+
+    return existingLeaves && existingLeaves.length > 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -123,6 +140,15 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
     if (!selectedEmployee) {
       toast.error("Veuillez sélectionner un employé");
       return;
+    }
+
+    // Check for overlapping leave requests (skip if editing)
+    if (!isEditing) {
+      const hasOverlap = await checkOverlappingLeaves(selectedEmployee, startDate, endDate);
+      if (hasOverlap) {
+        toast.error("Une demande de congé existe déjà pour cette période. Veuillez choisir d'autres dates.");
+        return;
+      }
     }
 
     const start = new Date(startDate);
