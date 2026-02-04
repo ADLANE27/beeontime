@@ -1,22 +1,23 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse, setHours } from "date-fns";
+import { format, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, FileSpreadsheet } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, Grid3X3, List, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaveTypeLegend } from "./LeaveTypeLegend";
-import { PlanningCell } from "./PlanningCell";
 import { PlanningFilters } from "./PlanningFilters";
 import { PlanningStatistics } from "./PlanningStatistics";
+import { PlanningGridView } from "./PlanningGridView";
+import { EmployeeSummaryCard } from "./EmployeeSummaryCard";
 import { usePlanningFilters } from "./hooks/usePlanningFilters";
 import { usePlanningStatistics } from "./hooks/usePlanningStatistics";
 import { Database } from "@/integrations/supabase/types";
 import { generatePlanningPDF } from "@/utils/pdf";
 import { createEvents } from 'ics';
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 type TimeRecord = Database["public"]["Tables"]["time_records"]["Row"];
@@ -51,8 +52,8 @@ export const AdminPlanning = () => {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [displayMode, setDisplayMode] = useState<'grid' | 'cards'>('grid');
 
-  // Use custom hooks for filters and statistics
   const {
     searchQuery,
     setSearchQuery,
@@ -79,7 +80,6 @@ export const AdminPlanning = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select('id, first_name, last_name, position')
@@ -92,7 +92,6 @@ export const AdminPlanning = () => {
 
       setEmployees(employeesData || []);
 
-      // Fetch approved leave requests for the current month
       const startDate = format(firstDayOfPeriod, 'yyyy-MM-dd');
       const endDate = format(
         viewMode === 'month' 
@@ -115,7 +114,6 @@ export const AdminPlanning = () => {
 
       setLeaveRequests(leaveData || []);
 
-      // Fetch time records for the current period
       const { data: timeData, error: timeError } = await supabase
         .from('time_records')
         .select('*')
@@ -162,22 +160,20 @@ export const AdminPlanning = () => {
     return days;
   };
 
-  const getLeaveRequestForDay = (employeeId: string, date: Date) => {
-    return leaveRequests.find(request => {
-      const currentDate = format(date, 'yyyy-MM-dd');
-      return (
-        request.employee_id === employeeId &&
-        currentDate >= request.start_date &&
-        currentDate <= request.end_date
-      );
-    });
+  const getTodayLeave = (employeeId: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return leaveRequests.find(
+      (r) => r.employee_id === employeeId && today >= r.start_date && today <= r.end_date
+    );
   };
 
-  const getTimeRecordForDay = (employeeId: string, date: Date) => {
-    return timeRecords.find(record => {
-      const currentDate = format(date, 'yyyy-MM-dd');
-      return record.employee_id === employeeId && record.date === currentDate;
-    });
+  const getTodayTimeRecord = (employeeId: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return timeRecords.find((r) => r.employee_id === employeeId && r.date === today);
+  };
+
+  const getMonthlyLeaveCount = (employeeId: string) => {
+    return leaveRequests.filter((r) => r.employee_id === employeeId).length;
   };
 
   const handleExportPDF = () => {
@@ -192,9 +188,8 @@ export const AdminPlanning = () => {
         const endDate = parse(request.end_date, 'yyyy-MM-dd', new Date());
         const employee = employees.find(e => e.id === request.employee_id);
         
-        // Définir les heures de début et de fin en fonction du type de journée
-        let startHour = 9; // Heure de début par défaut
-        let endHour = 18; // Heure de fin par défaut
+        let startHour = 9;
+        let endHour = 18;
         
         if (request.day_type === 'half') {
           if (request.period === 'morning') {
@@ -256,7 +251,7 @@ export const AdminPlanning = () => {
       <PlanningStatistics {...statistics} />
 
       {/* Filters */}
-      <Card className="p-4 glass-card">
+      <Card className="p-5">
         <PlanningFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -271,111 +266,116 @@ export const AdminPlanning = () => {
         />
       </Card>
 
-      {/* Planning Table */}
-      <Card className="p-4 sm:p-6 glass-card">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <Button variant="outline" size="icon" onClick={previousPeriod} className="hover-scale">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-lg sm:text-xl font-semibold">
-              {capitalizeFirstLetter(
-                format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM yyyy", { locale: fr })
-              )}
-            </h2>
-            <Button variant="outline" size="icon" onClick={nextPeriod} className="hover-scale">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
-              className="text-xs sm:text-sm hover-scale"
-            >
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {viewMode === 'month' ? 'Vue semaine' : 'Vue mois'}
-            </Button>
-            <Button onClick={handleExportPDF} variant="outline" className="flex items-center gap-2 text-xs sm:text-sm hover-scale">
-              <Download className="h-4 w-4" />
-              PDF
-            </Button>
-            <Button onClick={handleExportICS} variant="outline" className="flex items-center gap-2 text-xs sm:text-sm hover-scale">
-              <Download className="h-4 w-4" />
-              iCal
-            </Button>
+      {/* Planning Content */}
+      <Card className="p-5 sm:p-6">
+        {/* Header with controls */}
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            {/* Period navigation */}
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" onClick={previousPeriod} className="hover-scale rounded-xl">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-lg sm:text-xl font-semibold min-w-[200px] text-center">
+                {capitalizeFirstLetter(
+                  format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semaine du' dd MMMM", { locale: fr })
+                )}
+              </h2>
+              <Button variant="outline" size="icon" onClick={nextPeriod} className="hover-scale rounded-xl">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* View controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Display mode toggle */}
+              <div className="flex items-center bg-muted/50 rounded-xl p-1">
+                <Button
+                  variant={displayMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDisplayMode('grid')}
+                  className="rounded-lg gap-1.5"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Grille</span>
+                </Button>
+                <Button
+                  variant={displayMode === 'cards' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDisplayMode('cards')}
+                  className="rounded-lg gap-1.5"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cartes</span>
+                </Button>
+              </div>
+
+              {/* Period toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
+                className="rounded-xl gap-1.5"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                {viewMode === 'month' ? 'Semaine' : 'Mois'}
+              </Button>
+
+              {/* Export buttons */}
+              <Button onClick={handleExportPDF} variant="outline" size="sm" className="rounded-xl gap-1.5">
+                <Download className="h-4 w-4" />
+                PDF
+              </Button>
+              <Button onClick={handleExportICS} variant="outline" size="sm" className="rounded-xl gap-1.5">
+                <Download className="h-4 w-4" />
+                iCal
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="mb-4">
+        {/* Legend */}
+        <div className="mb-6">
           <LeaveTypeLegend />
         </div>
 
+        {/* Content based on display mode */}
         {filteredEmployees.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun employé trouvé avec les filtres actuels</p>
-            <Button variant="outline" onClick={clearFilters} className="mt-4">
+          <div className="text-center py-16">
+            <p className="text-muted-foreground mb-4">Aucun employé trouvé avec les filtres actuels</p>
+            <Button variant="outline" onClick={clearFilters} className="rounded-xl">
               Réinitialiser les filtres
             </Button>
           </div>
-        ) : (
-        
-        <ScrollArea className="h-[500px] w-full rounded-xl border" orientation="both">
-          <div className="min-w-max">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="sticky left-0 bg-background z-10 w-[200px] font-semibold border-r">
-                    Employé
-                  </TableHead>
-                  {getDaysToShow().map((date, i) => (
-                    <TableHead 
-                      key={i} 
-                      className={`text-center min-w-[100px] p-2 whitespace-pre-line ${
-                        isToday(date) ? 'bg-primary/5' : ''
-                      } ${isWeekend(date) ? 'bg-muted/50' : ''}`}
-                    >
-                      <div className="text-xs font-medium">
-                        {format(date, 'EEE', { locale: fr })}
-                      </div>
-                      <div className={`text-sm ${isToday(date) ? 'font-bold text-primary' : ''}`}>
-                        {format(date, 'dd')}
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.map((employee) => (
-                  <TableRow key={employee.id} className="hover:bg-muted/30 transition-colors">
-                    <TableHead className="sticky left-0 bg-background font-medium w-[200px] border-r">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm">
-                          {`${employee.first_name} ${employee.last_name}`}
-                        </span>
-                        {employee.position && (
-                          <span className="text-xs text-muted-foreground">
-                            {employee.position}
-                          </span>
-                        )}
-                      </div>
-                    </TableHead>
-                    {getDaysToShow().map((date, i) => (
-                      <PlanningCell
-                        key={i}
-                        date={date}
-                        leaveRequest={getLeaveRequestForDay(employee.id, date)}
-                        timeRecord={getTimeRecordForDay(employee.id, date)}
-                        isWeekend={isWeekend(date)}
-                        isToday={isToday(date)}
-                      />
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        ) : displayMode === 'cards' ? (
+          /* Cards view - "At a glance" summary */
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Aperçu du jour
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredEmployees.map((employee) => (
+                <EmployeeSummaryCard
+                  key={employee.id}
+                  employee={employee}
+                  todayLeave={getTodayLeave(employee.id)}
+                  todayTimeRecord={getTodayTimeRecord(employee.id)}
+                  monthlyLeaveCount={getMonthlyLeaveCount(employee.id)}
+                  isPresent={!!getTodayTimeRecord(employee.id)?.morning_in}
+                />
+              ))}
+            </div>
           </div>
-        </ScrollArea>
+        ) : (
+          /* Grid view - Calendar style */
+          <div className="border rounded-xl overflow-hidden">
+            <PlanningGridView
+              employees={filteredEmployees}
+              days={getDaysToShow()}
+              leaveRequests={leaveRequests}
+              timeRecords={timeRecords}
+            />
+          </div>
         )}
       </Card>
     </div>
