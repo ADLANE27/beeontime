@@ -34,6 +34,20 @@ export default {
         '4xl': ['2.25rem', { lineHeight: '2.75rem', letterSpacing: '-0.03em' }],
         '5xl': ['3rem', { lineHeight: '3.5rem', letterSpacing: '-0.035em' }],
       },
+      fontWeight: {
+        // Light (300) - Subtle labels, decorative large text, secondary info
+        light: '300',
+        // Normal (400) - Body text, paragraphs, default reading content
+        normal: '400',
+        // Medium (500) - Emphasized body text, form labels, navigation items
+        medium: '500',
+        // Semibold (600) - Subheadings, card titles, important UI elements
+        semibold: '600',
+        // Bold (700) - Primary headings, CTAs, key statistics
+        bold: '700',
+        // Extrabold (800) - Hero titles, major section headers (display font only)
+        extrabold: '800',
+      },
       colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
