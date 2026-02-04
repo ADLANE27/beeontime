@@ -1,4 +1,3 @@
-
 project_id = "tedjuorbafahlnplndye"
 
 [api]
@@ -49,3 +48,5 @@ verify_jwt = true
 [functions.delete-employee]
 verify_jwt = true
 
+[functions.send-hr-notification]
+verify_jwt = false

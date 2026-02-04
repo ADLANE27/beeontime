@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
 import { leaveTypeColors } from "../planning/LeaveTypeLegend";
+import { sendLeaveRequestNotification } from "@/services/notificationService";
 
 type LeaveType = Database["public"]["Enums"]["leave_type"];
 
@@ -238,6 +239,19 @@ export const LeaveRequestForm = ({ onSubmit, isSubmitting, initialValues, isEdit
           toast.error("Erreur lors de l'enregistrement du document");
           return;
         }
+      }
+
+      // Send email notification to HR
+      const selectedEmp = employees?.find(emp => emp.id === selectedEmployee);
+      if (selectedEmp) {
+        const employeeName = `${selectedEmp.first_name} ${selectedEmp.last_name}`;
+        sendLeaveRequestNotification(employeeName, {
+          startDate,
+          endDate,
+          leaveType: leaveType,
+          dayType,
+          reason: reason || undefined,
+        });
       }
 
       toast.success("Demande de congé soumise avec succès");
