@@ -78,22 +78,37 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-br from-background via-slate-50 to-blue-50/30 text-foreground font-sans;
+    @apply bg-gradient-to-br from-background via-slate-50 to-blue-50/30 text-foreground font-sans font-normal;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   
+  /* Typography hierarchy with semantic weight usage */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
     letter-spacing: -0.02em;
   }
   
-  h1 { @apply text-3xl sm:text-4xl font-bold; }
-  h2 { @apply text-2xl sm:text-3xl font-semibold; }
-  h3 { @apply text-xl sm:text-2xl font-semibold; }
-  h4 { @apply text-lg sm:text-xl font-medium; }
+  h1 { @apply text-3xl sm:text-4xl font-bold; }      /* Hero sections, page titles */
+  h2 { @apply text-2xl sm:text-3xl font-semibold; }  /* Major section headers */
+  h3 { @apply text-xl sm:text-2xl font-semibold; }   /* Card titles, subsections */
+  h4 { @apply text-lg sm:text-xl font-medium; }      /* Minor headings, labels */
+  h5 { @apply text-base font-medium; }               /* Small headings */
+  h6 { @apply text-sm font-medium; }                 /* Micro headings, captions */
+  
+  /* Body text defaults */
+  p { @apply font-normal; }
+  
+  /* Labels and form elements */
+  label { @apply font-medium text-sm; }
+  
+  /* Strong emphasis */
+  strong, b { @apply font-semibold; }
+  
+  /* Light decorative text utility */
+  .text-subtle { @apply font-light text-muted-foreground; }
 }
 
 @layer utilities {
