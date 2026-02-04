@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Plus, Loader2, Trash2, Check, X, Edit, Search } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sendOvertimeRequestNotification } from "@/services/notificationService";
 
 export const OvertimeList = () => {
   const [openManual, setOpenManual] = useState(false);
@@ -120,10 +121,33 @@ export const OvertimeList = () => {
         .from('overtime_requests')
         .insert([newRequest]);
       if (error) throw error;
+      return newRequest;
     },
-    onSuccess: () => {
+    onSuccess: async (newRequest) => {
       queryClient.invalidateQueries({ queryKey: ['overtime_requests'] });
       toast.success("Demande d'heures supplémentaires enregistrée");
+      
+      // Get employee name for notification
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (employee) {
+          const employeeName = `${employee.first_name} ${employee.last_name}`;
+          sendOvertimeRequestNotification(employeeName, {
+            date: newRequest.date,
+            startTime: newRequest.start_time,
+            endTime: newRequest.end_time,
+            hours: newRequest.hours,
+            reason: newRequest.reason || undefined,
+          });
+        }
+      }
+      
       setOpenManual(false);
       setDate("");
       setStartTime("");
