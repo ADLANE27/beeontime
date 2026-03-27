@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -172,7 +173,7 @@ export const DelayList = () => {
             />
           ))
         ) : (
-          <p className="text-center text-gray-500">Aucun retard enregistré</p>
+          <EmptyState variant="delay" title="Aucun retard enregistré" compact />
         )}
       </div>
 

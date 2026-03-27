@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { StatCardsSkeleton } from "@/components/ui/content-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { 
   Clock, 
@@ -170,13 +171,7 @@ export const EmployeeAnalytics = () => {
   });
 
   if (isLoading) {
-    return (
-      <Card className="p-6">
-        <div className="flex items-center justify-center py-8">
-          <p className="text-muted-foreground">Chargement des statistiques...</p>
-        </div>
-      </Card>
-    );
+    return <StatCardsSkeleton />;
   }
 
   return (

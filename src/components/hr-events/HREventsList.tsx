@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/ui/content-skeleton";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -247,12 +248,7 @@ export const HREventsList = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-sm text-muted-foreground">Chargement des événements...</p>
-          </div>
-        </div>
+        <TableSkeleton />
       ) : (
         <>
           <div className="rounded-xl border overflow-hidden bg-white/70 backdrop-blur-sm shadow-sm">

@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { StatCardsSkeleton } from "@/components/ui/content-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -26,7 +27,7 @@ export const OvertimeStatistics = () => {
     }
   });
 
-  if (isLoading) return <div>Chargement des statistiques...</div>;
+  if (isLoading) return <StatCardsSkeleton />;
 
   return (
     <Card className="p-6">

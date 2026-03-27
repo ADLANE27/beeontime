@@ -1,5 +1,6 @@
 
 import { Card } from "@/components/ui/card";
+import { StatCardsSkeleton } from "@/components/ui/content-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -89,7 +90,7 @@ export const LeaveStatistics = () => {
     { value: "12", label: "Décembre" }
   ];
 
-  if (isLoading) return <div>Chargement des statistiques...</div>;
+  if (isLoading) return <StatCardsSkeleton />;
 
   return (
     <Card className="p-6">

@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { StatCardsSkeleton } from "@/components/ui/content-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from "date-fns";
@@ -76,7 +77,7 @@ export const DelayStatistics = () => {
     { value: "12", label: "Décembre" }
   ];
 
-  if (isLoading) return <div>Chargement des statistiques...</div>;
+  if (isLoading) return <StatCardsSkeleton />;
 
   return (
     <Card className="p-6">

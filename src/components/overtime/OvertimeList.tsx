@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -519,7 +520,12 @@ export const OvertimeList = () => {
             </div>
           ))
         ) : (
-          <p className="text-center text-gray-500">Aucune demande d'heures supplémentaires</p>
+          <EmptyState
+            variant="overtime"
+            title="Aucune demande d'heures supplémentaires"
+            description="Vos heures supplémentaires appara��tront ici"
+            compact
+          />
         )}
       </div>
 

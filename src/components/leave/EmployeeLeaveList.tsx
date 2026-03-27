@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -325,7 +326,12 @@ export const EmployeeLeaveList = () => {
             );
           })
         ) : (
-          <p className="text-center text-gray-500">Aucune demande de congés</p>
+          <EmptyState
+            variant="leave"
+            title="Aucune demande de congés"
+            description="Vos demandes de congés apparaîtront ici"
+            compact
+          />
         )}
       </div>
 

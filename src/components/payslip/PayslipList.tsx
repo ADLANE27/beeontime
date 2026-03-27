@@ -1,4 +1,6 @@
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/content-skeleton";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -82,9 +84,7 @@ export const PayslipList = () => {
   if (isLoadingPayslips || isLoadingDocs) {
     return (
       <Card className="p-6">
-        <div className="flex items-center justify-center py-8">
-          <p className="text-muted-foreground">Chargement des documents...</p>
-        </div>
+        <ListSkeleton />
       </Card>
     );
   }
@@ -101,9 +101,12 @@ export const PayslipList = () => {
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Bulletins de paie</h2>
           <div className="space-y-3 sm:space-y-4">
             {payslips.length === 0 ? (
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Aucun bulletin de paie disponible
-              </p>
+              <EmptyState
+                variant="payslip"
+                title="Aucun bulletin de paie disponible"
+                description="Vos bulletins seront déposés ici par les RH"
+                compact
+              />
             ) : (
               payslips.map((payslip) => (
                 <div
@@ -137,9 +140,12 @@ export const PayslipList = () => {
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Documents importants</h2>
           <div className="space-y-3 sm:space-y-4">
             {importantDocuments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Aucun document important disponible
-              </p>
+              <EmptyState
+                variant="document"
+                title="Aucun document important disponible"
+                description="Les documents partagés par les RH apparaîtront ici"
+                compact
+              />
             ) : (
               importantDocuments.map((doc) => (
                 <div

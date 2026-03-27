@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CardGridSkeleton } from "@/components/ui/content-skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NewEmployeeForm } from "./NewEmployeeForm";
@@ -333,14 +335,7 @@ export const EmployeesList = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary/70" />
-          <p className="mt-2 text-sm text-muted-foreground">Chargement des employés...</p>
-        </div>
-      </div>
-    );
+    return <CardGridSkeleton />;
   }
 
   return (
@@ -363,7 +358,7 @@ export const EmployeesList = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-in">
         {employees?.map((employee) => (
           <EmployeeCard 
             key={employee.id} 
@@ -373,16 +368,16 @@ export const EmployeesList = () => {
         ))}
         
         {employees?.length === 0 && (
-          <div className="col-span-3 text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-muted-foreground">Aucun employé trouvé</p>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsNewEmployeeDialogOpen(true)}
-              className="mt-4"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Ajouter votre premier employé
-            </Button>
+          <div className="col-span-3">
+            <EmptyState
+              variant="employee"
+              title="Aucun employé trouvé"
+              description="Commencez par ajouter votre premier collaborateur"
+              action={{
+                label: "Ajouter un employé",
+                onClick: () => setIsNewEmployeeDialogOpen(true),
+              }}
+            />
           </div>
         )}
       </div>

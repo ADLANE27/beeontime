@@ -2,6 +2,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { format, startOfMonth, addMonths, subMonths, isToday, isWeekend, startOfWeek, endOfWeek, addWeeks, subWeeks, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, Calendar as CalendarIcon, Grid3X3, List, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -341,12 +342,12 @@ export const AdminPlanning = () => {
 
         {/* Content based on display mode */}
         {filteredEmployees.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground mb-4">Aucun employé trouvé avec les filtres actuels</p>
-            <Button variant="outline" onClick={clearFilters} className="rounded-xl">
-              Réinitialiser les filtres
-            </Button>
-          </div>
+          <EmptyState
+            variant="planning"
+            title="Aucun employé trouvé avec les filtres actuels"
+            description="Essayez de modifier vos critères de recherche"
+            action={{ label: "Réinitialiser les filtres", onClick: clearFilters }}
+          />
         ) : displayMode === 'cards' ? (
           /* Cards view - "At a glance" summary */
           <div className="space-y-4">

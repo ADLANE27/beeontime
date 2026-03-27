@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -85,7 +86,7 @@ export const EmployeeDelayList = () => {
           </div>
         ))}
         {delays?.length === 0 && (
-          <p className="text-center text-gray-500">Aucun retard à afficher</p>
+          <EmptyState variant="delay" title="Aucun retard à afficher" compact />
         )}
       </div>
     </Card>
