@@ -1,50 +1,28 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
-import { User } from '@supabase/supabase-js';
 
 /**
  * Checks if an auth user exists with the given email
  */
 export const checkAuthUserExists = async (email: string) => {
   try {
-    // First try direct auth API to check user existence
     console.log('Checking if user exists with email:', email);
-    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-    
-    // After getting all users, filter by email manually
-    const matchingUsers = userData?.users?.filter(
-      (user: User) => user.email?.toLowerCase() === email.toLowerCase()
-    ) || [];
-    
-    if (!userError && matchingUsers.length > 0) {
-      console.log('User found via direct auth API:', matchingUsers);
-      return { 
-        users: matchingUsers, 
-        authUserExists: true 
-      };
-    }
-    
-    if (userError) {
-      console.warn('Error checking user via direct auth API, falling back to edge function:', userError);
-    } else {
-      console.log('No user found via direct auth API, trying edge function');
-    }
-    
-    // Fall back to edge function
+
+    // Use edge function with service role key to check user existence
     const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { 
+      body: {
         email: email.toLowerCase(),
         checkOnly: true
       }
     });
-    
+
     if (error) {
       console.error('Error checking user existence via edge function:', error);
       throw new Error("Erreur lors de la vérification de l'existence de l'utilisateur");
     }
-    
-    return { 
+
+    return {
       users: data?.users || [],
       authUserExists: data?.users && data.users.length > 0
     };
@@ -60,21 +38,11 @@ export const checkAuthUserExists = async (email: string) => {
 export const updateUserPassword = async (userId: string, password: string, email: string) => {
   try {
     console.log(`Updating password for user ${userId}`);
-    const { error: directUpdateError } = await supabase.auth.admin.updateUserById(
-      userId,
-      { password }
-    );
-    
-    if (!directUpdateError) {
-      console.log('Password updated successfully');
-      return { id: userId };
-    }
-    
-    console.warn('Direct password update failed, falling back to edge function:', directUpdateError);
-    
+
+    // Use edge function with service role key to update password
     const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { 
-        userId, 
+      body: {
+        userId,
         password,
         email: email.toLowerCase(),
         action: 'update-password'
@@ -85,7 +53,8 @@ export const updateUserPassword = async (userId: string, password: string, email
       console.error('Error updating password:', error);
       throw new Error("Erreur lors de la mise à jour du mot de passe");
     }
-    
+
+    console.log('Password updated successfully');
     return data;
   } catch (error) {
     console.error('Unexpected error in updateUserPassword:', error);

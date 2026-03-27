@@ -142,9 +142,32 @@ serve(async (req) => {
 
       if (profileError) {
         console.warn('Error creating profile record:', profileError)
-        // Continue anyway as the auth user was created successfully
       } else {
         console.log('Profile record created successfully')
+      }
+
+      // Ensure user_roles record exists (required for role-based access control)
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .maybeSingle()
+
+      if (!existingRole) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userData.user.id,
+            role: 'employee'
+          })
+
+        if (roleError) {
+          console.warn('Error creating user_roles record:', roleError)
+        } else {
+          console.log('User role record created successfully')
+        }
+      } else {
+        console.log('User role record already exists')
       }
 
       return new Response(

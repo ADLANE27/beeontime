@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,16 +12,23 @@ import { toast } from "sonner";
 const HRPortal = () => {
   const navigate = useNavigate();
   const { session, isLoading, signIn, isSessionExpired } = useAuth();
+  const { role, isLoading: isRoleLoading } = useUserRole();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user) {
-      navigate('/hr', { replace: true });
+    if (session?.user && !isRoleLoading && role) {
+      if (role === 'hr') {
+        navigate('/hr', { replace: true });
+      } else {
+        // Employee users logging in at HR portal are redirected to employee dashboard
+        toast.warning("Vous n'avez pas les droits d'accès RH. Redirection vers votre espace employé.");
+        navigate('/employee', { replace: true });
+      }
     }
-  }, [session, navigate]);
+  }, [session, navigate, role, isRoleLoading]);
 
   useEffect(() => {
     if (isSessionExpired) {

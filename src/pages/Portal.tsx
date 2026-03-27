@@ -1,12 +1,10 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { Card } from "@/components/ui/card";
 import { Building2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { FormEvent } from "react";
 import { toast } from "sonner";
@@ -15,16 +13,18 @@ import { Loader2 } from "lucide-react";
 const Portal = () => {
   const navigate = useNavigate();
   const { session, isLoading, signIn, isSessionExpired } = useAuth();
+  const { role, isLoading: isRoleLoading } = useUserRole();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user) {
-      navigate('/employee', { replace: true });
+    if (session?.user && !isRoleLoading && role) {
+      // Redirect based on actual role
+      navigate(role === 'hr' ? '/hr' : '/employee', { replace: true });
     }
-  }, [session, navigate]);
+  }, [session, navigate, role, isRoleLoading]);
 
   useEffect(() => {
     if (isSessionExpired) {
