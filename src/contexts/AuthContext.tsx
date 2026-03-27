@@ -91,8 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsSessionExpired(false);
       } else if (event === 'SIGNED_OUT') {
         setIsSessionExpired(false);
-        setSession(null);
-        setUser(null);
       } else if (currentSession?.expires_at) {
         const expiryTime = new Date(currentSession.expires_at * 1000);
         setIsSessionExpired(expiryTime < new Date());
@@ -101,13 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Periodic session expiry check using ref-free approach:
-    // getSession() always returns the latest session from Supabase's internal store
+    let expiryToastShown = false;
     const checkSessionInterval = setInterval(async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (currentSession?.expires_at) {
+      if (!currentSession) return;
+      if (currentSession.expires_at) {
         const expiryTime = new Date(currentSession.expires_at * 1000);
-        if (expiryTime < new Date()) {
+        if (expiryTime < new Date() && !expiryToastShown) {
+          expiryToastShown = true;
           setIsSessionExpired(true);
           toast.warning("Votre session a expiré. Veuillez vous reconnecter.");
         }

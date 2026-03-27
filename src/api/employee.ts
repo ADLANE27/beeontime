@@ -2,14 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { NewEmployee } from "@/types/hr";
 
-/**
- * Checks if an auth user exists with the given email
- */
 export const checkAuthUserExists = async (email: string) => {
   try {
     console.log('Checking if user exists with email:', email);
 
-    // Use edge function with service role key to check user existence
     const { data, error } = await supabase.functions.invoke('manage-users', {
       body: {
         email: email.toLowerCase(),
@@ -32,14 +28,10 @@ export const checkAuthUserExists = async (email: string) => {
   }
 };
 
-/**
- * Updates the password for an existing auth user
- */
 export const updateUserPassword = async (userId: string, password: string, email: string) => {
   try {
     console.log(`Updating password for user ${userId}`);
 
-    // Use edge function with service role key to update password
     const { data, error } = await supabase.functions.invoke('manage-users', {
       body: {
         userId,
@@ -62,12 +54,8 @@ export const updateUserPassword = async (userId: string, password: string, email
   }
 };
 
-/**
- * Creates a new auth user
- */
 export const createAuthUser = async (email: string, password: string, firstName: string, lastName: string) => {
   try {
-    // Use the improved edge function for user creation
     console.log('Creating new auth user with edge function:', { email, firstName, lastName });
     
     const { data, error } = await supabase.functions.invoke('manage-users', {
@@ -98,9 +86,6 @@ export const createAuthUser = async (email: string, password: string, firstName:
   }
 };
 
-/**
- * Updates or creates a user profile
- */
 export const updateUserProfile = async (
   id: string, 
   email: string, 
@@ -151,9 +136,6 @@ export const updateUserProfile = async (
   }
 };
 
-/**
- * Creates or updates an employee record
- */
 export const upsertEmployee = async (employee: NewEmployee, userId: string, isEditing = false) => {
   try {
     // Check if an employee with this email already exists

@@ -146,28 +146,16 @@ serve(async (req) => {
         console.log('Profile record created successfully')
       }
 
-      // Ensure user_roles record exists (required for role-based access control)
-      const { data: existingRole } = await supabase
+      // Ensure user_roles record exists for role-based access control.
+      // Duplicate insert is harmless (warns but continues).
+      const { error: roleError } = await supabase
         .from('user_roles')
-        .select('id')
-        .eq('user_id', userData.user.id)
-        .maybeSingle()
+        .insert({ user_id: userData.user.id, role: 'employee' })
 
-      if (!existingRole) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userData.user.id,
-            role: 'employee'
-          })
-
-        if (roleError) {
-          console.warn('Error creating user_roles record:', roleError)
-        } else {
-          console.log('User role record created successfully')
-        }
+      if (roleError) {
+        console.warn('Error creating user_roles record (may already exist):', roleError)
       } else {
-        console.log('User role record already exists')
+        console.log('User role record created successfully')
       }
 
       return new Response(
