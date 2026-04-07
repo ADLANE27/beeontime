@@ -11,28 +11,28 @@ import {
 } from "@/components/ui/command";
 import type { LucideIcon } from "lucide-react";
 
-export interface HRCommandItem {
+export interface CommandPaletteItem {
   value: string;
   label: string;
   icon: LucideIcon;
   badge?: number | null;
 }
 
-interface HRCommandPaletteProps {
+interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: HRCommandItem[];
+  items: CommandPaletteItem[];
   onSelect: (value: string) => void;
   onSignOut?: () => void;
 }
 
-export const HRCommandPalette = ({
+export const CommandPalette = ({
   open,
   onOpenChange,
   items,
   onSelect,
   onSignOut,
-}: HRCommandPaletteProps) => {
+}: CommandPaletteProps) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {

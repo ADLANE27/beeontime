@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { HRCommandPalette } from "@/components/hr/HRCommandPalette";
+import { CommandPalette } from "@/components/command/CommandPalette";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search } from "lucide-react";
 import {
@@ -179,7 +179,7 @@ const HRDashboard = () => {
 
   return (
     <DashboardLayout>
-      <HRCommandPalette
+      <CommandPalette
         open={isPaletteOpen}
         onOpenChange={setIsPaletteOpen}
         items={menuItems}

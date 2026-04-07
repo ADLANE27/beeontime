@@ -50,7 +50,7 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    const logoutButton = screen.getByRole("button");
+    const logoutButton = screen.getByRole("button", { name: /quitter|déconnecter/i });
     fireEvent.click(logoutButton);
 
     await waitFor(() => {
