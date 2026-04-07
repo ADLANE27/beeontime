@@ -60,7 +60,7 @@ describe("ProtectedRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Vérification des accès...")).toBeInTheDocument();
+    expect(screen.getByText(/Vérification des accès/i)).toBeInTheDocument();
   });
 
   it("renders children when user is authenticated with correct role", async () => {

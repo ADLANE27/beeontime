@@ -1,7 +1,7 @@
 
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DashboardLayout, useDashboardPalette } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Clock4, CalendarDays, AlertTriangle, Menu, Search } from "lucide-react";
+import { FileText, Clock4, CalendarDays, AlertTriangle, Menu } from "lucide-react";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveRequestForm } from "@/components/leave/LeaveRequestForm";
@@ -26,7 +26,7 @@ import {
 const EmployeeDashboard = () => {
   const [selectedTab, setSelectedTab] = useState("documents");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const palette = useDashboardPalette();
   const isMobile = useIsMobile();
   const { signOut } = useAuth();
 
@@ -45,28 +45,13 @@ const EmployeeDashboard = () => {
   return (
     <DashboardLayout>
       <CommandPalette
-        open={isPaletteOpen}
-        onOpenChange={setIsPaletteOpen}
+        open={palette?.open ?? false}
+        onOpenChange={(o) => palette?.setOpen(o)}
         items={menuItems}
         onSelect={handleTabChange}
         onSignOut={signOut}
       />
       <div className="space-y-6 sm:space-y-8 w-full animate-fade-in">
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPaletteOpen(true)}
-            className="gap-2 text-muted-foreground"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Rechercher…</span>
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="text-xs">⌘</span>K
-            </kbd>
-          </Button>
-        </div>
-
         {/* Welcome Header */}
         <div className="gradient-card rounded-xl sm:rounded-2xl p-6 sm:p-10 card-highlight hover-lift glow-border">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient mb-2 sm:mb-3">Bienvenue</h1>
