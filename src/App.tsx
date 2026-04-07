@@ -15,6 +15,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { supabase } from "./integrations/supabase/client";
 import { toast } from "sonner";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,14 +42,32 @@ const queryClient = new QueryClient({
   },
 });
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 const RouteFallback = () => (
-  <div className="flex min-h-screen items-center justify-center bg-background">
-    <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+  <div className="min-h-screen w-full bg-background">
+    <header className="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-full items-center justify-end gap-2 px-6 sm:h-20 sm:px-10">
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <Skeleton className="h-10 w-32 rounded-xl" />
+      </div>
+    </header>
+    <main className="mx-auto max-w-full space-y-6 px-6 py-10 sm:px-10">
+      <Skeleton className="h-32 w-full rounded-2xl" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
+      </div>
+      <Skeleton className="h-96 w-full rounded-2xl" />
+    </main>
   </div>
 );
 
 const App = () => (
   <ErrorBoundary>
+    <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
@@ -85,6 +104,7 @@ const App = () => (
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   </ErrorBoundary>
 );
 
