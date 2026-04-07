@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
+import RoleSelector from "./pages/RoleSelector";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -49,7 +50,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Navigate to="/portal" replace />} />
+              <Route path="/" element={<RoleSelector />} />
               <Route path="/portal" element={<Portal />} />
               <Route path="/hr-portal" element={<HRPortal />} />
               <Route 
@@ -68,7 +69,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="*" element={<Navigate to="/portal" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
