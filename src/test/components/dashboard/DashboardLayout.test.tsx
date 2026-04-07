@@ -2,10 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, waitFor, fireEvent } from "@testing-library/react";
 import { screen } from "@testing-library/dom";
 import { MemoryRouter } from "react-router-dom";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { supabase } from "@/integrations/supabase/client";
 
-// Mock sonner toast
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -14,6 +11,22 @@ vi.mock("sonner", () => ({
     info: vi.fn(),
   },
 }));
+
+const signOutMock = vi.fn();
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    session: { user: { id: "u1", email: "test@example.com" } },
+    user: { id: "u1", email: "test@example.com" },
+    isLoading: false,
+    isSessionExpired: false,
+    signIn: vi.fn(),
+    signOut: signOutMock,
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 describe("DashboardLayout", () => {
   it("renders children content", () => {
@@ -37,11 +50,11 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    // Should show "Quitter" on mobile view
-    expect(screen.getByText("Quitter")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /se déconnecter/i })).toBeInTheDocument();
   });
 
   it("calls signOut when logout button is clicked", async () => {
+    signOutMock.mockClear();
     render(
       <MemoryRouter>
         <DashboardLayout>
@@ -50,11 +63,11 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    const logoutButton = screen.getByRole("button", { name: /quitter|déconnecter/i });
+    const logoutButton = screen.getByRole("button", { name: /se déconnecter/i });
     fireEvent.click(logoutButton);
 
     await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
+      expect(signOutMock).toHaveBeenCalled();
     });
   });
 
@@ -67,7 +80,6 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    // Check for header element
     const header = document.querySelector("header");
     expect(header).toBeInTheDocument();
     expect(header).toHaveClass("sticky");

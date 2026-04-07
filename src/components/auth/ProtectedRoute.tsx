@@ -28,10 +28,10 @@ export const ProtectedRoute = ({
   // Show loading state during initial auth and role check
   if (isAuthLoading || isRoleLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Vérification des accès...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 px-5 py-3 backdrop-blur-xl shadow-card">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-gradient-to-br from-primary to-accent" />
+          <p className="text-sm font-medium text-muted-foreground">Vérification des accès…</p>
         </div>
       </div>
     );
@@ -44,35 +44,37 @@ export const ProtectedRoute = ({
 
   // Check if user has the required role
   if (!hasRole(requiredRole)) {
-    // User is authenticated but doesn't have the required role
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="max-w-md text-center space-y-6 p-8">
-          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-            <ShieldX className="w-8 h-8 text-destructive" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+        <div className="w-full max-w-md surface-2 p-10 text-center animate-fade-in">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10">
+            <ShieldX className="h-7 w-7 text-destructive" />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">Accès non autorisé</h1>
-            <p className="text-muted-foreground">
-              Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-              {requiredRole === "hr" && (
-                <span className="block mt-2">
-                  Cette zone est réservée aux responsables RH.
-                </span>
-              )}
-            </p>
-            {user?.email && (
-              <p className="text-sm text-muted-foreground pt-2">
-                Connecté en tant que <span className="font-medium text-foreground">{user.email}</span>
-                {role && <> ({role === "hr" ? "responsable RH" : "employé"})</>}
-              </p>
+          <h1 className="mt-6 font-display text-2xl font-semibold tracking-tight">
+            Accès non autorisé
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+            {requiredRole === "hr" && (
+              <span className="mt-1 block">Cette zone est réservée aux responsables RH.</span>
             )}
-          </div>
-          <div className="flex flex-col gap-3">
+          </p>
+
+          {user?.email && (
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              <span className="text-xs text-muted-foreground">
+                Connecté&nbsp;: <span className="font-medium text-foreground">{user.email}</span>
+                {role && <> · {role === "hr" ? "RH" : "employé"}</>}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-col gap-2.5">
             {role === "employee" && (
               <a
                 href="/employee"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="ring-focus inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent px-5 text-sm font-medium text-primary-foreground shadow-glow transition-all hover:opacity-95 hover:shadow-elevation"
               >
                 Accéder à mon espace employé
               </a>
@@ -80,7 +82,7 @@ export const ProtectedRoute = ({
             {role === "hr" && requiredRole === "employee" && (
               <a
                 href="/hr"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="ring-focus inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent px-5 text-sm font-medium text-primary-foreground shadow-glow transition-all hover:opacity-95 hover:shadow-elevation"
               >
                 Accéder à l'espace RH
               </a>
@@ -91,7 +93,7 @@ export const ProtectedRoute = ({
                 await signOut();
                 window.location.href = "/";
               }}
-              className="gap-2"
+              className="ring-focus h-11 gap-2 rounded-xl border-border/60"
             >
               <LogOut className="h-4 w-4" />
               Se déconnecter et changer de compte

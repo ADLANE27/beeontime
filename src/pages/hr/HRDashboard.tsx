@@ -1,5 +1,5 @@
 
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DashboardLayout, useDashboardPalette } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, 
@@ -29,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -43,7 +42,7 @@ const HRDashboard = () => {
   const [pendingDelays, setPendingDelays] = useState(0);
   const [selectedTab, setSelectedTab] = useState("employees");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const palette = useDashboardPalette();
   const isMobile = useIsMobile();
   const { signOut } = useAuth();
 
@@ -180,28 +179,13 @@ const HRDashboard = () => {
   return (
     <DashboardLayout>
       <CommandPalette
-        open={isPaletteOpen}
-        onOpenChange={setIsPaletteOpen}
+        open={palette?.open ?? false}
+        onOpenChange={(o) => palette?.setOpen(o)}
         items={menuItems}
         onSelect={handleTabChange}
         onSignOut={signOut}
       />
-      <div className="space-y-4 sm:space-y-6 w-full">
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPaletteOpen(true)}
-            className="gap-2 text-muted-foreground"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Rechercher…</span>
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="text-xs">⌘</span>K
-            </kbd>
-          </Button>
-        </div>
-
+      <div className="space-y-6 w-full">
         {/* Analytics Dashboard */}
         <HRAnalytics />
 
