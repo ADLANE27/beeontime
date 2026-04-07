@@ -51,20 +51,20 @@ const EmployeeDashboard = () => {
         onSelect={handleTabChange}
         onSignOut={signOut}
       />
-      <div className="space-y-6 sm:space-y-8 w-full animate-fade-in">
+      <div className="w-full space-y-5 animate-fade-in sm:space-y-8">
         {/* Welcome Header */}
-        <div className="gradient-card rounded-xl sm:rounded-2xl p-6 sm:p-10 card-highlight hover-lift glow-border">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient mb-2 sm:mb-3">Bienvenue</h1>
-          <p className="text-muted-foreground text-base sm:text-lg mb-6 sm:mb-8">Gérez votre temps et vos demandes en toute simplicité</p>
-          
+        <div className="gradient-card p-5 sm:p-10">
+          <h1 className="mb-1 text-2xl font-bold text-gradient sm:mb-3 sm:text-3xl md:text-4xl">Bienvenue</h1>
+          <p className="text-sm text-muted-foreground sm:mb-8 sm:text-lg">Gérez votre temps et vos demandes en toute simplicité</p>
+
           {/* Quote Section */}
-          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-primary/10">
+          <div className="mt-4 border-t border-border/60 pt-4 sm:mt-6 sm:pt-6">
             <WorkQuote />
           </div>
         </div>
 
         {/* Time Clock Section */}
-        <div className="glass-card rounded-xl sm:rounded-2xl p-6 sm:p-10 hover-lift card-highlight glow-border">
+        <div className="glass-card p-5 sm:p-10">
           <TimeClock />
         </div>
 

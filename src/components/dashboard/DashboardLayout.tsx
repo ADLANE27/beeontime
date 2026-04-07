@@ -39,15 +39,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <PaletteContext.Provider value={{ open: paletteOpen, setOpen: setPaletteOpen }}>
-      <div className="relative min-h-screen w-full">
-        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:h-[68px] sm:px-6 lg:px-10">
+      <div className="relative min-h-[100dvh] w-full">
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl pt-safe">
+          <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 sm:h-[68px] sm:gap-4 sm:px-6 lg:px-10">
             {/* Brand */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex shrink-0 items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-glow">
                 <span className="font-display text-sm font-bold text-primary-foreground">R</span>
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden md:block">
                 <div className="font-display text-sm font-semibold leading-tight tracking-tight">
                   RH AFTraduction
                 </div>
@@ -57,26 +57,40 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
             </div>
 
-            {/* Center: command palette trigger */}
+            {/* Center: command palette trigger
+                Desktop: full search-input look
+                Mobile: icon-only square */}
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="ring-focus group flex h-10 max-w-md flex-1 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-sm text-muted-foreground transition-all hover:border-primary/40 hover:bg-card hover:text-foreground sm:gap-3"
+              aria-label="Rechercher une section ou une action"
+              className="ring-focus tap-target group ml-auto hidden h-10 max-w-md flex-1 items-center gap-3 rounded-xl border border-border/60 bg-card/60 px-3 text-sm text-muted-foreground transition-all hover:border-primary/40 hover:bg-card hover:text-foreground sm:flex"
             >
               <Search className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left text-xs sm:text-sm">
+              <span className="flex-1 truncate text-left text-sm">
                 Rechercher une section, une action…
               </span>
-              <kbd className="hidden h-6 select-none items-center gap-1 rounded-md border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
+              <kbd className="inline-flex h-6 select-none items-center gap-1 rounded-md border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                 <span>⌘</span>K
               </kbd>
             </button>
 
-            {/* Right: theme + user + logout */}
-            <div className="flex items-center gap-2">
+            {/* Right cluster */}
+            <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0 sm:gap-2">
+              {/* Mobile-only search icon */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Rechercher"
+                className="ring-focus tap-target h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:hidden"
+              >
+                <Search className="h-[18px] w-[18px]" />
+              </Button>
+
               <ThemeToggle />
 
-              <div className="hidden h-8 w-px bg-border md:block" />
+              <div className="hidden h-7 w-px bg-border md:block" />
 
               {user?.email && (
                 <div className="hidden items-center gap-2.5 md:flex">
@@ -84,10 +98,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     {initials}
                   </div>
                   <div className="hidden lg:block">
-                    <div className="text-xs font-medium text-foreground">
+                    <div className="text-xs font-medium leading-tight text-foreground">
                       {user.email.split("@")[0]}
                     </div>
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-[10px] leading-tight text-muted-foreground">
                       {user.email}
                     </div>
                   </div>
@@ -99,15 +113,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 size="icon"
                 onClick={handleLogout}
                 aria-label="Se déconnecter"
-                className="ring-focus h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                className="ring-focus tap-target h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-[18px] w-[18px]" />
               </Button>
             </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+        <main className="mx-auto max-w-[1600px] px-4 py-6 pb-safe sm:px-6 sm:py-10 lg:px-10 lg:py-12">
           {children}
         </main>
       </div>

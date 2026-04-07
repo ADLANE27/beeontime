@@ -196,7 +196,7 @@ const HRDashboard = () => {
                 {menuItems.find(item => item.value === selectedTab)?.label}
               </h2>
               
-              <div className="overflow-x-auto pb-2 -mx-4 px-4 sticky top-14 sm:top-16 glass-card z-20 py-2">
+              <div className="no-scrollbar overflow-x-auto pb-2 -mx-4 px-4 sticky top-14 sm:top-[68px] glass-card z-20 py-2">
                 <div className="flex space-x-2 min-w-max">
                   {menuItems.map((item) => (
                     <Button
