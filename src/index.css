@@ -107,12 +107,22 @@
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     min-height: 100vh;
+    /* Use dynamic viewport on mobile so the bottom URL bar doesn't crop */
+    min-height: 100dvh;
+    overflow-x: hidden;
 
     /* Subtle radial ambience that respects the theme */
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--primary) / 0.08), transparent 70%),
       radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--accent) / 0.06), transparent 70%);
     background-attachment: fixed;
+  }
+
+  /* Larger tap targets on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    button, [role="button"], a {
+      -webkit-tap-highlight-color: transparent;
+    }
   }
 
   .dark body {
@@ -228,6 +238,22 @@
 
   .fluid-container {
     @apply px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12;
+  }
+
+  /* iOS notch / Android gesture bar */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+  .px-safe { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+
+  /* Hide scrollbar but keep scroll (used on mobile horizontal tab strips) */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Min 44px tap target on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .tap-target { min-height: 44px; min-width: 44px; }
   }
 }
 
