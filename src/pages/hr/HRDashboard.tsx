@@ -27,6 +27,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { HRCommandPalette } from "@/components/hr/HRCommandPalette";
+import { useAuth } from "@/contexts/AuthContext";
+import { Search } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -40,7 +43,9 @@ const HRDashboard = () => {
   const [pendingDelays, setPendingDelays] = useState(0);
   const [selectedTab, setSelectedTab] = useState("employees");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { signOut } = useAuth();
 
   useEffect(() => {
     const fetchPendingCounts = async () => {
@@ -174,7 +179,29 @@ const HRDashboard = () => {
 
   return (
     <DashboardLayout>
+      <HRCommandPalette
+        open={isPaletteOpen}
+        onOpenChange={setIsPaletteOpen}
+        items={menuItems}
+        onSelect={handleTabChange}
+        onSignOut={signOut}
+      />
       <div className="space-y-4 sm:space-y-6 w-full">
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPaletteOpen(true)}
+            className="gap-2 text-muted-foreground"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Rechercher…</span>
+            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </Button>
+        </div>
+
         {/* Analytics Dashboard */}
         <HRAnalytics />
 

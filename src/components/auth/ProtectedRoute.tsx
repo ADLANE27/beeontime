@@ -4,7 +4,8 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { ShieldX } from "lucide-react";
+import { ShieldX, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export const ProtectedRoute = ({
   children, 
   requiredRole = "employee" 
 }: ProtectedRouteProps) => {
-  const { session, isLoading: isAuthLoading, isSessionExpired } = useAuth();
+  const { session, user, isLoading: isAuthLoading, isSessionExpired, signOut } = useAuth();
   const { role, isLoading: isRoleLoading, hasRole } = useUserRole();
 
   useEffect(() => {
@@ -36,9 +37,9 @@ export const ProtectedRoute = ({
     );
   }
 
-  // If session expired or no session, redirect to appropriate portal
+  // If session expired or no session, send visitor to the role selector
   if (isSessionExpired || !session) {
-    return <Navigate to={requiredRole === "hr" ? "/hr-portal" : "/portal"} replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check if user has the required role
@@ -60,22 +61,41 @@ export const ProtectedRoute = ({
                 </span>
               )}
             </p>
+            {user?.email && (
+              <p className="text-sm text-muted-foreground pt-2">
+                Connecté en tant que <span className="font-medium text-foreground">{user.email}</span>
+                {role && <> ({role === "hr" ? "responsable RH" : "employé"})</>}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-3">
             {role === "employee" && (
-              <a 
-                href="/employee" 
+              <a
+                href="/employee"
                 className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Accéder à mon espace employé
               </a>
             )}
-            <a 
-              href={role === "hr" ? "/hr-portal" : "/portal"} 
-              className="inline-flex items-center justify-center px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            {role === "hr" && requiredRole === "employee" && (
+              <a
+                href="/hr"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Accéder à l'espace RH
+              </a>
+            )}
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await signOut();
+                window.location.href = "/";
+              }}
+              className="gap-2"
             >
-              Retour à la connexion
-            </a>
+              <LogOut className="h-4 w-4" />
+              Se déconnecter et changer de compte
+            </Button>
           </div>
         </div>
       </div>

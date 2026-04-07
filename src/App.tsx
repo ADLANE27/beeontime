@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,8 +8,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Portal from "./pages/Portal";
 import HRPortal from "./pages/HRPortal";
 import RoleSelector from "./pages/RoleSelector";
-import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
-import HRDashboard from "./pages/hr/HRDashboard";
+const EmployeeDashboard = lazy(() => import("./pages/employee/EmployeeDashboard"));
+const HRDashboard = lazy(() => import("./pages/hr/HRDashboard"));
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import { supabase } from "./integrations/supabase/client";
@@ -41,6 +41,12 @@ const queryClient = new QueryClient({
   },
 });
 
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+  </div>
+);
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -53,21 +59,25 @@ const App = () => (
               <Route path="/" element={<RoleSelector />} />
               <Route path="/portal" element={<Portal />} />
               <Route path="/hr-portal" element={<HRPortal />} />
-              <Route 
-                path="/employee/*" 
+              <Route
+                path="/employee/*"
                 element={
                   <ProtectedRoute requiredRole="employee">
-                    <EmployeeDashboard />
+                    <Suspense fallback={<RouteFallback />}>
+                      <EmployeeDashboard />
+                    </Suspense>
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/hr/*" 
+              <Route
+                path="/hr/*"
                 element={
                   <ProtectedRoute requiredRole="hr">
-                    <HRDashboard />
+                    <Suspense fallback={<RouteFallback />}>
+                      <HRDashboard />
+                    </Suspense>
                   </ProtectedRoute>
-                } 
+                }
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

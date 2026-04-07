@@ -164,7 +164,7 @@ describe("ProtectedRoute", () => {
     expect(screen.getByText("HR Content")).toBeInTheDocument();
   });
 
-  it("redirects to portal when session is expired", async () => {
+  it("redirects to role selector when session is expired", async () => {
     mockUseAuth.mockReturnValue({
       session: null,
       user: null,
@@ -190,17 +190,17 @@ describe("ProtectedRoute", () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/portal" element={<div>Portal Page</div>} />
+          <Route path="/" element={<div>Role Selector Page</div>} />
         </Routes>
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Portal Page")).toBeInTheDocument();
+      expect(screen.getByText("Role Selector Page")).toBeInTheDocument();
     });
   });
 
-  it("redirects to hr-portal for HR required role when not authenticated", async () => {
+  it("redirects to role selector when not authenticated on HR route", async () => {
     mockUseAuth.mockReturnValue({
       session: null,
       user: null,
@@ -226,13 +226,13 @@ describe("ProtectedRoute", () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/hr-portal" element={<div>HR Portal Page</div>} />
+          <Route path="/" element={<div>Role Selector Page</div>} />
         </Routes>
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(screen.getByText("HR Portal Page")).toBeInTheDocument();
+      expect(screen.getByText("Role Selector Page")).toBeInTheDocument();
     });
   });
 });
