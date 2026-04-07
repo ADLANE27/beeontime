@@ -12,3 +12,11 @@
   VITE_SUPABASE_URL = "https://tedjuorbafahlnplndye.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlZGp1b3JiYWZhaGxucGxuZHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMzMzIsImV4cCI6MjA1MjUyOTMzMn0.E2MGml0yB8CzI8tCs5EEwl96NDcY9KrpKFTQ_sqfs-8"
   VITE_SITE_URL = "https://rh-aftraduction.com"
+
+# Override any UI-configured functions directory. The supabase/functions/
+# directory contains Deno-based Supabase Edge Functions (https:// imports,
+# Deno.env) which Netlify's esbuild bundler cannot resolve. Point Netlify
+# at an empty placeholder directory so it does not try to bundle them.
+# Those functions are deployed via `supabase functions deploy`.
+[functions]
+  directory = "netlify/functions"
